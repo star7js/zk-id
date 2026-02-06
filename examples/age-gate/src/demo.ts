@@ -35,7 +35,7 @@ async function main() {
   // STEP 2: User wants to access age-restricted content
   // ============================================================================
   console.log('🌐 Step 2: Website Requests Age Verification');
-  console.log('   User visits an adult website that requires 18+ verification');
+  console.log('   User visits age-restricted content that requires 18+ verification');
   console.log('   Website: "Prove you are at least 18 years old"\n');
 
   const minAge = 18;
@@ -47,27 +47,32 @@ async function main() {
   console.log('🔒 Step 3: User Generates Zero-Knowledge Proof');
   console.log('   The proof is generated locally on user\'s device');
   console.log('   Private inputs: birth year (1995), credential salt');
-  console.log('   Public inputs: current year (2024), minimum age (18)\n');
+  console.log(`   Public inputs: current year (${new Date().getFullYear()}), minimum age (${minAge})\n`);
 
+  let proof;
   try {
-    // This would work after circuits are compiled
-    // const proof = await generateAgeProof(
-    //   signedCredential.credential,
-    //   minAge,
-    //   'path/to/age-verify.wasm',
-    //   'path/to/age-verify.zkey'
-    // );
+    const wasmPath = '../../packages/circuits/build/age-verify_js/age-verify.wasm';
+    const zkeyPath = '../../packages/circuits/build/age-verify.zkey';
 
-    console.log('   ⚠️  Proof generation requires compiled circuits');
-    console.log('   Run: cd packages/circuits && npm run compile && npm run setup');
-    console.log('\n   What the proof would contain:');
+    proof = await generateAgeProof(
+      signedCredential.credential,
+      minAge,
+      wasmPath,
+      zkeyPath
+    );
+
+    console.log('   ✓ Proof generated successfully!');
     console.log('   ✓ Proof that (currentYear - birthYear) >= minAge');
     console.log('   ✓ Credential commitment (binds proof to specific identity)');
     console.log('   ✗ Birth year is NOT revealed');
-    console.log('   ✗ Exact age is NOT revealed\n');
+    console.log('   ✗ Exact age is NOT revealed');
+    console.log(`   - Proof size: ~${JSON.stringify(proof).length} bytes\n`);
 
   } catch (error) {
-    console.log('   (Circuits not yet compiled - this is expected for initial demo)\n');
+    console.log('   ⚠️  Proof generation failed');
+    console.log('   Run: cd packages/circuits && npm run compile && npm run setup');
+    console.log(`   Error: ${error}\n`);
+    return;
   }
 
   // ============================================================================
@@ -78,8 +83,28 @@ async function main() {
   console.log('   Learns: User IS at least 18 years old');
   console.log('   Does NOT learn: Birth year, exact age, or any other personal info\n');
 
-  console.log('   ⚠️  Verification requires verification key from compiled circuits');
-  console.log('   After setup, verification would be instant (<100ms)\n');
+  try {
+    const vkeyPath = '../../packages/circuits/build/age-verify_verification_key.json';
+    const verificationKey = await loadVerificationKey(vkeyPath);
+
+    const startTime = Date.now();
+    const isValid = await verifyAgeProof(proof!, verificationKey);
+    const verificationTime = Date.now() - startTime;
+
+    if (isValid) {
+      console.log('   ✓ Proof verified successfully!');
+      console.log(`   ✓ Verification time: ${verificationTime}ms`);
+      console.log('   ✓ User is confirmed to be at least 18 years old');
+      console.log('   ✓ Website grants access to age-restricted content\n');
+    } else {
+      console.log('   ✗ Proof verification failed');
+      console.log('   ✗ Access denied\n');
+    }
+  } catch (error) {
+    console.log('   ⚠️  Verification failed');
+    console.log(`   Error: ${error}\n`);
+    return;
+  }
 
   // ============================================================================
   // SUMMARY
