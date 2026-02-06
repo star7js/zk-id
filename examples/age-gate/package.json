@@ -1,0 +1,20 @@
+{
+  "name": "age-gate-example",
+  "version": "0.1.0",
+  "description": "Complete example of age verification using zk-id",
+  "private": true,
+  "scripts": {
+    "demo": "ts-node src/demo.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@zk-id/core": "^0.1.0",
+    "@zk-id/issuer": "^0.1.0",
+    "@zk-id/sdk": "^0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}

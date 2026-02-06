@@ -1,0 +1,19 @@
+{
+  "name": "@zk-id/circuits",
+  "version": "0.1.0",
+  "description": "Zero-knowledge circuits for identity verification",
+  "scripts": {
+    "compile": "bash scripts/compile.sh",
+    "setup": "bash scripts/trusted-setup.sh"
+  },
+  "devDependencies": {
+    "circom": "^2.1.6",
+    "snarkjs": "^0.7.0"
+  },
+  "files": [
+    "src/*.circom",
+    "build/*.wasm",
+    "build/*.zkey",
+    "build/verification_key.json"
+  ]
+}

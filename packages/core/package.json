@@ -1,0 +1,19 @@
+{
+  "name": "@zk-id/core",
+  "version": "0.1.0",
+  "description": "Core library for zk-id zero-knowledge identity verification",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Tests TBD\" && exit 0"
+  },
+  "dependencies": {
+    "snarkjs": "^0.7.0",
+    "circomlibjs": "^0.1.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "typescript": "^5.3.3"
+  }
+}
