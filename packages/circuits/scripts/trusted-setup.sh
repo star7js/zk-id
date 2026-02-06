@@ -6,6 +6,10 @@ echo "Performing trusted setup (Powers of Tau)..."
 CIRCUITS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="$CIRCUITS_DIR/build"
 POT_DIR="$BUILD_DIR/pot"
+ROOT_DIR="$CIRCUITS_DIR/../.."
+
+# Use npx to run snarkjs from node_modules
+SNARKJS="npx snarkjs"
 
 mkdir -p "$POT_DIR"
 
@@ -17,19 +21,20 @@ POT_FILE="$POT_DIR/powersOfTau28_hez_final_12.ptau"
 
 if [ ! -f "$POT_FILE" ]; then
   echo "Downloading Powers of Tau file..."
-  curl -o "$POT_FILE" https://hermez.s3-eu-west-1.amazonaws.com/powersOfTau28_hez_final_12.ptau
+  # Use the official snarkjs repository URL
+  curl -L -o "$POT_FILE" https://storage.googleapis.com/zkevm/ptau/powersOfTau28_hez_final_12.ptau
 fi
 
 # Generate proving and verification keys for age-verify
 echo "Generating keys for age-verify circuit..."
-snarkjs groth16 setup \
+$SNARKJS groth16 setup \
   "$BUILD_DIR/age-verify.r1cs" \
   "$POT_FILE" \
   "$BUILD_DIR/age-verify_0000.zkey"
 
 # Contribute to the ceremony (this should be done by multiple parties in production)
 echo "Contributing randomness..."
-snarkjs zkey contribute \
+$SNARKJS zkey contribute \
   "$BUILD_DIR/age-verify_0000.zkey" \
   "$BUILD_DIR/age-verify.zkey" \
   --name="First contribution" \
@@ -38,25 +43,25 @@ snarkjs zkey contribute \
 
 # Export verification key
 echo "Exporting verification key..."
-snarkjs zkey export verificationkey \
+$SNARKJS zkey export verificationkey \
   "$BUILD_DIR/age-verify.zkey" \
   "$BUILD_DIR/age-verify_verification_key.json"
 
 # Generate keys for credential-hash
 echo "Generating keys for credential-hash circuit..."
-snarkjs groth16 setup \
+$SNARKJS groth16 setup \
   "$BUILD_DIR/credential-hash.r1cs" \
   "$POT_FILE" \
   "$BUILD_DIR/credential-hash_0000.zkey"
 
-snarkjs zkey contribute \
+$SNARKJS zkey contribute \
   "$BUILD_DIR/credential-hash_0000.zkey" \
   "$BUILD_DIR/credential-hash.zkey" \
   --name="First contribution" \
   -v \
   -e="random entropy"
 
-snarkjs zkey export verificationkey \
+$SNARKJS zkey export verificationkey \
   "$BUILD_DIR/credential-hash.zkey" \
   "$BUILD_DIR/credential-hash_verification_key.json"
 

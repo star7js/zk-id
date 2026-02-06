@@ -4,7 +4,7 @@ This example demonstrates a complete end-to-end age verification flow using zk-i
 
 ## Scenario
 
-A user wants to access age-restricted content (e.g., adult website, alcohol purchase, social media) without revealing their exact age or birth year.
+A user wants to access age-restricted content (e.g., alcohol purchase, mature content, social media) without revealing their exact age or birth year.
 
 ## Flow
 

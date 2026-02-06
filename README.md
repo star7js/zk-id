@@ -117,16 +117,16 @@ zk-id/
 │   ├── issuer/            # Credential issuance service
 │   └── sdk/               # Website integration SDK (client + server)
 ├── examples/
-│   └── age-gate/          # Complete end-to-end demo
+│   └── age-gate/          # Complete age verification demo
 └── docs/                  # Architecture and protocol documentation
 ```
 
 ## Use Cases
 
-- **Adult Content**: Age verification for adult websites (18+, 21+)
+- **Age-Restricted Content**: Verify minimum age requirements for restricted websites (18+, 21+)
 - **Social Media**: Compliance with age restrictions (13+, 16+)
 - **E-Commerce**: Age verification for alcohol, tobacco, cannabis
-- **Gaming**: Age-appropriate content gates
+- **Gaming**: Age-appropriate content access controls
 - **Voting**: Prove eligibility (18+) without revealing exact age
 - **Discounts**: Prove senior (65+) or student status without ID
 
@@ -189,7 +189,7 @@ MIT License - see `LICENSE` file for details.
 
 - [Architecture Documentation](./docs/ARCHITECTURE.md)
 - [Protocol Specification](./docs/PROTOCOL.md)
-- [Example: Age Gate](./examples/age-gate/)
+- [Example: Age Verification Demo](./examples/age-gate/)
 - [Circom Circuits](./packages/circuits/)
 
 ## Comparison to Standards

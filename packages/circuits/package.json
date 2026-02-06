@@ -4,11 +4,17 @@
   "description": "Zero-knowledge circuits for identity verification",
   "scripts": {
     "compile": "bash scripts/compile.sh",
-    "setup": "bash scripts/trusted-setup.sh"
+    "setup": "bash scripts/trusted-setup.sh",
+    "test": "PATH=\"$HOME/.cargo/bin:$PATH\" mocha test/**/*.test.js --timeout 60000"
+  },
+  "dependencies": {
+    "circomlib": "^2.0.5"
   },
   "devDependencies": {
-    "circom": "^2.1.6",
-    "snarkjs": "^0.7.0"
+    "snarkjs": "^0.7.6",
+    "circom_tester": "^0.0.19",
+    "mocha": "^10.3.0",
+    "chai": "^4.4.1"
   },
   "files": [
     "src/*.circom",
