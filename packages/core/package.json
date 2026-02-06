@@ -6,14 +6,20 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "echo \"Tests TBD\" && exit 0"
+    "test": "mocha -r ts-node/register/transpile-only test/**/*.test.ts --timeout 10000",
+    "test:watch": "mocha -r ts-node/register/transpile-only test/**/*.test.ts --watch --watch-extensions ts"
   },
   "dependencies": {
-    "snarkjs": "^0.7.0",
-    "circomlibjs": "^0.1.7"
+    "circomlibjs": "^0.1.7",
+    "snarkjs": "^0.7.0"
   },
   "devDependencies": {
+    "@types/chai": "^4.3.20",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^20.10.6",
+    "chai": "^4.4.1",
+    "mocha": "^10.3.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   }
 }

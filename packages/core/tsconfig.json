@@ -2,7 +2,15 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "types": ["node", "mocha", "chai"],
+    "typeRoots": ["./node_modules/@types", "./src/types"]
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "test/**/*"],
+  "ts-node": {
+    "compilerOptions": {
+      "module": "commonjs"
+    },
+    "typeCheck": false
+  }
 }

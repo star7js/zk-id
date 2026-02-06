@@ -1,0 +1,151 @@
+import { expect } from 'chai';
+import { validateProofConstraints } from '../src/verifier';
+import { AgeProof } from '../src/types';
+
+describe('Verifier Tests', () => {
+  describe('validateProofConstraints', () => {
+    const createMockProof = (overrides?: Partial<AgeProof>): AgeProof => {
+      const currentYear = new Date().getFullYear();
+      return {
+        proof: {
+          pi_a: ['1', '2'],
+          pi_b: [['3', '4'], ['5', '6']],
+          pi_c: ['7', '8'],
+          protocol: 'groth16',
+          curve: 'bn128',
+        },
+        publicSignals: {
+          currentYear,
+          minAge: 18,
+          credentialHash: '12345678901234567890',
+        },
+        ...overrides,
+      };
+    };
+
+    it('should validate a good proof', () => {
+      const proof = createMockProof();
+      const result = validateProofConstraints(proof);
+
+      expect(result.valid).to.be.true;
+      expect(result.errors).to.have.lengthOf(0);
+    });
+
+    it('should reject proof with invalid current year (too old)', () => {
+      const proof = createMockProof({
+        publicSignals: {
+          currentYear: 2010,
+          minAge: 18,
+          credentialHash: '12345',
+        },
+      });
+
+      const result = validateProofConstraints(proof);
+      expect(result.valid).to.be.false;
+      expect(result.errors).to.include('Invalid current year in proof');
+    });
+
+    it('should reject proof with invalid current year (future)', () => {
+      const futureYear = new Date().getFullYear() + 5;
+      const proof = createMockProof({
+        publicSignals: {
+          currentYear: futureYear,
+          minAge: 18,
+          credentialHash: '12345',
+        },
+      });
+
+      const result = validateProofConstraints(proof);
+      expect(result.valid).to.be.false;
+      expect(result.errors).to.include('Invalid current year in proof');
+    });
+
+    it('should reject proof with negative minAge', () => {
+      const proof = createMockProof({
+        publicSignals: {
+          currentYear: new Date().getFullYear(),
+          minAge: -1,
+          credentialHash: '12345',
+        },
+      });
+
+      const result = validateProofConstraints(proof);
+      expect(result.valid).to.be.false;
+      expect(result.errors).to.include('Invalid minimum age requirement');
+    });
+
+    it('should reject proof with unreasonably high minAge', () => {
+      const proof = createMockProof({
+        publicSignals: {
+          currentYear: new Date().getFullYear(),
+          minAge: 200,
+          credentialHash: '12345',
+        },
+      });
+
+      const result = validateProofConstraints(proof);
+      expect(result.valid).to.be.false;
+      expect(result.errors).to.include('Invalid minimum age requirement');
+    });
+
+    it('should reject proof with missing credential hash', () => {
+      const proof = createMockProof({
+        publicSignals: {
+          currentYear: new Date().getFullYear(),
+          minAge: 18,
+          credentialHash: '',
+        },
+      });
+
+      const result = validateProofConstraints(proof);
+      expect(result.valid).to.be.false;
+      expect(result.errors).to.include('Missing or invalid credential hash');
+    });
+
+    it('should reject proof with zero credential hash', () => {
+      const proof = createMockProof({
+        publicSignals: {
+          currentYear: new Date().getFullYear(),
+          minAge: 18,
+          credentialHash: '0',
+        },
+      });
+
+      const result = validateProofConstraints(proof);
+      expect(result.valid).to.be.false;
+      expect(result.errors).to.include('Missing or invalid credential hash');
+    });
+
+    it('should validate proof with various valid minAge values', () => {
+      const validAges = [13, 16, 18, 21, 65, 100];
+
+      for (const age of validAges) {
+        const proof = createMockProof({
+          publicSignals: {
+            currentYear: new Date().getFullYear(),
+            minAge: age,
+            credentialHash: '12345',
+          },
+        });
+
+        const result = validateProofConstraints(proof);
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.have.lengthOf(0);
+      }
+    });
+
+    it('should accumulate multiple errors', () => {
+      const proof = createMockProof({
+        publicSignals: {
+          currentYear: 2010,
+          minAge: -5,
+          credentialHash: '',
+        },
+      });
+
+      const result = validateProofConstraints(proof);
+      expect(result.valid).to.be.false;
+      expect(result.errors.length).to.be.greaterThan(1);
+    });
+  });
+});
