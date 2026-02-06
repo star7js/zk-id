@@ -1,5 +1,5 @@
 import { createCredential, Credential } from '@zk-id/core';
-import { createHash, randomBytes } from 'crypto';
+import { createHash, createHmac, randomBytes } from 'crypto';
 
 /**
  * IssuerConfig defines the configuration for a credential issuer
@@ -82,8 +82,7 @@ export class CredentialIssuer {
     });
 
     // HMAC signature using the issuer's signing key
-    const hmac = createHash('sha256')
-      .update(this.config.signingKey)
+    const hmac = createHmac('sha256', this.config.signingKey)
       .update(message)
       .digest('hex');
 
@@ -92,16 +91,17 @@ export class CredentialIssuer {
 
   /**
    * Verifies a signed credential's signature
+   * Note: In production, publicKey would be the actual public key from a keypair.
+   * For this simplified implementation, we derive it from the signing key for testing.
    */
-  static verifySignature(signedCredential: SignedCredential, publicKey: string): boolean {
+  static verifySignature(signedCredential: SignedCredential, signingKey: string): boolean {
     const message = JSON.stringify({
       id: signedCredential.credential.id,
       commitment: signedCredential.credential.commitment,
       createdAt: signedCredential.credential.createdAt,
     });
 
-    const expectedSignature = createHash('sha256')
-      .update(publicKey)
+    const expectedSignature = createHmac('sha256', signingKey)
       .update(message)
       .digest('hex');
 

@@ -6,13 +6,18 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "echo \"Tests TBD\" && exit 0"
+    "test": "mocha -r ts-node/register/transpile-only test/**/*.test.ts --timeout 10000"
   },
   "dependencies": {
     "@zk-id/core": "^0.1.0"
   },
   "devDependencies": {
     "@types/node": "^20.10.6",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "@types/chai": "^4.3.11",
+    "@types/mocha": "^10.0.6",
+    "chai": "^4.4.1",
+    "mocha": "^10.3.0",
+    "ts-node": "^10.9.2"
   }
 }
