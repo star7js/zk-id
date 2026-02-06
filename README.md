@@ -154,10 +154,12 @@ zk-id/
 - [x] Core cryptographic primitives
 - [x] Age verification circuit
 - [x] TypeScript SDK
-- [ ] Compile and test circuits
+- [x] Compile and test circuits
+- [x] Working end-to-end demo
+- [x] Issuer implementation with credential signing
+- [x] Comprehensive test suite (59 tests passing)
 - [ ] Browser wallet implementation
 - [ ] Mobile wallet (iOS/Android)
-- [ ] Issuer reference implementation
 - [ ] Multi-attribute credentials (not just age)
 - [ ] Credential revocation
 - [ ] W3C Verifiable Credentials compatibility
