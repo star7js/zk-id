@@ -18,6 +18,7 @@ describe('Verifier Tests', () => {
           currentYear,
           minAge: 18,
           credentialHash: '12345678901234567890',
+          nonce: 'nonce-1',
         },
         ...overrides,
       };
@@ -37,6 +38,7 @@ describe('Verifier Tests', () => {
           currentYear: 2010,
           minAge: 18,
           credentialHash: '12345',
+          nonce: 'nonce-1',
         },
       });
 
@@ -52,6 +54,7 @@ describe('Verifier Tests', () => {
           currentYear: futureYear,
           minAge: 18,
           credentialHash: '12345',
+          nonce: 'nonce-1',
         },
       });
 
@@ -66,6 +69,7 @@ describe('Verifier Tests', () => {
           currentYear: new Date().getFullYear(),
           minAge: -1,
           credentialHash: '12345',
+          nonce: 'nonce-1',
         },
       });
 
@@ -80,6 +84,7 @@ describe('Verifier Tests', () => {
           currentYear: new Date().getFullYear(),
           minAge: 200,
           credentialHash: '12345',
+          nonce: 'nonce-1',
         },
       });
 
@@ -94,6 +99,7 @@ describe('Verifier Tests', () => {
           currentYear: new Date().getFullYear(),
           minAge: 18,
           credentialHash: '',
+          nonce: 'nonce-1',
         },
       });
 
@@ -108,6 +114,7 @@ describe('Verifier Tests', () => {
           currentYear: new Date().getFullYear(),
           minAge: 18,
           credentialHash: '0',
+          nonce: 'nonce-1',
         },
       });
 
@@ -122,11 +129,12 @@ describe('Verifier Tests', () => {
       for (const age of validAges) {
         const proof = createMockProof({
           publicSignals: {
-            currentYear: new Date().getFullYear(),
-            minAge: age,
-            credentialHash: '12345',
-          },
-        });
+          currentYear: new Date().getFullYear(),
+          minAge: age,
+          credentialHash: '12345',
+          nonce: 'nonce-1',
+        },
+      });
 
         const result = validateProofConstraints(proof);
         expect(result.valid).to.be.true;
@@ -140,6 +148,7 @@ describe('Verifier Tests', () => {
           currentYear: 2010,
           minAge: -5,
           credentialHash: '',
+          nonce: '',
         },
       });
 
@@ -162,6 +171,7 @@ describe('Verifier Tests', () => {
         publicSignals: {
           targetNationality: 840,
           credentialHash: '12345678901234567890',
+          nonce: 'nonce-1',
         },
         ...overrides,
       };
@@ -180,6 +190,7 @@ describe('Verifier Tests', () => {
         publicSignals: {
           targetNationality: 0,
           credentialHash: '12345',
+          nonce: 'nonce-1',
         },
       });
 
@@ -193,6 +204,7 @@ describe('Verifier Tests', () => {
         publicSignals: {
           targetNationality: 1000,
           credentialHash: '12345',
+          nonce: 'nonce-1',
         },
       });
 
@@ -235,6 +247,7 @@ describe('Verifier Tests', () => {
           publicSignals: {
             targetNationality: code,
             credentialHash: '12345',
+            nonce: 'nonce-1',
           },
         });
 
@@ -249,6 +262,7 @@ describe('Verifier Tests', () => {
         publicSignals: {
           targetNationality: 1500,
           credentialHash: '',
+          nonce: '',
         },
       });
 

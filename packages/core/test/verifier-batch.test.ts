@@ -41,6 +41,7 @@ describe('Batch Verification Tests', () => {
           currentYear: 2026,
           minAge: 18,
           credentialHash: '12345',
+          nonce: 'nonce-1',
         },
       };
 
@@ -77,6 +78,7 @@ describe('Batch Verification Tests', () => {
           currentYear: 2026,
           minAge: 18,
           credentialHash: '12345',
+          nonce: 'nonce-1',
         },
       };
 
@@ -91,6 +93,7 @@ describe('Batch Verification Tests', () => {
         publicSignals: {
           targetNationality: 840,
           credentialHash: '12345',
+          nonce: 'nonce-1',
         },
       };
 
@@ -128,6 +131,7 @@ describe('Batch Verification Tests', () => {
           currentYear: 2026,
           minAge: 18,
           credentialHash: '12345',
+          nonce: 'nonce-1',
         },
       };
 

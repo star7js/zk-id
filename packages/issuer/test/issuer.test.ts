@@ -1,5 +1,6 @@
 import { expect } from 'chai';
-import { CredentialIssuer, SignedCredential } from '../src/issuer';
+import { CredentialIssuer } from '../src/issuer';
+import { SignedCredential } from '@zk-id/core';
 import { InMemoryRevocationStore } from '@zk-id/core';
 
 describe('CredentialIssuer Tests', () => {

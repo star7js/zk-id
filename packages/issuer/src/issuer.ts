@@ -1,5 +1,5 @@
-import { createCredential, Credential, RevocationStore } from '@zk-id/core';
-import { createHash, randomBytes, generateKeyPairSync, sign, verify, KeyObject } from 'crypto';
+import { createCredential, Credential, RevocationStore, SignedCredential, credentialSignaturePayload } from '@zk-id/core';
+import { generateKeyPairSync, sign, verify, KeyObject } from 'crypto';
 
 /**
  * IssuerConfig defines the configuration for a credential issuer
@@ -11,16 +11,6 @@ export interface IssuerConfig {
   signingKey: KeyObject;
   /** Ed25519 public verification key */
   publicKey: KeyObject;
-}
-
-/**
- * SignedCredential wraps a credential with an issuer signature
- */
-export interface SignedCredential {
-  credential: Credential;
-  issuer: string;
-  signature: string;
-  issuedAt: string;
 }
 
 /**
@@ -80,11 +70,7 @@ export class CredentialIssuer {
    * Signs a credential using the issuer's Ed25519 private key
    */
   private signCredential(credential: Credential): string {
-    const message = JSON.stringify({
-      id: credential.id,
-      commitment: credential.commitment,
-      createdAt: credential.createdAt,
-    });
+    const message = credentialSignaturePayload(credential);
 
     // Ed25519 signature using the issuer's private key
     const signature = sign(null, Buffer.from(message), this.config.signingKey);
@@ -96,11 +82,7 @@ export class CredentialIssuer {
    * Verifies a signed credential's Ed25519 signature
    */
   static verifySignature(signedCredential: SignedCredential, publicKey: KeyObject): boolean {
-    const message = JSON.stringify({
-      id: signedCredential.credential.id,
-      commitment: signedCredential.credential.commitment,
-      createdAt: signedCredential.credential.createdAt,
-    });
+    const message = credentialSignaturePayload(signedCredential.credential);
 
     try {
       const signature = Buffer.from(signedCredential.signature, 'base64');
@@ -177,5 +159,19 @@ export class CredentialIssuer {
       signingKey: privateKey,
       publicKey: publicKey,
     });
+  }
+
+  /**
+   * Get issuer public key for verification
+   */
+  getPublicKey(): KeyObject {
+    return this.config.publicKey;
+  }
+
+  /**
+   * Get issuer name
+   */
+  getIssuerName(): string {
+    return this.config.name;
   }
 }

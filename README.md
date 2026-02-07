@@ -48,7 +48,6 @@ Current age verification systems force users to expose sensitive information:
 ✅ **Secure**: Built on Groth16 ZK-SNARKs with Ed25519 signatures
 ✅ **Multi-Attribute**: Support for multiple credential attributes with selective disclosure
 ✅ **Revocation**: Production-ready credential revocation system
-✅ **Standards-Compliant**: W3C Verifiable Credentials support
 ✅ **Telemetry**: Built-in verification event monitoring
 ✅ **Batch Verification**: Efficient verification of multiple proofs
 ✅ **Developer-Friendly**: Simple SDK for easy website integration
@@ -136,10 +135,6 @@ const credential = await issuer.issueCredential(
   userId
 );
 
-// Convert to W3C Verifiable Credential format
-import { toVerifiableCredential } from '@zk-id/issuer';
-const vc = toVerifiableCredential(credential, userDID);
-
 // Revoke a credential if needed
 await issuer.revokeCredential(credential.credential.id);
 ```
@@ -151,10 +146,11 @@ zk-id/
 ├── packages/
 │   ├── circuits/          # Circom ZK circuits (age-verify, nationality-verify, credential-hash)
 │   ├── core/              # Core library (credential, prover, verifier, revocation, batch)
-│   ├── issuer/            # Credential issuance with Ed25519 & W3C VC support
+│   ├── issuer/            # Credential issuance with Ed25519 signatures
 │   └── sdk/               # Server SDK with telemetry & revocation checking
 ├── examples/
 │   ├── age-gate/          # CLI demo with proof generation
+│   ├── credential-format-demo/ # Optional format conversion demo
 │   └── web-app/           # Full web integration example
 └── docs/                  # Architecture and protocol documentation
 ```
@@ -164,7 +160,7 @@ zk-id/
 | Package | Description | Key Features |
 |---------|-------------|--------------|
 | `@zk-id/core` | Core cryptographic library | Credential creation, proof generation/verification, batch verification, revocation store |
-| `@zk-id/issuer` | Credential issuance service | Ed25519 signatures, multi-attribute credentials, W3C VC format, revocation |
+| `@zk-id/issuer` | Credential issuance service | Ed25519 signatures, multi-attribute credentials, revocation |
 | `@zk-id/sdk` | Server-side verification | Proof verification, telemetry events, rate limiting, replay protection |
 | `@zk-id/circuits` | ZK circuits (Circom) | Age verification, nationality verification, credential hashing |
 
@@ -198,6 +194,14 @@ zk-id/
 
 ## Roadmap
 
+## Threat Model
+
+See `docs/THREAT-MODEL.md` for the current threat model and assumptions.
+
+## Known Limitations
+
+See `docs/KNOWN-LIMITATIONS.md` for current limitations and non-goals.
+
 - [x] Core cryptographic primitives
 - [x] Age verification circuit
 - [x] TypeScript SDK
@@ -209,7 +213,6 @@ zk-id/
 - [x] **Multi-attribute credentials** (birthYear + nationality with selective disclosure)
 - [x] **Ed25519 signatures** (production-grade asymmetric crypto)
 - [x] **Credential revocation** (revocation store with verifier integration)
-- [x] **W3C Verifiable Credentials** (standards-compliant format conversion)
 - [x] **Telemetry & monitoring** (verification event tracking)
 - [x] **Batch verification** (efficient multi-proof verification)
 - [x] **Web integration example** (Express + HTML demo)
@@ -250,14 +253,13 @@ MIT License - see `LICENSE` file for details.
 - [Architecture Documentation](./docs/ARCHITECTURE.md)
 - [Protocol Specification](./docs/PROTOCOL.md)
 - [Example: Age Verification Demo](./examples/age-gate/)
+- [Example: Credential Format Demo](./examples/credential-format-demo/)
 - [Circom Circuits](./packages/circuits/)
 
 ## Comparison to Standards
 
 zk-id is compatible with and inspired by:
 
-- **W3C Verifiable Credentials**: Can be adapted to issue VCs
-- **W3C Decentralized Identifiers (DIDs)**: Can use DIDs for issuer identification
 - **BBS+ Signatures**: Alternative to ZK-SNARKs for selective disclosure
 - **Iden3**: Shares similar goals, different implementation approach
 

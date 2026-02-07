@@ -12,6 +12,7 @@ include "../node_modules/circomlib/circuits/poseidon.circom";
  *   - salt: Private input (salt used in credential hash)
  *   - targetNationality: Public input (the nationality to verify against)
  *   - credentialHash: Public input (Poseidon hash of the credential for binding)
+ *   - nonce: Public input (replay protection, bound to proof)
  *
  * Output:
  *   - Constraint passes if nationality === targetNationality and credential hash is valid
@@ -25,6 +26,7 @@ template NationalityVerify() {
     // Public inputs
     signal input targetNationality;
     signal input credentialHash;
+    signal input nonce;
 
     // Verify nationality matches target
     component nationalityCheck = IsEqual();
@@ -41,6 +43,10 @@ template NationalityVerify() {
     hasher.inputs[1] <== nationality;
     hasher.inputs[2] <== salt;
     hasher.out === credentialHash;
+
+    // Bind nonce to the proof (no additional constraints)
+    signal nonceCopy <== nonce;
+    nonceCopy === nonce;
 }
 
-component main {public [targetNationality, credentialHash]} = NationalityVerify();
+component main {public [targetNationality, credentialHash, nonce]} = NationalityVerify();

@@ -6,4 +6,4 @@
  */
 
 export * from './issuer';
-export * from './vc';
+export * from './format';

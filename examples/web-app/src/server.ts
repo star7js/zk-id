@@ -20,7 +20,8 @@ app.use(express.json());
 app.use(express.static(join(__dirname, 'public')));
 
 // Create a test issuer (in production, this would use secure key management)
-const issuer = CredentialIssuer.createTestIssuer('Demo Government ID Authority');
+const issuerName = 'Demo Government ID Authority';
+const issuer = CredentialIssuer.createTestIssuer(issuerName);
 const revocationStore = new InMemoryRevocationStore();
 issuer.setRevocationStore(revocationStore);
 
@@ -30,6 +31,9 @@ const zkIdServer = new ZkIdServer({
   nationalityVerificationKeyPath: join(__dirname, '../../../packages/circuits/build/nationality-verify_verification_key.json'),
   nonceStore: new InMemoryNonceStore(),
   revocationStore,
+  issuerPublicKeys: {
+    [issuerName]: issuer.getPublicKey(),
+  },
 });
 
 // Setup telemetry
@@ -193,21 +197,23 @@ app.post('/api/demo/verify-age', async (req, res) => {
 
     // Generate proof (this is the expensive operation)
     const proofGenStart = Date.now();
+    const nonce = randomBytes(32).toString('hex');
     const proof = await generateAgeProof(
       signedCredential.credential,
       minAge,
+      nonce,
       AGE_WASM_PATH,
       AGE_ZKEY_PATH
     );
     const proofGenTime = Date.now() - proofGenStart;
 
     // Wrap in ProofResponse with a fresh nonce
-    const nonce = randomBytes(32).toString('hex');
     const proofResponse: ProofResponse = {
       proof,
       nonce,
       claimType: 'age',
       credentialId,
+      signedCredential,
     };
 
     // Verify the proof
@@ -287,21 +293,23 @@ app.post('/api/demo/verify-nationality', async (req, res) => {
 
     // Generate proof (this is the expensive operation)
     const proofGenStart = Date.now();
+    const nonce = randomBytes(32).toString('hex');
     const proof = await generateNationalityProof(
       signedCredential.credential,
       targetNationality,
+      nonce,
       NATIONALITY_WASM_PATH,
       NATIONALITY_ZKEY_PATH
     );
     const proofGenTime = Date.now() - proofGenStart;
 
     // Wrap in ProofResponse with a fresh nonce
-    const nonce = randomBytes(32).toString('hex');
     const proofResponse: ProofResponse = {
       proof,
       nonce,
       claimType: 'nationality',
       credentialId,
+      signedCredential,
     };
 
     // Verify the proof

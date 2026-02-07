@@ -1,25 +1,25 @@
 import { expect } from 'chai';
 import { CredentialIssuer } from '../src/issuer';
-import { toVerifiableCredential, fromVerifiableCredential } from '../src/vc';
+import { toExternalCredentialFormat, fromExternalCredentialFormat } from '../src/format';
 
-describe('W3C Verifiable Credentials Tests', () => {
+describe('External Credential Format Tests', () => {
   let issuer: CredentialIssuer;
 
   beforeEach(() => {
     issuer = CredentialIssuer.createTestIssuer('Test Government ID Authority');
   });
 
-  describe('toVerifiableCredential', () => {
-    it('should convert SignedCredential to W3C VC format', async () => {
+  describe('toExternalCredentialFormat', () => {
+    it('should convert SignedCredential to external format', async () => {
       const signed = await issuer.issueCredential(1990, 840);
-      const vc = toVerifiableCredential(signed);
+      const vc = toExternalCredentialFormat(signed);
 
       expect(vc).to.have.property('@context');
       expect(vc['@context']).to.be.an('array');
-      expect(vc['@context']).to.include('https://www.w3.org/2018/credentials/v1');
+      expect(vc['@context']).to.include('https://zk-id.example.org/credentials/v1');
 
       expect(vc).to.have.property('type');
-      expect(vc.type).to.include('VerifiableCredential');
+      expect(vc.type).to.include('ExternalCredential');
       expect(vc.type).to.include('ZkIdentityCredential');
 
       expect(vc).to.have.property('issuer', signed.issuer);
@@ -30,7 +30,7 @@ describe('W3C Verifiable Credentials Tests', () => {
 
     it('should include birthYear and nationality when present', async () => {
       const signed = await issuer.issueCredential(1990, 840);
-      const vc = toVerifiableCredential(signed);
+      const vc = toExternalCredentialFormat(signed);
 
       expect(vc.credentialSubject.birthYear).to.equal(1990);
       expect(vc.credentialSubject.nationality).to.equal(840);
@@ -39,29 +39,29 @@ describe('W3C Verifiable Credentials Tests', () => {
     it('should include optional subject ID', async () => {
       const signed = await issuer.issueCredential(1990, 840);
       const subjectId = 'did:example:123456789abcdefgh';
-      const vc = toVerifiableCredential(signed, subjectId);
+      const vc = toExternalCredentialFormat(signed, subjectId);
 
       expect(vc.credentialSubject.id).to.equal(subjectId);
     });
 
     it('should include proof section with Ed25519 signature', async () => {
       const signed = await issuer.issueCredential(1990, 840);
-      const vc = toVerifiableCredential(signed);
+      const vc = toExternalCredentialFormat(signed);
 
       expect(vc.proof).to.exist;
-      expect(vc.proof!.type).to.equal('Ed25519Signature2020');
+      expect(vc.proof!.type).to.equal('Ed25519Signature');
       expect(vc.proof!.signature).to.equal(signed.signature);
       expect(vc.proof!.created).to.equal(signed.issuedAt);
-      expect(vc.proof!.proofPurpose).to.equal('assertionMethod');
+      expect(vc.proof!.proofPurpose).to.equal('assertion');
     });
   });
 
-  describe('fromVerifiableCredential', () => {
-    it('should convert W3C VC back to SignedCredential', async () => {
+  describe('fromExternalCredentialFormat', () => {
+    it('should convert external format back to SignedCredential', async () => {
       const signed = await issuer.issueCredential(1990, 840);
-      const vc = toVerifiableCredential(signed);
+      const vc = toExternalCredentialFormat(signed);
 
-      const converted = fromVerifiableCredential(
+      const converted = fromExternalCredentialFormat(
         vc,
         signed.credential.id,
         signed.credential.salt,
@@ -76,13 +76,13 @@ describe('W3C Verifiable Credentials Tests', () => {
       expect(converted.signature).to.equal(signed.signature);
     });
 
-    it('should throw error if VC missing proof section', async () => {
+    it('should throw error if external format missing proof section', async () => {
       const signed = await issuer.issueCredential(1990, 840);
-      const vc = toVerifiableCredential(signed);
+      const vc = toExternalCredentialFormat(signed);
       delete vc.proof;
 
       try {
-        fromVerifiableCredential(
+        fromExternalCredentialFormat(
           vc,
           signed.credential.id,
           signed.credential.salt,
@@ -101,9 +101,9 @@ describe('W3C Verifiable Credentials Tests', () => {
       const signed = await issuer.issueCredential(1990, 840);
       const publicKey = (issuer as any).config.publicKey;
 
-      // Convert to VC and back
-      const vc = toVerifiableCredential(signed);
-      const converted = fromVerifiableCredential(
+      // Convert to external format and back
+      const vc = toExternalCredentialFormat(signed);
+      const converted = fromExternalCredentialFormat(
         vc,
         signed.credential.id,
         signed.credential.salt,
@@ -117,9 +117,9 @@ describe('W3C Verifiable Credentials Tests', () => {
 
     it('should handle credentials without subject ID', async () => {
       const signed = await issuer.issueCredential(1990, 840);
-      const vc = toVerifiableCredential(signed); // No subject ID
+      const vc = toExternalCredentialFormat(signed); // No subject ID
 
-      const converted = fromVerifiableCredential(
+      const converted = fromExternalCredentialFormat(
         vc,
         signed.credential.id,
         signed.credential.salt,
@@ -134,8 +134,8 @@ describe('W3C Verifiable Credentials Tests', () => {
       const nationality = 826;
       const signed = await issuer.issueCredential(birthYear, nationality);
 
-      const vc = toVerifiableCredential(signed, 'did:example:alice');
-      const converted = fromVerifiableCredential(
+      const vc = toExternalCredentialFormat(signed, 'did:example:alice');
+      const converted = fromExternalCredentialFormat(
         vc,
         signed.credential.id,
         signed.credential.salt,

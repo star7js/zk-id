@@ -17,6 +17,17 @@ export interface Credential {
   createdAt: string;
 }
 
+export interface SignedCredential {
+  /** The signed credential */
+  credential: Credential;
+  /** Issuer name or identifier */
+  issuer: string;
+  /** Base64-encoded Ed25519 signature */
+  signature: string;
+  /** ISO 8601 timestamp of issuance */
+  issuedAt: string;
+}
+
 export interface AgeProof {
   /** The zero-knowledge proof data (Groth16 format) */
   proof: {
@@ -31,6 +42,7 @@ export interface AgeProof {
     currentYear: number;
     minAge: number;
     credentialHash: string;
+    nonce: string;
   };
 }
 
@@ -47,6 +59,7 @@ export interface NationalityProof {
   publicSignals: {
     targetNationality: number;
     credentialHash: string;
+    nonce: string;
   };
 }
 
@@ -82,6 +95,8 @@ export interface ProofResponse {
   claimType: string;
   /** The zero-knowledge proof */
   proof: AgeProof | NationalityProof;
+  /** Signed credential (binds issuer and commitment) */
+  signedCredential: SignedCredential;
   /** Nonce from the request (for replay protection) */
   nonce: string;
 }

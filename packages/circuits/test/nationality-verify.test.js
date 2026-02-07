@@ -33,6 +33,7 @@ describe("NationalityVerify Circuit Tests", function () {
       salt: salt.toString(),
       targetNationality: 840,
       credentialHash: computeHash(birthYear, nationality, salt),
+      nonce: "1",
     };
 
     const witness = await circuit.calculateWitness(input);
@@ -49,6 +50,7 @@ describe("NationalityVerify Circuit Tests", function () {
       salt: salt.toString(),
       targetNationality: 826, // UK (different from actual)
       credentialHash: computeHash(birthYear, nationality, salt),
+      nonce: "1",
     };
 
     try {
@@ -75,6 +77,7 @@ describe("NationalityVerify Circuit Tests", function () {
       targetNationality: 840,
       // Using hash with wrong nationality - this should fail
       credentialHash: computeHash(birthYear, wrongNationality, salt),
+      nonce: "1",
     };
 
     try {
@@ -106,6 +109,7 @@ describe("NationalityVerify Circuit Tests", function () {
         salt: salt.toString(),
         targetNationality: nationality,
         credentialHash: computeHash(birthYear, nationality, salt),
+        nonce: "1",
       };
 
       const witness = await circuit.calculateWitness(input);
@@ -125,6 +129,7 @@ describe("NationalityVerify Circuit Tests", function () {
       salt: salt.toString(),
       targetNationality: nationality,
       credentialHash: computeHash(birthYear1, nationality, salt),
+      nonce: "1",
     };
 
     const input2 = {
@@ -133,6 +138,7 @@ describe("NationalityVerify Circuit Tests", function () {
       salt: salt.toString(),
       targetNationality: nationality,
       credentialHash: computeHash(birthYear2, nationality, salt),
+      nonce: "1",
     };
 
     const witness1 = await circuit.calculateWitness(input1);
@@ -156,6 +162,7 @@ describe("NationalityVerify Circuit Tests", function () {
       salt: salt1.toString(),
       targetNationality: nationality,
       credentialHash: computeHash(birthYear, nationality, salt1),
+      nonce: "1",
     };
 
     const input2 = {
@@ -164,6 +171,7 @@ describe("NationalityVerify Circuit Tests", function () {
       salt: salt2.toString(),
       targetNationality: nationality,
       credentialHash: computeHash(birthYear, nationality, salt2),
+      nonce: "1",
     };
 
     const witness1 = await circuit.calculateWitness(input1);
@@ -188,6 +196,7 @@ describe("NationalityVerify Circuit Tests", function () {
       targetNationality: nationality,
       // Using hash with correct salt, but providing wrong salt as input
       credentialHash: computeHash(birthYear, nationality, correctSalt),
+      nonce: "1",
     };
 
     try {

@@ -418,6 +418,16 @@ class ZkIdServer {
 }
 ```
 
+**ProofResponse (required fields)**:
+- `credentialId`
+- `claimType`
+- `proof`
+- `signedCredential` (issuer-signed credential binding commitment + issuer)
+- `nonce`
+
+**Nonce binding**:
+- `nonce` is a public input in both circuits and must match `ProofResponse.nonce`.
+
 ### Issuer API
 
 ```typescript
@@ -431,6 +441,14 @@ class CredentialIssuer {
   ): Promise<SignedCredential>;
 }
 ```
+
+## Threat Model
+
+See `docs/THREAT-MODEL.md`.
+
+## Known Limitations
+
+See `docs/KNOWN-LIMITATIONS.md`.
 
 ## Extension Points
 
@@ -475,20 +493,6 @@ Useful for:
 
 ## Comparison to Related Protocols
 
-### W3C Verifiable Credentials
-
-**Similarities:**
-- Both support selective disclosure
-- Both use digital signatures
-- Both enable decentralized identity
-
-**Differences:**
-- zk-id uses ZK-SNARKs for stronger privacy
-- VCs typically use JSON-LD and JWTs
-- zk-id is more computation-intensive
-
-**Compatibility:** zk-id credentials can be wrapped as VCs
-
 ### Iden3 Protocol
 
 **Similarities:**
@@ -517,7 +521,6 @@ Useful for:
 
 - Standardize JSON schemas for interoperability
 - Define DID method for issuers (`did:zkid:...`)
-- Integrate with W3C Verifiable Credentials
 - Add support for credential revocation
 - Implement mobile wallet specification
 - Define browser extension APIs

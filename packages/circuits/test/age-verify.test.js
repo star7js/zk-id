@@ -34,6 +34,7 @@ describe("AgeVerify Circuit Tests", function () {
       currentYear: 2023,
       minAge: 18,
       credentialHash: computeHash(birthYear, nationality, salt),
+      nonce: "1",
     };
 
     const witness = await circuit.calculateWitness(input);
@@ -51,6 +52,7 @@ describe("AgeVerify Circuit Tests", function () {
       currentYear: 2023,
       minAge: 18,
       credentialHash: computeHash(birthYear, nationality, salt),
+      nonce: "1",
     };
 
     const witness = await circuit.calculateWitness(input);
@@ -68,6 +70,7 @@ describe("AgeVerify Circuit Tests", function () {
       currentYear: 2023,
       minAge: 18,
       credentialHash: computeHash(birthYear, nationality, salt),
+      nonce: "1",
     };
 
     try {
@@ -93,6 +96,7 @@ describe("AgeVerify Circuit Tests", function () {
       currentYear: 2023,
       minAge: 21,
       credentialHash: computeHash(birthYear, nationality, salt),
+      nonce: "1",
     };
 
     const witness = await circuit.calculateWitness(input);
@@ -110,6 +114,7 @@ describe("AgeVerify Circuit Tests", function () {
       currentYear: 2023,
       minAge: 18,
       credentialHash: computeHash(birthYear, nationality, salt),
+      nonce: "1",
     };
 
     try {
@@ -136,6 +141,7 @@ describe("AgeVerify Circuit Tests", function () {
       currentYear: 2023,
       minAge: 18,
       credentialHash: computeHash(birthYear, nationality, salt1),
+      nonce: "1",
     };
 
     const input2 = {
@@ -145,6 +151,7 @@ describe("AgeVerify Circuit Tests", function () {
       currentYear: 2023,
       minAge: 18,
       credentialHash: computeHash(birthYear, nationality, salt2),
+      nonce: "1",
     };
 
     const witness1 = await circuit.calculateWitness(input1);
@@ -168,6 +175,7 @@ describe("AgeVerify Circuit Tests", function () {
       currentYear: 2023,
       minAge: 65,
       credentialHash: computeHash(birthYear, nationality, salt),
+      nonce: "1",
     };
 
     const witness = await circuit.calculateWitness(input);
@@ -187,6 +195,7 @@ describe("AgeVerify Circuit Tests", function () {
       currentYear: 2023,
       minAge: 18,
       credentialHash: computeHash(birthYear, nationality1, salt),
+      nonce: "1",
     };
 
     const input2 = {
@@ -196,6 +205,7 @@ describe("AgeVerify Circuit Tests", function () {
       currentYear: 2023,
       minAge: 18,
       credentialHash: computeHash(birthYear, nationality2, salt),
+      nonce: "1",
     };
 
     const witness1 = await circuit.calculateWitness(input1);
@@ -222,6 +232,7 @@ describe("AgeVerify Circuit Tests", function () {
       minAge: 18,
       // Using hash of wrong birth year - this should fail
       credentialHash: computeHash(wrongBirthYear, nationality, salt),
+      nonce: "1",
     };
 
     try {
@@ -250,6 +261,7 @@ describe("AgeVerify Circuit Tests", function () {
       minAge: 18,
       // Using hash with correct salt, but providing wrong salt as input
       credentialHash: computeHash(birthYear, nationality, correctSalt),
+      nonce: "1",
     };
 
     try {

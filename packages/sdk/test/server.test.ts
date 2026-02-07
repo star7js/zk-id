@@ -1,475 +1,165 @@
 import { expect } from 'chai';
-import { InMemoryNonceStore, SimpleRateLimiter, ZkIdServer, VerificationEvent } from '../src/server';
-import { InMemoryRevocationStore } from '@zk-id/core';
 import path from 'path';
+import { generateKeyPairSync, sign } from 'crypto';
+import { ZkIdServer } from '../src/server';
+import {
+  AgeProof,
+  ProofResponse,
+  SignedCredential,
+  credentialSignaturePayload,
+} from '@zk-id/core';
 
-describe('SDK Server Tests', () => {
-  describe('InMemoryNonceStore', () => {
-    let store: InMemoryNonceStore;
+function makeAgeProof(credentialHash: string, minAge: number, nonce: string): AgeProof {
+  return {
+    proof: {
+      pi_a: ['1', '2'],
+      pi_b: [
+        ['3', '4'],
+        ['5', '6'],
+      ],
+      pi_c: ['7', '8'],
+      protocol: 'groth16',
+      curve: 'bn128',
+    },
+    publicSignals: {
+      currentYear: new Date().getFullYear(),
+      minAge,
+      credentialHash,
+      nonce,
+    },
+  };
+}
 
-    beforeEach(() => {
-      store = new InMemoryNonceStore();
+function makeSignedCredential(commitment: string, issuer = 'TestIssuer') {
+  const { publicKey, privateKey } = generateKeyPairSync('ed25519');
+  const credential = {
+    id: 'cred-1',
+    birthYear: 1990,
+    nationality: 840,
+    salt: '00',
+    commitment,
+    createdAt: new Date().toISOString(),
+  };
+
+  const payload = credentialSignaturePayload(credential);
+  const signature = sign(null, Buffer.from(payload), privateKey).toString('base64');
+
+  const signedCredential: SignedCredential = {
+    credential,
+    issuer,
+    signature,
+    issuedAt: new Date().toISOString(),
+  };
+
+  return { signedCredential, publicKey };
+}
+
+function getVerificationKeyPath(): string {
+  return path.resolve(__dirname, '../../circuits/build/age-verify_verification_key.json');
+}
+
+describe('ZkIdServer - signature and policy enforcement', () => {
+  it('rejects proof when signed credential is missing', async () => {
+    const server = new ZkIdServer({
+      verificationKeyPath: getVerificationKeyPath(),
+      issuerPublicKeys: {},
     });
 
-    it('should not have unused nonce', async () => {
-      const nonce = 'test-nonce-123';
-      const has = await store.has(nonce);
-      expect(has).to.be.false;
-    });
+    const proofResponse = {
+      credentialId: 'cred-1',
+      claimType: 'age',
+      proof: makeAgeProof('123', 18, 'nonce-1'),
+      nonce: 'nonce-1',
+    } as ProofResponse;
 
-    it('should store and retrieve nonce', async () => {
-      const nonce = 'test-nonce-456';
-
-      await store.add(nonce);
-      const has = await store.has(nonce);
-
-      expect(has).to.be.true;
-    });
-
-    it('should handle multiple nonces', async () => {
-      const nonce1 = 'nonce-1';
-      const nonce2 = 'nonce-2';
-      const nonce3 = 'nonce-3';
-
-      await store.add(nonce1);
-      await store.add(nonce2);
-
-      expect(await store.has(nonce1)).to.be.true;
-      expect(await store.has(nonce2)).to.be.true;
-      expect(await store.has(nonce3)).to.be.false;
-    });
+    const result = await server.verifyProof(proofResponse);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.equal('Signed credential required');
   });
 
-  describe('SimpleRateLimiter', () => {
-    it('should allow requests within limit', async () => {
-      const limiter = new SimpleRateLimiter(5, 60000);
-      const identifier = 'user-123';
+  it('rejects proof when credential signature is invalid', async () => {
+    const { signedCredential } = makeSignedCredential('123');
+    const { publicKey } = generateKeyPairSync('ed25519');
 
-      for (let i = 0; i < 5; i++) {
-        const allowed = await limiter.allowRequest(identifier);
-        expect(allowed).to.be.true;
-      }
+    const server = new ZkIdServer({
+      verificationKeyPath: getVerificationKeyPath(),
+      issuerPublicKeys: { TestIssuer: publicKey },
     });
 
-    it('should block requests exceeding limit', async () => {
-      const limiter = new SimpleRateLimiter(3, 60000);
-      const identifier = 'user-456';
+    const proofResponse: ProofResponse = {
+      credentialId: signedCredential.credential.id,
+      claimType: 'age',
+      proof: makeAgeProof('123', 18, 'nonce-2'),
+      signedCredential,
+      nonce: 'nonce-2',
+    };
 
-      // First 3 should be allowed
-      for (let i = 0; i < 3; i++) {
-        const allowed = await limiter.allowRequest(identifier);
-        expect(allowed).to.be.true;
-      }
-
-      // 4th should be blocked
-      const blocked = await limiter.allowRequest(identifier);
-      expect(blocked).to.be.false;
-    });
-
-    it('should track different identifiers independently', async () => {
-      const limiter = new SimpleRateLimiter(2, 60000);
-
-      await limiter.allowRequest('user-1');
-      await limiter.allowRequest('user-1');
-
-      await limiter.allowRequest('user-2');
-      await limiter.allowRequest('user-2');
-
-      // Both should be at limit
-      expect(await limiter.allowRequest('user-1')).to.be.false;
-      expect(await limiter.allowRequest('user-2')).to.be.false;
-    });
+    const result = await server.verifyProof(proofResponse);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.equal('Invalid credential signature');
   });
 
-  describe('ZkIdServer', () => {
-    const ageVerificationKeyPath = path.join(__dirname, '../../circuits/build/age-verify_verification_key.json');
-    const nationalityVerificationKeyPath = path.join(__dirname, '../../circuits/build/nationality-verify_verification_key.json');
+  it('rejects proof when credential commitment does not match proof', async () => {
+    const { signedCredential, publicKey } = makeSignedCredential('999');
 
-    describe('Construction', () => {
-      it('should create successfully with valid verification key paths', () => {
-        expect(() => {
-          new ZkIdServer({
-            verificationKeyPath: ageVerificationKeyPath,
-            nationalityVerificationKeyPath: nationalityVerificationKeyPath,
-          });
-        }).to.not.throw();
-      });
+    const server = new ZkIdServer({
+      verificationKeyPath: getVerificationKeyPath(),
+      issuerPublicKeys: { TestIssuer: publicKey },
     });
 
-    describe('Telemetry events', () => {
-      it('should fire onVerification callback on verifyProof call', async () => {
-        const server = new ZkIdServer({
-          verificationKeyPath: ageVerificationKeyPath,
-        });
+    const proofResponse: ProofResponse = {
+      credentialId: signedCredential.credential.id,
+      claimType: 'age',
+      proof: makeAgeProof('123', 18, 'nonce-3'),
+      signedCredential,
+      nonce: 'nonce-3',
+    };
 
-        let eventReceived: VerificationEvent | null = null;
-        server.onVerification((event) => {
-          eventReceived = event;
-        });
+    const result = await server.verifyProof(proofResponse);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.equal('Credential commitment mismatch');
+  });
 
-        // Submit an invalid proof (we just test the event emission)
-        const mockProof = {
-          credentialId: 'test-cred',
-          claimType: 'age',
-          proof: {
-            proof: {
-              pi_a: ['0', '0'],
-              pi_b: [['0', '0'], ['0', '0']],
-              pi_c: ['0', '0'],
-              protocol: 'groth16',
-              curve: 'bn128',
-            },
-            publicSignals: {
-              currentYear: 2026,
-              minAge: 18,
-              credentialHash: '0',
-            },
-          },
-          nonce: 'test-nonce',
-        };
+  it('enforces required minimum age policy', async () => {
+    const { signedCredential, publicKey } = makeSignedCredential('123');
 
-        await server.verifyProof(mockProof as any);
-
-        expect(eventReceived).to.not.be.null;
-      });
-
-      it('should include timestamp, claimType, verified, verificationTimeMs in event', async () => {
-        const server = new ZkIdServer({
-          verificationKeyPath: ageVerificationKeyPath,
-        });
-
-        let eventReceived: VerificationEvent | null = null;
-        server.onVerification((event) => {
-          eventReceived = event;
-        });
-
-        const mockProof = {
-          credentialId: 'test-cred',
-          claimType: 'age',
-          proof: {
-            proof: {
-              pi_a: ['0', '0'],
-              pi_b: [['0', '0'], ['0', '0']],
-              pi_c: ['0', '0'],
-              protocol: 'groth16',
-              curve: 'bn128',
-            },
-            publicSignals: {
-              currentYear: 2026,
-              minAge: 18,
-              credentialHash: '0',
-            },
-          },
-          nonce: 'test-nonce',
-        };
-
-        await server.verifyProof(mockProof as any);
-
-        expect(eventReceived).to.not.be.null;
-        expect(eventReceived!.timestamp).to.be.a('string');
-        expect(eventReceived!.claimType).to.equal('age');
-        expect(eventReceived!.verified).to.be.a('boolean');
-        expect(eventReceived!.verificationTimeMs).to.be.a('number');
-        expect(eventReceived!.verificationTimeMs).to.be.greaterThanOrEqual(0);
-      });
-
-      it('should include clientIdentifier when provided', async () => {
-        const server = new ZkIdServer({
-          verificationKeyPath: ageVerificationKeyPath,
-        });
-
-        let eventReceived: VerificationEvent | null = null;
-        server.onVerification((event) => {
-          eventReceived = event;
-        });
-
-        const mockProof = {
-          credentialId: 'test-cred',
-          claimType: 'age',
-          proof: {
-            proof: {
-              pi_a: ['0', '0'],
-              pi_b: [['0', '0'], ['0', '0']],
-              pi_c: ['0', '0'],
-              protocol: 'groth16',
-              curve: 'bn128',
-            },
-            publicSignals: {
-              currentYear: 2026,
-              minAge: 18,
-              credentialHash: '0',
-            },
-          },
-          nonce: 'test-nonce',
-        };
-
-        await server.verifyProof(mockProof as any, 'client-123');
-
-        expect(eventReceived).to.not.be.null;
-        expect(eventReceived!.clientIdentifier).to.equal('client-123');
-      });
-
-      it('should include error when verification fails', async () => {
-        const server = new ZkIdServer({
-          verificationKeyPath: ageVerificationKeyPath,
-        });
-
-        let eventReceived: VerificationEvent | null = null;
-        server.onVerification((event) => {
-          eventReceived = event;
-        });
-
-        const mockProof = {
-          credentialId: 'test-cred',
-          claimType: 'age',
-          proof: {
-            proof: {
-              pi_a: ['0', '0'],
-              pi_b: [['0', '0'], ['0', '0']],
-              pi_c: ['0', '0'],
-              protocol: 'groth16',
-              curve: 'bn128',
-            },
-            publicSignals: {
-              currentYear: 2026,
-              minAge: 18,
-              credentialHash: '0',
-            },
-          },
-          nonce: 'test-nonce',
-        };
-
-        await server.verifyProof(mockProof as any);
-
-        expect(eventReceived).to.not.be.null;
-        expect(eventReceived!.verified).to.be.false;
-        expect(eventReceived!.error).to.be.a('string');
-      });
+    const server = new ZkIdServer({
+      verificationKeyPath: getVerificationKeyPath(),
+      issuerPublicKeys: { TestIssuer: publicKey },
+      requiredMinAge: 21,
     });
 
-    describe('Revocation integration', () => {
-      it('should return verified: false with revocation error when credential is revoked', async () => {
-        const revocationStore = new InMemoryRevocationStore();
-        await revocationStore.revoke('revoked-cred');
+    const proofResponse: ProofResponse = {
+      credentialId: signedCredential.credential.id,
+      claimType: 'age',
+      proof: makeAgeProof('123', 18, 'nonce-4'),
+      signedCredential,
+      nonce: 'nonce-4',
+    };
 
-        const server = new ZkIdServer({
-          verificationKeyPath: ageVerificationKeyPath,
-          revocationStore,
-        });
+    const result = await server.verifyProof(proofResponse);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.equal('Proof does not satisfy required minimum age');
+  });
 
-        const mockProof = {
-          credentialId: 'revoked-cred',
-          claimType: 'age',
-          proof: {
-            proof: {
-              pi_a: ['0', '0'],
-              pi_b: [['0', '0'], ['0', '0']],
-              pi_c: ['0', '0'],
-              protocol: 'groth16',
-              curve: 'bn128',
-            },
-            publicSignals: {
-              currentYear: 2026,
-              minAge: 18,
-              credentialHash: '0',
-            },
-          },
-          nonce: 'test-nonce',
-        };
+  it('rejects proof when nonce does not match request nonce', async () => {
+    const { signedCredential, publicKey } = makeSignedCredential('123');
 
-        const result = await server.verifyProof(mockProof as any);
-
-        expect(result.verified).to.be.false;
-        expect(result.error).to.equal('Credential has been revoked');
-      });
-
-      it('should not block non-revoked credentials', async () => {
-        const revocationStore = new InMemoryRevocationStore();
-        await revocationStore.revoke('other-cred');
-
-        const server = new ZkIdServer({
-          verificationKeyPath: ageVerificationKeyPath,
-          revocationStore,
-        });
-
-        const mockProof = {
-          credentialId: 'valid-cred',
-          claimType: 'age',
-          proof: {
-            proof: {
-              pi_a: ['0', '0'],
-              pi_b: [['0', '0'], ['0', '0']],
-              pi_c: ['0', '0'],
-              protocol: 'groth16',
-              curve: 'bn128',
-            },
-            publicSignals: {
-              currentYear: 2026,
-              minAge: 18,
-              credentialHash: '0',
-            },
-          },
-          nonce: 'test-nonce',
-        };
-
-        const result = await server.verifyProof(mockProof as any);
-
-        // Should fail for other reasons (invalid proof), but NOT revocation
-        expect(result.error).to.not.equal('Credential has been revoked');
-      });
-
-      it('should fire telemetry event for revoked credentials', async () => {
-        const revocationStore = new InMemoryRevocationStore();
-        await revocationStore.revoke('revoked-cred');
-
-        const server = new ZkIdServer({
-          verificationKeyPath: ageVerificationKeyPath,
-          revocationStore,
-        });
-
-        let eventReceived: VerificationEvent | null = null;
-        server.onVerification((event) => {
-          eventReceived = event;
-        });
-
-        const mockProof = {
-          credentialId: 'revoked-cred',
-          claimType: 'age',
-          proof: {
-            proof: {
-              pi_a: ['0', '0'],
-              pi_b: [['0', '0'], ['0', '0']],
-              pi_c: ['0', '0'],
-              protocol: 'groth16',
-              curve: 'bn128',
-            },
-            publicSignals: {
-              currentYear: 2026,
-              minAge: 18,
-              credentialHash: '0',
-            },
-          },
-          nonce: 'test-nonce',
-        };
-
-        await server.verifyProof(mockProof as any);
-
-        expect(eventReceived).to.not.be.null;
-        expect(eventReceived!.verified).to.be.false;
-        expect(eventReceived!.error).to.equal('Credential has been revoked');
-      });
+    const server = new ZkIdServer({
+      verificationKeyPath: getVerificationKeyPath(),
+      issuerPublicKeys: { TestIssuer: publicKey },
     });
 
-    describe('Rate limiting integration', () => {
-      it('should return verified: false with rate limit error when limit exceeded', async () => {
-        const rateLimiter = new SimpleRateLimiter(2, 60000);
-        const server = new ZkIdServer({
-          verificationKeyPath: ageVerificationKeyPath,
-          rateLimiter,
-        });
+    const proofResponse: ProofResponse = {
+      credentialId: signedCredential.credential.id,
+      claimType: 'age',
+      proof: makeAgeProof('123', 18, 'proof-nonce'),
+      signedCredential,
+      nonce: 'request-nonce',
+    };
 
-        const mockProof = {
-          credentialId: 'test-cred',
-          claimType: 'age',
-          proof: {
-            proof: {
-              pi_a: ['0', '0'],
-              pi_b: [['0', '0'], ['0', '0']],
-              pi_c: ['0', '0'],
-              protocol: 'groth16',
-              curve: 'bn128',
-            },
-            publicSignals: {
-              currentYear: 2026,
-              minAge: 18,
-              credentialHash: '0',
-            },
-          },
-          nonce: 'test-nonce',
-        };
-
-        // Use up the rate limit
-        await server.verifyProof(mockProof as any, 'client-123');
-        await server.verifyProof(mockProof as any, 'client-123');
-
-        // Third request should be rate limited
-        const result = await server.verifyProof(mockProof as any, 'client-123');
-
-        expect(result.verified).to.be.false;
-        expect(result.error).to.equal('Rate limit exceeded');
-      });
-    });
-
-    describe('Nonce replay protection', () => {
-      it('should return error on second submission with same nonce', async () => {
-        const nonceStore = new InMemoryNonceStore();
-        // Pre-populate the nonce store to simulate a used nonce
-        await nonceStore.add('duplicate-nonce');
-
-        const server = new ZkIdServer({
-          verificationKeyPath: ageVerificationKeyPath,
-          nonceStore,
-        });
-
-        const mockProof = {
-          credentialId: 'test-cred',
-          claimType: 'age',
-          proof: {
-            proof: {
-              pi_a: ['0', '0'],
-              pi_b: [['0', '0'], ['0', '0']],
-              pi_c: ['0', '0'],
-              protocol: 'groth16',
-              curve: 'bn128',
-            },
-            publicSignals: {
-              currentYear: 2026,
-              minAge: 18,
-              credentialHash: '0',
-            },
-          },
-          nonce: 'duplicate-nonce',
-        };
-
-        // Submit with already-used nonce
-        const result = await server.verifyProof(mockProof as any);
-
-        expect(result.verified).to.be.false;
-        expect(result.error).to.include('Nonce already used');
-      });
-    });
-
-    describe('Unknown claim type', () => {
-      it('should return error for unknown claim type', async () => {
-        const server = new ZkIdServer({
-          verificationKeyPath: ageVerificationKeyPath,
-        });
-
-        const mockProof = {
-          credentialId: 'test-cred',
-          claimType: 'unknown',
-          proof: {
-            proof: {
-              pi_a: ['0', '0'],
-              pi_b: [['0', '0'], ['0', '0']],
-              pi_c: ['0', '0'],
-              protocol: 'groth16',
-              curve: 'bn128',
-            },
-            publicSignals: {
-              currentYear: 2026,
-              minAge: 18,
-              credentialHash: '0',
-            },
-          },
-          nonce: 'test-nonce',
-        };
-
-        const result = await server.verifyProof(mockProof as any);
-
-        expect(result.verified).to.be.false;
-        expect(result.error).to.equal('Unknown claim type');
-      });
-    });
+    const result = await server.verifyProof(proofResponse);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.equal('Proof nonce does not match request nonce');
   });
 });

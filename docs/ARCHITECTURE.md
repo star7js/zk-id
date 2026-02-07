@@ -87,10 +87,10 @@ TypeScript library that wraps the circuits and provides a developer-friendly API
 const credential = await createCredential(birthYear, nationality);
 
 // Generate age proof (selective disclosure: hides nationality)
-const ageProof = await generateAgeProof(credential, minAge, wasmPath, zkeyPath);
+const ageProof = await generateAgeProof(credential, minAge, nonce, wasmPath, zkeyPath);
 
 // Generate nationality proof (selective disclosure: hides birth year)
-const nationalityProof = await generateNationalityProof(credential, targetNationality, wasmPath, zkeyPath);
+const nationalityProof = await generateNationalityProof(credential, targetNationality, nonce, wasmPath, zkeyPath);
 
 // Verify proofs
 const ageValid = await verifyAgeProof(ageProof, verificationKey);
@@ -395,7 +395,6 @@ Both can be added without changing core protocol.
 
 - **Mobile wallets**: iOS/Android apps for credential storage
 - **Browser extension**: Seamless integration with websites
-- **W3C VC compatibility**: Issue credentials as Verifiable Credentials
 - **DID integration**: Use DIDs for issuer identification
 - **Cross-chain**: Support multiple blockchains for on-chain verification
 - **Biometric binding**: Link credentials to device biometrics for security

@@ -14,6 +14,8 @@ import {
   NationalityProof,
   VerificationKey,
   RevocationStore,
+  SignedCredential,
+  credentialSignaturePayload,
   verifyAgeProof,
   verifyNationalityProof,
   validateProofConstraints,
@@ -21,6 +23,7 @@ import {
 } from '@zk-id/core';
 import { readFileSync } from 'fs';
 import { EventEmitter } from 'events';
+import { KeyObject, verify as cryptoVerify } from 'crypto';
 
 export interface ZkIdServerConfig {
   /** Path to the age verification key file */
@@ -33,6 +36,14 @@ export interface ZkIdServerConfig {
   rateLimiter?: RateLimiter;
   /** Optional revocation store for checking revoked credentials */
   revocationStore?: RevocationStore;
+  /** Map of trusted issuer names to their public keys */
+  issuerPublicKeys?: Record<string, KeyObject>;
+  /** Require signed credentials (default: true) */
+  requireSignedCredentials?: boolean;
+  /** Enforce a required minimum age (server policy) */
+  requiredMinAge?: number;
+  /** Enforce a required nationality code (server policy) */
+  requiredNationality?: number;
 }
 
 export interface NonceStore {
@@ -93,6 +104,7 @@ export class ZkIdServer extends EventEmitter {
     clientIdentifier?: string
   ): Promise<VerificationResult> {
     const startTime = Date.now();
+    const requireSigned = this.config.requireSignedCredentials !== false;
 
     // Rate limiting
     if (this.config.rateLimiter && clientIdentifier) {
@@ -105,6 +117,64 @@ export class ZkIdServer extends EventEmitter {
         this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
         return result;
       }
+    }
+
+    // Signed credential validation (issuer trust + binding)
+    if (requireSigned) {
+      const signedCredential = proofResponse.signedCredential;
+      if (!signedCredential) {
+        const result = { verified: false, error: 'Signed credential required' };
+        this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
+        return result;
+      }
+
+      const bindingCheck = this.validateSignedCredentialBinding(
+        signedCredential,
+        proofResponse
+      );
+      if (!bindingCheck.valid) {
+        const result = { verified: false, error: bindingCheck.error };
+        this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
+        return result;
+      }
+    }
+
+    // Server-side policy enforcement
+    if (proofResponse.claimType === 'age' && this.config.requiredMinAge !== undefined) {
+      const proof = proofResponse.proof as AgeProof;
+      if (proof.publicSignals.minAge !== this.config.requiredMinAge) {
+        const result = {
+          verified: false,
+          error: 'Proof does not satisfy required minimum age',
+        };
+        this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
+        return result;
+      }
+    }
+    if (
+      proofResponse.claimType === 'nationality' &&
+      this.config.requiredNationality !== undefined
+    ) {
+      const proof = proofResponse.proof as NationalityProof;
+      if (proof.publicSignals.targetNationality !== this.config.requiredNationality) {
+        const result = {
+          verified: false,
+          error: 'Proof does not satisfy required nationality',
+        };
+        this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
+        return result;
+      }
+    }
+
+    // Nonce binding: ensure proof public nonce matches the request nonce
+    const proofNonce = this.getProofNonce(proofResponse);
+    if (proofNonce !== proofResponse.nonce) {
+      const result = {
+        verified: false,
+        error: 'Proof nonce does not match request nonce',
+      };
+      this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
+      return result;
     }
 
     // Replay protection
@@ -120,9 +190,10 @@ export class ZkIdServer extends EventEmitter {
       }
     }
 
-    // Revocation check
+    // Revocation check (use signed credential ID when available)
     if (this.config.revocationStore) {
-      const isRevoked = await this.config.revocationStore.isRevoked(proofResponse.credentialId);
+      const credentialId = proofResponse.signedCredential?.credential.id || proofResponse.credentialId;
+      const isRevoked = await this.config.revocationStore.isRevoked(credentialId);
       if (isRevoked) {
         const result = {
           verified: false,
@@ -255,6 +326,59 @@ export class ZkIdServer extends EventEmitter {
   private loadVerificationKey(path: string): VerificationKey {
     const data = readFileSync(path, 'utf8');
     return JSON.parse(data);
+  }
+
+  /**
+   * Validate issuer signature and binding between proof and credential
+   */
+  private validateSignedCredentialBinding(
+    signedCredential: SignedCredential,
+    proofResponse: ProofResponse
+  ): { valid: boolean; error?: string } {
+    const issuerKey = this.config.issuerPublicKeys?.[signedCredential.issuer];
+    if (!issuerKey) {
+      return { valid: false, error: 'Unknown or untrusted issuer' };
+    }
+
+    const payload = credentialSignaturePayload(signedCredential.credential);
+    const signature = Buffer.from(signedCredential.signature, 'base64');
+    const signatureValid = cryptoVerify(null, Buffer.from(payload), issuerKey, signature);
+    if (!signatureValid) {
+      return { valid: false, error: 'Invalid credential signature' };
+    }
+
+    if (proofResponse.credentialId && proofResponse.credentialId !== signedCredential.credential.id) {
+      return { valid: false, error: 'Credential ID mismatch' };
+    }
+
+    const proofCommitment = this.getCredentialCommitmentFromProof(proofResponse);
+    if (proofCommitment !== signedCredential.credential.commitment) {
+      return { valid: false, error: 'Credential commitment mismatch' };
+    }
+
+    return { valid: true };
+  }
+
+  private getCredentialCommitmentFromProof(proofResponse: ProofResponse): string {
+    const proof = proofResponse.proof as AgeProof | NationalityProof;
+    if (proofResponse.claimType === 'age') {
+      return (proof as AgeProof).publicSignals.credentialHash;
+    }
+    if (proofResponse.claimType === 'nationality') {
+      return (proof as NationalityProof).publicSignals.credentialHash;
+    }
+    return '';
+  }
+
+  private getProofNonce(proofResponse: ProofResponse): string {
+    const proof = proofResponse.proof as AgeProof | NationalityProof;
+    if (proofResponse.claimType === 'age') {
+      return (proof as AgeProof).publicSignals.nonce;
+    }
+    if (proofResponse.claimType === 'nationality') {
+      return (proof as NationalityProof).publicSignals.nonce;
+    }
+    return '';
   }
 
   /**

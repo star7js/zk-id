@@ -1,8 +1,22 @@
 import { expect } from 'chai';
 import { ZkIdClient, WalletConnector, InMemoryWallet } from '../src/client';
-import { ProofRequest, ProofResponse } from '@zk-id/core';
+import { ProofRequest, ProofResponse, SignedCredential } from '@zk-id/core';
 
 describe('SDK Client Tests', () => {
+  const mockSignedCredential: SignedCredential = {
+    credential: {
+      id: 'test-cred',
+      birthYear: 1990,
+      nationality: 840,
+      salt: '00',
+      commitment: '123',
+      createdAt: new Date().toISOString(),
+    },
+    issuer: 'TestIssuer',
+    signature: 'invalid-signature',
+    issuedAt: new Date().toISOString(),
+  };
+
   describe('ZkIdClient', () => {
     describe('Construction', () => {
       it('should create with config', () => {
@@ -32,6 +46,7 @@ describe('SDK Client Tests', () => {
             credentialId: 'test-cred',
             claimType: req.claimType,
             proof: {} as any,
+            signedCredential: mockSignedCredential,
             nonce: req.nonce,
           }),
         };
@@ -53,6 +68,7 @@ describe('SDK Client Tests', () => {
             credentialId: 'test-cred',
             claimType: req.claimType,
             proof: {} as any,
+            signedCredential: mockSignedCredential,
             nonce: req.nonce,
           }),
         };
@@ -80,6 +96,7 @@ describe('SDK Client Tests', () => {
               credentialId: 'test-cred',
               claimType: req.claimType,
               proof: {} as any,
+              signedCredential: mockSignedCredential,
               nonce: req.nonce,
             };
           },
@@ -116,6 +133,7 @@ describe('SDK Client Tests', () => {
             credentialId: 'test-cred',
             claimType: req.claimType,
             proof: {} as any,
+            signedCredential: mockSignedCredential,
             nonce: req.nonce,
           }),
         };
@@ -150,6 +168,7 @@ describe('SDK Client Tests', () => {
             credentialId: 'test-cred',
             claimType: req.claimType,
             proof: {} as any,
+            signedCredential: mockSignedCredential,
             nonce: req.nonce,
           }),
         };
@@ -178,6 +197,7 @@ describe('SDK Client Tests', () => {
             credentialId: 'test-cred',
             claimType: req.claimType,
             proof: {} as any,
+            signedCredential: mockSignedCredential,
             nonce: req.nonce,
           }),
         };
@@ -336,7 +356,7 @@ describe('SDK Client Tests', () => {
         expect(available).to.be.true;
       });
 
-      it('should store credential with addCredential()', () => {
+      it('should store credential with addSignedCredential()', () => {
         const wallet = new InMemoryWallet({
           circuitPaths: {
             ageWasm: '/path/to/age.wasm',
@@ -353,7 +373,14 @@ describe('SDK Client Tests', () => {
           createdAt: new Date().toISOString(),
         };
 
-        expect(() => wallet.addCredential(credential)).to.not.throw();
+        const signedCredential = {
+          credential,
+          issuer: 'TestIssuer',
+          signature: 'fake-signature',
+          issuedAt: new Date().toISOString(),
+        };
+
+        expect(() => wallet.addSignedCredential(signedCredential)).to.not.throw();
       });
 
       it('should throw clear error when requestProof() is called without credentials', async () => {

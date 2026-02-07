@@ -16,6 +16,7 @@ import {
   loadVerificationKey,
 } from '@zk-id/core';
 import { CredentialIssuer } from '@zk-id/issuer';
+import { randomBytes } from 'crypto';
 
 async function main() {
   console.log('\n🔐 zk-id Age Verification Demo\n');
@@ -62,9 +63,11 @@ async function main() {
     const wasmPath = '../../packages/circuits/build/age-verify_js/age-verify.wasm';
     const zkeyPath = '../../packages/circuits/build/age-verify.zkey';
 
+    const nonce = randomBytes(32).toString('hex');
     proof = await generateAgeProof(
       signedCredential.credential,
       minAge,
+      nonce,
       wasmPath,
       zkeyPath
     );
@@ -126,9 +129,11 @@ async function main() {
     const wasmPath = '../../packages/circuits/build/nationality-verify_js/nationality-verify.wasm';
     const zkeyPath = '../../packages/circuits/build/nationality-verify.zkey';
 
+    const nonce = randomBytes(32).toString('hex');
     nationalityProof = await generateNationalityProof(
       signedCredential.credential,
       userNationality,
+      nonce,
       wasmPath,
       zkeyPath
     );

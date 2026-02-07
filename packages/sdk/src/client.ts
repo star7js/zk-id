@@ -7,7 +7,14 @@
  * - Submitting proofs to the website's backend
  */
 
-import { ProofRequest, ProofResponse, Credential, generateAgeProof, generateNationalityProof } from '@zk-id/core';
+import {
+  ProofRequest,
+  ProofResponse,
+  Credential,
+  SignedCredential,
+  generateAgeProof,
+  generateNationalityProof,
+} from '@zk-id/core';
 
 export interface ZkIdClientConfig {
   /** URL of the website's proof verification endpoint */
@@ -161,7 +168,7 @@ export interface InMemoryWalletConfig {
  * (Production would use browser extension, mobile app, or OS-level wallet)
  */
 export class InMemoryWallet implements WalletConnector {
-  private credentials: Map<string, Credential> = new Map();
+  private credentials: Map<string, SignedCredential> = new Map();
   private config: InMemoryWalletConfig;
 
   constructor(config: InMemoryWalletConfig) {
@@ -180,10 +187,11 @@ export class InMemoryWallet implements WalletConnector {
     // 4. Return proof without revealing private data
 
     // Find a stored credential (use first available)
-    const credential = Array.from(this.credentials.values())[0];
-    if (!credential) {
+    const signedCredential = Array.from(this.credentials.values())[0];
+    if (!signedCredential) {
       throw new Error('No credentials stored in wallet');
     }
+    const credential = signedCredential.credential;
 
     // Generate proof based on claim type
     if (request.claimType === 'age') {
@@ -194,6 +202,7 @@ export class InMemoryWallet implements WalletConnector {
       const proof = await generateAgeProof(
         credential,
         request.minAge,
+        request.nonce,
         this.config.circuitPaths.ageWasm,
         this.config.circuitPaths.ageZkey
       );
@@ -202,6 +211,7 @@ export class InMemoryWallet implements WalletConnector {
         credentialId: credential.id,
         claimType: 'age',
         proof,
+        signedCredential,
         nonce: request.nonce,
       };
     } else if (request.claimType === 'nationality') {
@@ -216,6 +226,7 @@ export class InMemoryWallet implements WalletConnector {
       const proof = await generateNationalityProof(
         credential,
         request.targetNationality,
+        request.nonce,
         this.config.circuitPaths.nationalityWasm,
         this.config.circuitPaths.nationalityZkey
       );
@@ -224,6 +235,7 @@ export class InMemoryWallet implements WalletConnector {
         credentialId: credential.id,
         claimType: 'nationality',
         proof,
+        signedCredential,
         nonce: request.nonce,
       };
     } else {
@@ -232,6 +244,10 @@ export class InMemoryWallet implements WalletConnector {
   }
 
   addCredential(credential: Credential): void {
-    this.credentials.set(credential.id, credential);
+    throw new Error('addCredential is deprecated. Use addSignedCredential instead.');
+  }
+
+  addSignedCredential(signedCredential: SignedCredential): void {
+    this.credentials.set(signedCredential.credential.id, signedCredential);
   }
 }

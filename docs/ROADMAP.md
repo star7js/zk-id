@@ -48,11 +48,6 @@ This document tracks the development progress and future plans for the zk-id pro
   - VerificationEvent with timestamp, duration, and status
   - onVerification() callback registration
   - No external dependencies
-- ✅ **W3C Verifiable Credentials**:
-  - toVerifiableCredential() conversion to JSON-LD format
-  - fromVerifiableCredential() parsing from W3C VC
-  - Standards-compliant proof section with Ed25519Signature2020
-  - Optional privacy-preserving omission of attributes
 - ✅ **Integration Example**:
   - Express server with RESTful API endpoints
   - Static HTML demo page with credential issuance
@@ -126,7 +121,7 @@ Nothing currently in progress - all planned features for Phase 5 completed!
   - Horizontal scaling support
 
 ### Phase 10: Standards & Compliance (2027)
-- [ ] **Full W3C DID Integration**
+- [ ] **DID Integration**
   - did:web method support
   - did:key method support
   - DID resolution
@@ -168,7 +163,7 @@ Priority areas:
 ## Version History
 
 - **v0.1.0** (Jan 2026): Initial release with basic age verification
-- **v0.2.0** (Feb 2026): Multi-attribute credentials, Ed25519, revocation, W3C VC, telemetry
+- **v0.2.0** (Feb 2026): Multi-attribute credentials, Ed25519, revocation, telemetry
 - **v0.3.0** (Planned Q2 2026): Browser wallet and mobile apps
 - **v1.0.0** (Planned Q4 2026): Production-ready with enterprise features
 

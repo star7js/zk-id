@@ -26,6 +26,7 @@ export async function verifyAgeProof(
     proof.publicSignals.currentYear.toString(),
     proof.publicSignals.minAge.toString(),
     proof.publicSignals.credentialHash,
+    proof.publicSignals.nonce,
   ];
 
   // Verify the proof
@@ -62,6 +63,9 @@ export function validateProofConstraints(proof: AgeProof): {
   if (!proof.publicSignals.credentialHash || proof.publicSignals.credentialHash === '0') {
     errors.push('Missing or invalid credential hash');
   }
+  if (!proof.publicSignals.nonce || proof.publicSignals.nonce.length === 0) {
+    errors.push('Missing nonce');
+  }
 
   return {
     valid: errors.length === 0,
@@ -93,6 +97,7 @@ export async function verifyNationalityProof(
   const publicSignals = [
     proof.publicSignals.targetNationality.toString(),
     proof.publicSignals.credentialHash,
+    proof.publicSignals.nonce,
   ];
 
   // Verify the proof
@@ -122,6 +127,9 @@ export function validateNationalityProofConstraints(proof: NationalityProof): {
   // Check that credential hash is present
   if (!proof.publicSignals.credentialHash || proof.publicSignals.credentialHash === '0') {
     errors.push('Missing or invalid credential hash');
+  }
+  if (!proof.publicSignals.nonce || proof.publicSignals.nonce.length === 0) {
+    errors.push('Missing nonce');
   }
 
   return {
