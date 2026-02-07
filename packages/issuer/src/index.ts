@@ -7,3 +7,4 @@
 
 export * from './issuer';
 export * from './format';
+export * from './circuit-issuer';

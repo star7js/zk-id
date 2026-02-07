@@ -529,5 +529,9 @@ Useful for:
 - Define DID method for issuers (`did:zkid:...`)
 - Add support for credential revocation
 - Implement mobile wallet specification
+
+## Optional Signed Circuits
+
+This repo includes optional circuits that verify issuer signatures inside the proof.\nUse these for stronger, fully in-circuit issuer binding at the cost of larger public inputs and slower proving.
 - Define browser extension APIs
 - Add support for anonymous credentials

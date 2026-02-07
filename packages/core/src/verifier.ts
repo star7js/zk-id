@@ -1,5 +1,12 @@
 import * as snarkjs from 'snarkjs';
-import { AgeProof, NationalityProof, VerificationKey, BatchVerificationResult } from './types';
+import {
+  AgeProof,
+  NationalityProof,
+  AgeProofSigned,
+  NationalityProofSigned,
+  VerificationKey,
+  BatchVerificationResult,
+} from './types';
 
 /**
  * Verifies an age proof using the verification key
@@ -106,6 +113,71 @@ export async function verifyNationalityProof(
   ];
 
   // Verify the proof
+  const isValid = await snarkjs.groth16.verify(
+    verificationKey,
+    publicSignals,
+    snarkProof
+  );
+
+  return isValid;
+}
+
+/**
+ * Verifies a signed age proof (includes issuer public key bits in public signals)
+ */
+export async function verifyAgeProofSigned(
+  proof: AgeProofSigned,
+  verificationKey: VerificationKey
+): Promise<boolean> {
+  const snarkProof = {
+    pi_a: proof.proof.pi_a,
+    pi_b: proof.proof.pi_b,
+    pi_c: proof.proof.pi_c,
+    protocol: proof.proof.protocol,
+    curve: proof.proof.curve,
+  };
+
+  const publicSignals = [
+    proof.publicSignals.currentYear.toString(),
+    proof.publicSignals.minAge.toString(),
+    proof.publicSignals.credentialHash,
+    proof.publicSignals.nonce,
+    proof.publicSignals.requestTimestamp.toString(),
+    ...proof.publicSignals.issuerPublicKey,
+  ];
+
+  const isValid = await snarkjs.groth16.verify(
+    verificationKey,
+    publicSignals,
+    snarkProof
+  );
+
+  return isValid;
+}
+
+/**
+ * Verifies a signed nationality proof (includes issuer public key bits in public signals)
+ */
+export async function verifyNationalityProofSigned(
+  proof: NationalityProofSigned,
+  verificationKey: VerificationKey
+): Promise<boolean> {
+  const snarkProof = {
+    pi_a: proof.proof.pi_a,
+    pi_b: proof.proof.pi_b,
+    pi_c: proof.proof.pi_c,
+    protocol: proof.proof.protocol,
+    curve: proof.proof.curve,
+  };
+
+  const publicSignals = [
+    proof.publicSignals.targetNationality.toString(),
+    proof.publicSignals.credentialHash,
+    proof.publicSignals.nonce,
+    proof.publicSignals.requestTimestamp.toString(),
+    ...proof.publicSignals.issuerPublicKey,
+  ];
+
   const isValid = await snarkjs.groth16.verify(
     verificationKey,
     publicSignals,

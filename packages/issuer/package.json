@@ -9,7 +9,9 @@
     "test": "mocha -r ts-node/register/transpile-only test/**/*.test.ts --timeout 10000"
   },
   "dependencies": {
-    "@zk-id/core": "^0.1.0"
+    "@zk-id/core": "^0.1.0",
+    "circomlibjs": "^0.1.7",
+    "ffjavascript": "^0.2.63"
   },
   "devDependencies": {
     "@types/node": "^20.10.6",

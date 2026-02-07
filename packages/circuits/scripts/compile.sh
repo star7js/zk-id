@@ -46,5 +46,25 @@ echo "Compiling nationality-verify.circom..."
   --prime bn128 \
   -l "$ROOT_DIR/node_modules"
 
+# Compile age-verify-signed circuit
+echo "Compiling age-verify-signed.circom..."
+"$CIRCOM" "$SRC_DIR/age-verify-signed.circom" \
+  --r1cs \
+  --wasm \
+  --sym \
+  -o "$BUILD_DIR" \
+  --prime bn128 \
+  -l "$ROOT_DIR/node_modules"
+
+# Compile nationality-verify-signed circuit
+echo "Compiling nationality-verify-signed.circom..."
+"$CIRCOM" "$SRC_DIR/nationality-verify-signed.circom" \
+  --r1cs \
+  --wasm \
+  --sym \
+  -o "$BUILD_DIR" \
+  --prime bn128 \
+  -l "$ROOT_DIR/node_modules"
+
 echo "✓ Circuits compiled successfully"
 echo "Next step: Run 'npm run setup' to perform trusted setup (Powers of Tau ceremony)"

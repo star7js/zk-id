@@ -65,6 +65,50 @@ export interface NationalityProof {
   };
 }
 
+export interface CircuitSignatureInputs {
+  /** Issuer public key bits (packed point) */
+  issuerPublicKey: string[];
+  /** Signature R8 bits */
+  signatureR8: string[];
+  /** Signature S bits */
+  signatureS: string[];
+}
+
+export interface AgeProofSigned {
+  proof: {
+    pi_a: string[];
+    pi_b: string[][];
+    pi_c: string[];
+    protocol: string;
+    curve: string;
+  };
+  publicSignals: {
+    currentYear: number;
+    minAge: number;
+    credentialHash: string;
+    nonce: string;
+    requestTimestamp: number;
+    issuerPublicKey: string[];
+  };
+}
+
+export interface NationalityProofSigned {
+  proof: {
+    pi_a: string[];
+    pi_b: string[][];
+    pi_c: string[];
+    protocol: string;
+    curve: string;
+  };
+  publicSignals: {
+    targetNationality: number;
+    credentialHash: string;
+    nonce: string;
+    requestTimestamp: number;
+    issuerPublicKey: string[];
+  };
+}
+
 export interface VerificationKey {
   protocol: string;
   curve: string;
