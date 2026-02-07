@@ -157,7 +157,8 @@ zk-id/
 - [x] Compile and test circuits
 - [x] Working end-to-end demo
 - [x] Issuer implementation with credential signing
-- [x] Comprehensive test suite (59 tests passing)
+- [x] Comprehensive test suite (46 tests passing)
+- [x] **Security fix: Credential hash verification in circuit** (prevents malicious proofs)
 - [ ] Browser wallet implementation
 - [ ] Mobile wallet (iOS/Android)
 - [ ] Multi-attribute credentials (not just age)
@@ -165,6 +166,10 @@ zk-id/
 - [ ] W3C Verifiable Credentials compatibility
 
 ## Security Considerations
+
+### Recent Security Updates
+
+- ✅ **Fixed credential hash verification** (Feb 2026): The circuit now properly verifies that the credential hash matches the prover's private inputs (birthYear, salt), preventing malicious proofs with arbitrary birth years.
 
 ### Production Checklist
 
