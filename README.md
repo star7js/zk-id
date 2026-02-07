@@ -45,10 +45,27 @@ Current age verification systems force users to expose sensitive information:
 ✅ **Privacy-Preserving**: Prove eligibility without revealing personal data
 ✅ **Fast**: Proof verification in <100ms
 ✅ **Small**: Proofs are ~200 bytes
-✅ **Secure**: Built on Groth16 ZK-SNARKs, widely used in production
+✅ **Secure**: Built on Groth16 ZK-SNARKs with Ed25519 signatures
+✅ **Multi-Attribute**: Support for multiple credential attributes with selective disclosure
+✅ **Revocation**: Production-ready credential revocation system
+✅ **Standards-Compliant**: W3C Verifiable Credentials support
+✅ **Telemetry**: Built-in verification event monitoring
+✅ **Batch Verification**: Efficient verification of multiple proofs
 ✅ **Developer-Friendly**: Simple SDK for easy website integration
 
 ## Quick Start
+
+### Try the Demo
+
+The fastest way to see zk-id in action:
+
+```bash
+cd examples/web-app
+npm install
+npm start
+```
+
+Then open http://localhost:3000 to see a working integration demo with credential issuance, zero-knowledge verification, and revocation.
 
 ### For Users
 
@@ -81,13 +98,20 @@ if (verified) {
 **Server side** (your backend):
 ```typescript
 import { ZkIdServer } from '@zk-id/sdk';
+import { InMemoryRevocationStore } from '@zk-id/core';
 
 const server = new ZkIdServer({
-  verificationKeyPath: './verification_key.json'
+  verificationKeyPath: './verification_key.json',
+  revocationStore: new InMemoryRevocationStore(), // optional
+});
+
+// Optional: Listen for verification events
+server.onVerification((event) => {
+  console.log('Verification:', event.verified, 'Time:', event.verificationTimeMs);
 });
 
 app.post('/api/verify-age', async (req, res) => {
-  const result = await server.verifyProof(req.body);
+  const result = await server.verifyProof(req.body, req.ip);
   res.json({ verified: result.verified });
 });
 ```
@@ -96,15 +120,28 @@ app.post('/api/verify-age', async (req, res) => {
 
 ```typescript
 import { CredentialIssuer } from '@zk-id/issuer';
+import { InMemoryRevocationStore } from '@zk-id/core';
 
-const issuer = new CredentialIssuer({
-  name: 'Your Identity Service',
-  signingKey: process.env.ISSUER_KEY,
-  publicKey: process.env.ISSUER_PUBLIC_KEY
-});
+// Create issuer with Ed25519 keys
+const issuer = CredentialIssuer.createTestIssuer('Your Identity Service');
+
+// Optional: Enable revocation
+const revocationStore = new InMemoryRevocationStore();
+issuer.setRevocationStore(revocationStore);
 
 // After verifying user's government ID
-const credential = await issuer.issueCredential(userBirthYear, userId);
+const credential = await issuer.issueCredential(
+  userBirthYear,
+  nationality, // ISO 3166-1 numeric code
+  userId
+);
+
+// Convert to W3C Verifiable Credential format
+import { toVerifiableCredential } from '@zk-id/issuer';
+const vc = toVerifiableCredential(credential, userDID);
+
+// Revoke a credential if needed
+await issuer.revokeCredential(credential.credential.id);
 ```
 
 ## Repository Structure
@@ -112,14 +149,24 @@ const credential = await issuer.issueCredential(userBirthYear, userId);
 ```
 zk-id/
 ├── packages/
-│   ├── circuits/          # Circom ZK circuits (age-verify, credential-hash)
-│   ├── core/              # Core TypeScript library (credential, prover, verifier)
-│   ├── issuer/            # Credential issuance service
-│   └── sdk/               # Website integration SDK (client + server)
+│   ├── circuits/          # Circom ZK circuits (age-verify, nationality-verify, credential-hash)
+│   ├── core/              # Core library (credential, prover, verifier, revocation, batch)
+│   ├── issuer/            # Credential issuance with Ed25519 & W3C VC support
+│   └── sdk/               # Server SDK with telemetry & revocation checking
 ├── examples/
-│   └── age-gate/          # Complete age verification demo
+│   ├── age-gate/          # CLI demo with proof generation
+│   └── web-app/           # Full web integration example
 └── docs/                  # Architecture and protocol documentation
 ```
+
+## Package Overview
+
+| Package | Description | Key Features |
+|---------|-------------|--------------|
+| `@zk-id/core` | Core cryptographic library | Credential creation, proof generation/verification, batch verification, revocation store |
+| `@zk-id/issuer` | Credential issuance service | Ed25519 signatures, multi-attribute credentials, W3C VC format, revocation |
+| `@zk-id/sdk` | Server-side verification | Proof verification, telemetry events, rate limiting, replay protection |
+| `@zk-id/circuits` | ZK circuits (Circom) | Age verification, nationality verification, credential hashing |
 
 ## Use Cases
 
@@ -157,13 +204,19 @@ zk-id/
 - [x] Compile and test circuits
 - [x] Working end-to-end demo
 - [x] Issuer implementation with credential signing
-- [x] Comprehensive test suite (46 tests passing)
+- [x] Comprehensive test suite
 - [x] **Security fix: Credential hash verification in circuit** (prevents malicious proofs)
+- [x] **Multi-attribute credentials** (birthYear + nationality with selective disclosure)
+- [x] **Ed25519 signatures** (production-grade asymmetric crypto)
+- [x] **Credential revocation** (revocation store with verifier integration)
+- [x] **W3C Verifiable Credentials** (standards-compliant format conversion)
+- [x] **Telemetry & monitoring** (verification event tracking)
+- [x] **Batch verification** (efficient multi-proof verification)
+- [x] **Web integration example** (Express + HTML demo)
 - [ ] Browser wallet implementation
 - [ ] Mobile wallet (iOS/Android)
-- [ ] Multi-attribute credentials (not just age)
-- [ ] Credential revocation
-- [ ] W3C Verifiable Credentials compatibility
+- [ ] Credential accumulator (efficient on-chain revocation)
+- [ ] Recursive proof composition
 
 ## Security Considerations
 

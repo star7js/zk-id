@@ -1,5 +1,5 @@
 import * as snarkjs from 'snarkjs';
-import { AgeProof, NationalityProof, VerificationKey } from './types';
+import { AgeProof, NationalityProof, VerificationKey, BatchVerificationResult } from './types';
 
 /**
  * Verifies an age proof using the verification key
@@ -137,4 +137,59 @@ export async function loadVerificationKey(path: string): Promise<VerificationKey
   const fs = require('fs').promises;
   const data = await fs.readFile(path, 'utf8');
   return JSON.parse(data);
+}
+
+/**
+ * Verifies multiple proofs in parallel
+ *
+ * @param proofs - Array of proofs with their verification keys and types
+ * @returns Batch verification result with individual and aggregate outcomes
+ */
+export async function verifyBatch(
+  proofs: Array<{
+    proof: AgeProof | NationalityProof;
+    verificationKey: VerificationKey;
+    type: 'age' | 'nationality';
+  }>
+): Promise<BatchVerificationResult> {
+  // Handle empty array
+  if (proofs.length === 0) {
+    return {
+      results: [],
+      allVerified: true,
+      verifiedCount: 0,
+      totalCount: 0,
+    };
+  }
+
+  // Verify all proofs in parallel using Promise.allSettled
+  const verificationPromises = proofs.map(async ({ proof, verificationKey, type }, index) => {
+    try {
+      let verified: boolean;
+      if (type === 'age') {
+        verified = await verifyAgeProof(proof as AgeProof, verificationKey);
+      } else {
+        verified = await verifyNationalityProof(proof as NationalityProof, verificationKey);
+      }
+      return { index, verified, error: undefined };
+    } catch (error) {
+      return {
+        index,
+        verified: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  });
+
+  const results = await Promise.all(verificationPromises);
+
+  const verifiedCount = results.filter(r => r.verified).length;
+  const allVerified = verifiedCount === results.length;
+
+  return {
+    results,
+    allVerified,
+    verifiedCount,
+    totalCount: results.length,
+  };
 }

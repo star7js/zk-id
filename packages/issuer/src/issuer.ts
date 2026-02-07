@@ -1,5 +1,5 @@
-import { createCredential, Credential } from '@zk-id/core';
-import { createHash, createHmac, randomBytes } from 'crypto';
+import { createCredential, Credential, RevocationStore } from '@zk-id/core';
+import { createHash, randomBytes, generateKeyPairSync, sign, verify, KeyObject } from 'crypto';
 
 /**
  * IssuerConfig defines the configuration for a credential issuer
@@ -7,10 +7,10 @@ import { createHash, createHmac, randomBytes } from 'crypto';
 export interface IssuerConfig {
   /** Name of the issuing authority */
   name: string;
-  /** Private signing key (for testing - production should use HSM/KMS) */
-  signingKey: string;
-  /** Public verification key */
-  publicKey: string;
+  /** Ed25519 private signing key (for testing - production should use HSM/KMS) */
+  signingKey: KeyObject;
+  /** Ed25519 public verification key */
+  publicKey: KeyObject;
 }
 
 /**
@@ -35,6 +35,7 @@ export interface SignedCredential {
  */
 export class CredentialIssuer {
   private config: IssuerConfig;
+  private revocationStore?: RevocationStore;
 
   constructor(config: IssuerConfig) {
     this.config = config;
@@ -76,8 +77,7 @@ export class CredentialIssuer {
   }
 
   /**
-   * Signs a credential using the issuer's private key
-   * (Simplified - production should use proper digital signatures)
+   * Signs a credential using the issuer's Ed25519 private key
    */
   private signCredential(credential: Credential): string {
     const message = JSON.stringify({
@@ -86,31 +86,28 @@ export class CredentialIssuer {
       createdAt: credential.createdAt,
     });
 
-    // HMAC signature using the issuer's signing key
-    const hmac = createHmac('sha256', this.config.signingKey)
-      .update(message)
-      .digest('hex');
+    // Ed25519 signature using the issuer's private key
+    const signature = sign(null, Buffer.from(message), this.config.signingKey);
 
-    return hmac;
+    return signature.toString('base64');
   }
 
   /**
-   * Verifies a signed credential's signature
-   * Note: In production, publicKey would be the actual public key from a keypair.
-   * For this simplified implementation, we derive it from the signing key for testing.
+   * Verifies a signed credential's Ed25519 signature
    */
-  static verifySignature(signedCredential: SignedCredential, signingKey: string): boolean {
+  static verifySignature(signedCredential: SignedCredential, publicKey: KeyObject): boolean {
     const message = JSON.stringify({
       id: signedCredential.credential.id,
       commitment: signedCredential.credential.commitment,
       createdAt: signedCredential.credential.createdAt,
     });
 
-    const expectedSignature = createHmac('sha256', signingKey)
-      .update(message)
-      .digest('hex');
-
-    return expectedSignature === signedCredential.signature;
+    try {
+      const signature = Buffer.from(signedCredential.signature, 'base64');
+      return verify(null, Buffer.from(message), publicKey, signature);
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -131,16 +128,54 @@ export class CredentialIssuer {
   }
 
   /**
-   * Creates a new issuer with generated keys (for testing)
+   * Set the revocation store for this issuer
+   */
+  setRevocationStore(store: RevocationStore): void {
+    this.revocationStore = store;
+  }
+
+  /**
+   * Revoke a credential
+   */
+  async revokeCredential(credentialId: string): Promise<void> {
+    if (!this.revocationStore) {
+      throw new Error('Revocation store not configured');
+    }
+
+    await this.revocationStore.revoke(credentialId);
+
+    // Log revocation event
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      issuer: this.config.name,
+      credentialId,
+      action: 'revoke',
+    };
+
+    console.log('[ISSUER AUDIT]', JSON.stringify(logEntry));
+  }
+
+  /**
+   * Check if a credential has been revoked
+   */
+  async isCredentialRevoked(credentialId: string): Promise<boolean> {
+    if (!this.revocationStore) {
+      return false;
+    }
+
+    return this.revocationStore.isRevoked(credentialId);
+  }
+
+  /**
+   * Creates a new issuer with generated Ed25519 keys (for testing)
    */
   static createTestIssuer(name: string): CredentialIssuer {
-    const signingKey = randomBytes(32).toString('hex');
-    const publicKey = createHash('sha256').update(signingKey).digest('hex');
+    const { privateKey, publicKey } = generateKeyPairSync('ed25519');
 
     return new CredentialIssuer({
       name,
-      signingKey,
-      publicKey,
+      signingKey: privateKey,
+      publicKey: publicKey,
     });
   }
 }

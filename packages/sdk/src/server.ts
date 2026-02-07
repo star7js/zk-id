@@ -13,12 +13,14 @@ import {
   AgeProof,
   NationalityProof,
   VerificationKey,
+  RevocationStore,
   verifyAgeProof,
   verifyNationalityProof,
   validateProofConstraints,
   validateNationalityProofConstraints,
 } from '@zk-id/core';
 import { readFileSync } from 'fs';
+import { EventEmitter } from 'events';
 
 export interface ZkIdServerConfig {
   /** Path to the age verification key file */
@@ -29,6 +31,8 @@ export interface ZkIdServerConfig {
   nonceStore?: NonceStore;
   /** Optional rate limiter */
   rateLimiter?: RateLimiter;
+  /** Optional revocation store for checking revoked credentials */
+  revocationStore?: RevocationStore;
 }
 
 export interface NonceStore {
@@ -43,15 +47,31 @@ export interface RateLimiter {
   allowRequest(identifier: string): Promise<boolean>;
 }
 
+export interface VerificationEvent {
+  /** ISO timestamp of verification */
+  timestamp: string;
+  /** Type of claim verified */
+  claimType: string;
+  /** Whether verification succeeded */
+  verified: boolean;
+  /** Time taken for verification in milliseconds */
+  verificationTimeMs: number;
+  /** Optional client identifier (IP, session, etc.) */
+  clientIdentifier?: string;
+  /** Error message if verification failed */
+  error?: string;
+}
+
 /**
  * Server SDK for verifying zk-id proofs
  */
-export class ZkIdServer {
+export class ZkIdServer extends EventEmitter {
   private config: ZkIdServerConfig;
   private verificationKey: VerificationKey;
   private nationalityVerificationKey?: VerificationKey;
 
   constructor(config: ZkIdServerConfig) {
+    super();
     this.config = config;
     this.verificationKey = this.loadVerificationKey(config.verificationKeyPath);
     if (config.nationalityVerificationKeyPath) {
@@ -72,14 +92,18 @@ export class ZkIdServer {
     proofResponse: ProofResponse,
     clientIdentifier?: string
   ): Promise<VerificationResult> {
+    const startTime = Date.now();
+
     // Rate limiting
     if (this.config.rateLimiter && clientIdentifier) {
       const allowed = await this.config.rateLimiter.allowRequest(clientIdentifier);
       if (!allowed) {
-        return {
+        const result = {
           verified: false,
           error: 'Rate limit exceeded',
         };
+        this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
+        return result;
       }
     }
 
@@ -87,24 +111,43 @@ export class ZkIdServer {
     if (this.config.nonceStore) {
       const nonceUsed = await this.config.nonceStore.has(proofResponse.nonce);
       if (nonceUsed) {
-        return {
+        const result = {
           verified: false,
           error: 'Nonce already used (replay attack detected)',
         };
+        this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
+        return result;
+      }
+    }
+
+    // Revocation check
+    if (this.config.revocationStore) {
+      const isRevoked = await this.config.revocationStore.isRevoked(proofResponse.credentialId);
+      if (isRevoked) {
+        const result = {
+          verified: false,
+          error: 'Credential has been revoked',
+        };
+        this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
+        return result;
       }
     }
 
     // Dispatch based on claim type
+    let result: VerificationResult;
     if (proofResponse.claimType === 'age') {
-      return this.verifyAgeProofInternal(proofResponse);
+      result = await this.verifyAgeProofInternal(proofResponse);
     } else if (proofResponse.claimType === 'nationality') {
-      return this.verifyNationalityProofInternal(proofResponse);
+      result = await this.verifyNationalityProofInternal(proofResponse);
     } else {
-      return {
+      result = {
         verified: false,
         error: 'Unknown claim type',
       };
     }
+
+    this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
+    return result;
   }
 
   /**
@@ -212,6 +255,35 @@ export class ZkIdServer {
   private loadVerificationKey(path: string): VerificationKey {
     const data = readFileSync(path, 'utf8');
     return JSON.parse(data);
+  }
+
+  /**
+   * Emit a verification event for telemetry
+   */
+  private emitVerificationEvent(
+    claimType: string,
+    result: VerificationResult,
+    startTime: number,
+    clientIdentifier?: string
+  ): void {
+    const event: VerificationEvent = {
+      timestamp: new Date().toISOString(),
+      claimType,
+      verified: result.verified,
+      verificationTimeMs: Date.now() - startTime,
+      clientIdentifier,
+      error: result.error,
+    };
+    this.emit('verification', event);
+  }
+
+  /**
+   * Register a callback for verification events
+   *
+   * @param callback - Function to call when a verification occurs
+   */
+  onVerification(callback: (event: VerificationEvent) => void): void {
+    this.on('verification', callback);
   }
 }
 

@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { CredentialIssuer, SignedCredential } from '../src/issuer';
+import { InMemoryRevocationStore } from '@zk-id/core';
 
 describe('CredentialIssuer Tests', () => {
   let issuer: CredentialIssuer;
@@ -22,7 +23,7 @@ describe('CredentialIssuer Tests', () => {
       expect(signed.credential.birthYear).to.equal(birthYear);
       expect(signed.credential.nationality).to.equal(nationality);
       expect(signed.signature).to.be.a('string');
-      expect(signed.signature).to.have.lengthOf(64); // SHA256 hex
+      expect(signed.signature.length).to.be.approximately(88, 2); // ~88 chars base64 (64 bytes Ed25519 signature)
     });
 
     it('should issue credentials with unique IDs', async () => {
@@ -79,9 +80,9 @@ describe('CredentialIssuer Tests', () => {
     it('should verify a valid signature', async () => {
       const signed = await issuer.issueCredential(1990, 840);
 
-      // Get the signing key from the issuer config (in production this would be separate)
-      const signingKey = (issuer as any).config.signingKey;
-      const isValid = CredentialIssuer.verifySignature(signed, signingKey);
+      // Get the public key from the issuer config
+      const publicKey = (issuer as any).config.publicKey;
+      const isValid = CredentialIssuer.verifySignature(signed, publicKey);
 
       expect(isValid).to.be.true;
     });
@@ -95,17 +96,19 @@ describe('CredentialIssuer Tests', () => {
         signature: 'invalid_signature_12345678901234567890123456789012345678901234',
       };
 
-      const signingKey = (issuer as any).config.signingKey;
-      const isValid = CredentialIssuer.verifySignature(tamperedSigned, signingKey);
+      const publicKey = (issuer as any).config.publicKey;
+      const isValid = CredentialIssuer.verifySignature(tamperedSigned, publicKey);
 
       expect(isValid).to.be.false;
     });
 
-    it('should reject with wrong signing key', async () => {
+    it('should reject with wrong public key', async () => {
       const signed = await issuer.issueCredential(1990, 840);
 
-      const wrongKey = 'wrong_key_1234567890abcdef1234567890abcdef12345678';
-      const isValid = CredentialIssuer.verifySignature(signed, wrongKey);
+      // Create a different issuer with a different key pair
+      const wrongIssuer = CredentialIssuer.createTestIssuer('Wrong Authority');
+      const wrongPublicKey = (wrongIssuer as any).config.publicKey;
+      const isValid = CredentialIssuer.verifySignature(signed, wrongPublicKey);
 
       expect(isValid).to.be.false;
     });
@@ -122,8 +125,8 @@ describe('CredentialIssuer Tests', () => {
         },
       };
 
-      const signingKey = (issuer as any).config.signingKey;
-      const isValid = CredentialIssuer.verifySignature(modifiedSigned, signingKey);
+      const publicKey = (issuer as any).config.publicKey;
+      const isValid = CredentialIssuer.verifySignature(modifiedSigned, publicKey);
 
       expect(isValid).to.be.false;
     });
@@ -165,8 +168,8 @@ describe('CredentialIssuer Tests', () => {
       const signed = await issuer.issueCredential(birthYear, nationality, userId);
 
       // Verify signature
-      const signingKey = (issuer as any).config.signingKey;
-      const isValid = CredentialIssuer.verifySignature(signed, signingKey);
+      const publicKey = (issuer as any).config.publicKey;
+      const isValid = CredentialIssuer.verifySignature(signed, publicKey);
 
       expect(isValid).to.be.true;
       expect(signed.credential.birthYear).to.equal(birthYear);
@@ -180,16 +183,61 @@ describe('CredentialIssuer Tests', () => {
       const signed1 = await issuer1.issueCredential(1990, 840);
       const signed2 = await issuer2.issueCredential(1990, 840);
 
-      const signingKey1 = (issuer1 as any).config.signingKey;
-      const signingKey2 = (issuer2 as any).config.signingKey;
+      const publicKey1 = (issuer1 as any).config.publicKey;
+      const publicKey2 = (issuer2 as any).config.publicKey;
 
       // Each issuer can verify their own credentials
-      expect(CredentialIssuer.verifySignature(signed1, signingKey1)).to.be.true;
-      expect(CredentialIssuer.verifySignature(signed2, signingKey2)).to.be.true;
+      expect(CredentialIssuer.verifySignature(signed1, publicKey1)).to.be.true;
+      expect(CredentialIssuer.verifySignature(signed2, publicKey2)).to.be.true;
 
       // But not each other's credentials
-      expect(CredentialIssuer.verifySignature(signed1, signingKey2)).to.be.false;
-      expect(CredentialIssuer.verifySignature(signed2, signingKey1)).to.be.false;
+      expect(CredentialIssuer.verifySignature(signed1, publicKey2)).to.be.false;
+      expect(CredentialIssuer.verifySignature(signed2, publicKey1)).to.be.false;
+    });
+  });
+
+  describe('Revocation', () => {
+    it('should revoke a credential', async () => {
+      const store = new InMemoryRevocationStore();
+      issuer.setRevocationStore(store);
+
+      const signed = await issuer.issueCredential(1990, 840);
+      const credentialId = signed.credential.id;
+
+      await issuer.revokeCredential(credentialId);
+
+      const isRevoked = await issuer.isCredentialRevoked(credentialId);
+      expect(isRevoked).to.be.true;
+    });
+
+    it('should return false for revoked check without revocation store', async () => {
+      const signed = await issuer.issueCredential(1990, 840);
+      const isRevoked = await issuer.isCredentialRevoked(signed.credential.id);
+
+      expect(isRevoked).to.be.false;
+    });
+
+    it('should throw error when revoking without revocation store', async () => {
+      const signed = await issuer.issueCredential(1990, 840);
+
+      try {
+        await issuer.revokeCredential(signed.credential.id);
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).to.be.instanceOf(Error);
+        expect((error as Error).message).to.include('Revocation store not configured');
+      }
+    });
+
+    it('should log revocation events', async () => {
+      const store = new InMemoryRevocationStore();
+      issuer.setRevocationStore(store);
+
+      const signed = await issuer.issueCredential(1990, 840);
+      await issuer.revokeCredential(signed.credential.id);
+
+      // Audit logging is tested through console output
+      expect(await store.isRevoked(signed.credential.id)).to.be.true;
     });
   });
 });

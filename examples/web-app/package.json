@@ -1,0 +1,24 @@
+{
+  "name": "@zk-id/example-web-app",
+  "version": "0.1.0",
+  "description": "Web application example demonstrating zk-id integration",
+  "private": true,
+  "scripts": {
+    "start": "ts-node src/server.ts",
+    "dev": "nodemon --exec ts-node src/server.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@zk-id/core": "*",
+    "@zk-id/issuer": "*",
+    "@zk-id/sdk": "*",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.17",
+    "@types/node": "^20.0.0",
+    "nodemon": "^3.0.1",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.3.0"
+  }
+}

@@ -85,3 +85,23 @@ export interface ProofResponse {
   /** Nonce from the request (for replay protection) */
   nonce: string;
 }
+
+export interface BatchVerificationResult {
+  /** Per-proof verification results */
+  results: { index: number; verified: boolean; error?: string }[];
+  /** True if all proofs verified successfully */
+  allVerified: boolean;
+  /** Number of successfully verified proofs */
+  verifiedCount: number;
+  /** Total number of proofs checked */
+  totalCount: number;
+}
+
+export interface RevocationStore {
+  /** Check if a credential has been revoked */
+  isRevoked(credentialId: string): Promise<boolean>;
+  /** Revoke a credential */
+  revoke(credentialId: string): Promise<void>;
+  /** Get the count of revoked credentials */
+  getRevokedCount(): Promise<number>;
+}

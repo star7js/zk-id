@@ -10,3 +10,4 @@ export * from './credential';
 export * from './prover';
 export * from './verifier';
 export * from './poseidon';
+export * from './revocation';
