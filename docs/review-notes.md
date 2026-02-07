@@ -5,9 +5,7 @@ Date: 2026-02-07
 ## Top Findings (Must Fix)
 
 1) Revocation bypass (credentialId not bound to proof)
-- The server checks `proofResponse.credentialId`, but the proof only binds to `credentialHash` (commitment).
-- An attacker can submit a valid proof and a different, non‑revoked `credentialId` to bypass revocation.
-- Fix: require a signed credential and verify its signature + commitment matches proof; use the signed credential's `credential.id` for revocation.
+- Fixed: revocation checks now use credential commitment from the proof (no credentialId trust).
 
 2) Replay protection ineffective (nonce not bound to proof)
 - Fixed: `nonce` is now a public input to both circuits and verified by server.

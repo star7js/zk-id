@@ -135,8 +135,8 @@ const credential = await issuer.issueCredential(
   userId
 );
 
-// Revoke a credential if needed
-await issuer.revokeCredential(credential.credential.id);
+// Revoke a credential if needed (by commitment)
+await issuer.revokeCredential(credential.credential.commitment);
 ```
 
 ## Repository Structure

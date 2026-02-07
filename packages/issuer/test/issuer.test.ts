@@ -203,17 +203,17 @@ describe('CredentialIssuer Tests', () => {
       issuer.setRevocationStore(store);
 
       const signed = await issuer.issueCredential(1990, 840);
-      const credentialId = signed.credential.id;
+      const commitment = signed.credential.commitment;
 
-      await issuer.revokeCredential(credentialId);
+      await issuer.revokeCredential(commitment);
 
-      const isRevoked = await issuer.isCredentialRevoked(credentialId);
+      const isRevoked = await issuer.isCredentialRevoked(commitment);
       expect(isRevoked).to.be.true;
     });
 
     it('should return false for revoked check without revocation store', async () => {
       const signed = await issuer.issueCredential(1990, 840);
-      const isRevoked = await issuer.isCredentialRevoked(signed.credential.id);
+      const isRevoked = await issuer.isCredentialRevoked(signed.credential.commitment);
 
       expect(isRevoked).to.be.false;
     });
@@ -222,7 +222,7 @@ describe('CredentialIssuer Tests', () => {
       const signed = await issuer.issueCredential(1990, 840);
 
       try {
-        await issuer.revokeCredential(signed.credential.id);
+        await issuer.revokeCredential(signed.credential.commitment);
         expect.fail('Should have thrown an error');
       } catch (error) {
         expect(error).to.be.instanceOf(Error);
@@ -235,10 +235,10 @@ describe('CredentialIssuer Tests', () => {
       issuer.setRevocationStore(store);
 
       const signed = await issuer.issueCredential(1990, 840);
-      await issuer.revokeCredential(signed.credential.id);
+      await issuer.revokeCredential(signed.credential.commitment);
 
       // Audit logging is tested through console output
-      expect(await store.isRevoked(signed.credential.id)).to.be.true;
+      expect(await store.isRevoked(signed.credential.commitment)).to.be.true;
     });
   });
 });

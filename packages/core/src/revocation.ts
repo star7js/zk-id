@@ -12,17 +12,17 @@ export class InMemoryRevocationStore implements RevocationStore {
   }
 
   /**
-   * Check if a credential has been revoked
+   * Check if a credential commitment has been revoked
    */
-  async isRevoked(credentialId: string): Promise<boolean> {
-    return this.revoked.has(credentialId);
+  async isRevoked(commitment: string): Promise<boolean> {
+    return this.revoked.has(commitment);
   }
 
   /**
-   * Revoke a credential
+   * Revoke a credential commitment
    */
-  async revoke(credentialId: string): Promise<void> {
-    this.revoked.add(credentialId);
+  async revoke(commitment: string): Promise<void> {
+    this.revoked.add(commitment);
   }
 
   /**

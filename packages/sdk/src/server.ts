@@ -249,10 +249,10 @@ export class ZkIdServer extends EventEmitter {
       }
     }
 
-    // Revocation check (use signed credential ID when available)
+    // Revocation check (use credential commitment)
     if (this.config.revocationStore) {
-      const credentialId = proofResponse.signedCredential?.credential.id || proofResponse.credentialId;
-      const isRevoked = await this.config.revocationStore.isRevoked(credentialId);
+      const commitment = this.getCredentialCommitmentFromProof(proofResponse);
+      const isRevoked = await this.config.revocationStore.isRevoked(commitment);
       if (isRevoked) {
         const result = {
           verified: false,

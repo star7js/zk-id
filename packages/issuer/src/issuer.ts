@@ -117,20 +117,20 @@ export class CredentialIssuer {
   }
 
   /**
-   * Revoke a credential
+   * Revoke a credential commitment
    */
-  async revokeCredential(credentialId: string): Promise<void> {
+  async revokeCredential(commitment: string): Promise<void> {
     if (!this.revocationStore) {
       throw new Error('Revocation store not configured');
     }
 
-    await this.revocationStore.revoke(credentialId);
+    await this.revocationStore.revoke(commitment);
 
     // Log revocation event
     const logEntry = {
       timestamp: new Date().toISOString(),
       issuer: this.config.name,
-      credentialId,
+      commitment,
       action: 'revoke',
     };
 
@@ -140,12 +140,12 @@ export class CredentialIssuer {
   /**
    * Check if a credential has been revoked
    */
-  async isCredentialRevoked(credentialId: string): Promise<boolean> {
+  async isCredentialRevoked(commitment: string): Promise<boolean> {
     if (!this.revocationStore) {
       return false;
     }
 
-    return this.revocationStore.isRevoked(credentialId);
+    return this.revocationStore.isRevoked(commitment);
   }
 
   /**

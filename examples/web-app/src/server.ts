@@ -391,7 +391,14 @@ app.post('/api/revoke-credential', async (req, res) => {
       });
     }
 
-    await issuer.revokeCredential(credentialId);
+    const signedCredential = issuedCredentials.get(credentialId);
+    if (!signedCredential) {
+      return res.status(404).json({
+        error: 'Credential not found',
+      });
+    }
+
+    await issuer.revokeCredential(signedCredential.credential.commitment);
 
     res.json({
       success: true,

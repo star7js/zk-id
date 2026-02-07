@@ -115,10 +115,10 @@ export interface BatchVerificationResult {
 }
 
 export interface RevocationStore {
-  /** Check if a credential has been revoked */
-  isRevoked(credentialId: string): Promise<boolean>;
-  /** Revoke a credential */
-  revoke(credentialId: string): Promise<void>;
+  /** Check if a credential commitment has been revoked */
+  isRevoked(commitment: string): Promise<boolean>;
+  /** Revoke a credential commitment */
+  revoke(commitment: string): Promise<void>;
   /** Get the count of revoked credentials */
   getRevokedCount(): Promise<number>;
 }
