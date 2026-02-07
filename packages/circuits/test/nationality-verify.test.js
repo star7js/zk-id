@@ -34,6 +34,7 @@ describe("NationalityVerify Circuit Tests", function () {
       targetNationality: 840,
       credentialHash: computeHash(birthYear, nationality, salt),
       nonce: "1",
+      requestTimestamp: 1700000000000,
     };
 
     const witness = await circuit.calculateWitness(input);
@@ -51,6 +52,7 @@ describe("NationalityVerify Circuit Tests", function () {
       targetNationality: 826, // UK (different from actual)
       credentialHash: computeHash(birthYear, nationality, salt),
       nonce: "1",
+      requestTimestamp: 1700000000000,
     };
 
     try {
@@ -78,6 +80,7 @@ describe("NationalityVerify Circuit Tests", function () {
       // Using hash with wrong nationality - this should fail
       credentialHash: computeHash(birthYear, wrongNationality, salt),
       nonce: "1",
+      requestTimestamp: 1700000000000,
     };
 
     try {
@@ -110,6 +113,7 @@ describe("NationalityVerify Circuit Tests", function () {
         targetNationality: nationality,
         credentialHash: computeHash(birthYear, nationality, salt),
         nonce: "1",
+        requestTimestamp: 1700000000000,
       };
 
       const witness = await circuit.calculateWitness(input);
@@ -130,6 +134,7 @@ describe("NationalityVerify Circuit Tests", function () {
       targetNationality: nationality,
       credentialHash: computeHash(birthYear1, nationality, salt),
       nonce: "1",
+      requestTimestamp: 1700000000000,
     };
 
     const input2 = {
@@ -139,6 +144,7 @@ describe("NationalityVerify Circuit Tests", function () {
       targetNationality: nationality,
       credentialHash: computeHash(birthYear2, nationality, salt),
       nonce: "1",
+      requestTimestamp: 1700000000000,
     };
 
     const witness1 = await circuit.calculateWitness(input1);
@@ -163,6 +169,7 @@ describe("NationalityVerify Circuit Tests", function () {
       targetNationality: nationality,
       credentialHash: computeHash(birthYear, nationality, salt1),
       nonce: "1",
+      requestTimestamp: 1700000000000,
     };
 
     const input2 = {
@@ -172,6 +179,7 @@ describe("NationalityVerify Circuit Tests", function () {
       targetNationality: nationality,
       credentialHash: computeHash(birthYear, nationality, salt2),
       nonce: "1",
+      requestTimestamp: 1700000000000,
     };
 
     const witness1 = await circuit.calculateWitness(input1);
@@ -197,6 +205,7 @@ describe("NationalityVerify Circuit Tests", function () {
       // Using hash with correct salt, but providing wrong salt as input
       credentialHash: computeHash(birthYear, nationality, correctSalt),
       nonce: "1",
+      requestTimestamp: 1700000000000,
     };
 
     try {

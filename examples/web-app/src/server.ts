@@ -198,10 +198,13 @@ app.post('/api/demo/verify-age', async (req, res) => {
     // Generate proof (this is the expensive operation)
     const proofGenStart = Date.now();
     const nonce = randomBytes(32).toString('hex');
+    const requestTimestamp = new Date().toISOString();
+    const requestTimestampMs = Date.parse(requestTimestamp);
     const proof = await generateAgeProof(
       signedCredential.credential,
       minAge,
       nonce,
+      requestTimestampMs,
       AGE_WASM_PATH,
       AGE_ZKEY_PATH
     );
@@ -214,6 +217,7 @@ app.post('/api/demo/verify-age', async (req, res) => {
       claimType: 'age',
       credentialId,
       signedCredential,
+      requestTimestamp,
     };
 
     // Verify the proof
@@ -294,10 +298,13 @@ app.post('/api/demo/verify-nationality', async (req, res) => {
     // Generate proof (this is the expensive operation)
     const proofGenStart = Date.now();
     const nonce = randomBytes(32).toString('hex');
+    const requestTimestamp = new Date().toISOString();
+    const requestTimestampMs = Date.parse(requestTimestamp);
     const proof = await generateNationalityProof(
       signedCredential.credential,
       targetNationality,
       nonce,
+      requestTimestampMs,
       NATIONALITY_WASM_PATH,
       NATIONALITY_ZKEY_PATH
     );
@@ -310,6 +317,7 @@ app.post('/api/demo/verify-nationality', async (req, res) => {
       claimType: 'nationality',
       credentialId,
       signedCredential,
+      requestTimestamp,
     };
 
     // Verify the proof

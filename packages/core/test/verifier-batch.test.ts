@@ -42,6 +42,7 @@ describe('Batch Verification Tests', () => {
           minAge: 18,
           credentialHash: '12345',
           nonce: 'nonce-1',
+          requestTimestamp: 1700000000000,
         },
       };
 
@@ -79,6 +80,7 @@ describe('Batch Verification Tests', () => {
           minAge: 18,
           credentialHash: '12345',
           nonce: 'nonce-1',
+          requestTimestamp: 1700000000000,
         },
       };
 
@@ -94,6 +96,7 @@ describe('Batch Verification Tests', () => {
           targetNationality: 840,
           credentialHash: '12345',
           nonce: 'nonce-1',
+          requestTimestamp: 1700000000000,
         },
       };
 
@@ -132,6 +135,7 @@ describe('Batch Verification Tests', () => {
           minAge: 18,
           credentialHash: '12345',
           nonce: 'nonce-1',
+          requestTimestamp: 1700000000000,
         },
       };
 

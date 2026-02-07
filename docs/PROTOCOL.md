@@ -431,6 +431,9 @@ class ZkIdServer {
 **Nonce binding**:
 - `nonce` is a public input in both circuits and must match `ProofResponse.nonce`.
 
+**Timestamp binding**:
+- `requestTimestamp` is a public input in both circuits and must match `ProofResponse.requestTimestamp`.
+
 ### Issuer API
 
 ```typescript
