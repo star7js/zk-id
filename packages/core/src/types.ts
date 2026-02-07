@@ -43,6 +43,7 @@ export interface AgeProof {
     minAge: number;
     credentialHash: string;
     nonce: string;
+    requestTimestamp: number;
   };
 }
 
@@ -60,6 +61,7 @@ export interface NationalityProof {
     targetNationality: number;
     credentialHash: string;
     nonce: string;
+    requestTimestamp: number;
   };
 }
 

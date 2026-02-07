@@ -64,10 +64,12 @@ async function main() {
     const zkeyPath = '../../packages/circuits/build/age-verify.zkey';
 
     const nonce = randomBytes(32).toString('hex');
+    const requestTimestampMs = Date.now();
     proof = await generateAgeProof(
       signedCredential.credential,
       minAge,
       nonce,
+      requestTimestampMs,
       wasmPath,
       zkeyPath
     );
@@ -130,10 +132,12 @@ async function main() {
     const zkeyPath = '../../packages/circuits/build/nationality-verify.zkey';
 
     const nonce = randomBytes(32).toString('hex');
+    const requestTimestampMs = Date.now();
     nationalityProof = await generateNationalityProof(
       signedCredential.credential,
       userNationality,
       nonce,
+      requestTimestampMs,
       wasmPath,
       zkeyPath
     );

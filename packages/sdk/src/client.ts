@@ -203,6 +203,7 @@ export class InMemoryWallet implements WalletConnector {
         credential,
         request.minAge,
         request.nonce,
+        Date.parse(request.timestamp),
         this.config.circuitPaths.ageWasm,
         this.config.circuitPaths.ageZkey
       );
@@ -228,6 +229,7 @@ export class InMemoryWallet implements WalletConnector {
         credential,
         request.targetNationality,
         request.nonce,
+        Date.parse(request.timestamp),
         this.config.circuitPaths.nationalityWasm,
         this.config.circuitPaths.nationalityZkey
       );

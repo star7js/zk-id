@@ -15,6 +15,7 @@ export async function generateAgeProof(
   credential: Credential,
   minAge: number,
   nonce: string,
+  requestTimestampMs: number,
   wasmPath: string,
   zkeyPath: string
 ): Promise<AgeProof> {
@@ -36,6 +37,7 @@ export async function generateAgeProof(
     minAge: minAge,
     credentialHash: credentialHash.toString(),
     nonce: nonce,
+    requestTimestamp: requestTimestampMs,
   };
 
   // Generate the proof using snarkjs
@@ -61,6 +63,7 @@ export async function generateAgeProof(
       minAge: parseInt(publicSignals[1]),
       credentialHash: publicSignals[2],
       nonce: publicSignals[3],
+      requestTimestamp: parseInt(publicSignals[4]),
     },
   };
 
@@ -74,13 +77,14 @@ export async function generateAgeProof(
 export async function generateAgeProofAuto(
   credential: Credential,
   minAge: number,
-  nonce: string
+  nonce: string,
+  requestTimestampMs: number
 ): Promise<AgeProof> {
   // These paths would be resolved relative to the circuits package
   const wasmPath = require.resolve('@zk-id/circuits/build/age-verify_js/age-verify.wasm');
   const zkeyPath = require.resolve('@zk-id/circuits/build/age-verify.zkey');
 
-  return generateAgeProof(credential, minAge, nonce, wasmPath, zkeyPath);
+  return generateAgeProof(credential, minAge, nonce, requestTimestampMs, wasmPath, zkeyPath);
 }
 
 /**
@@ -96,6 +100,7 @@ export async function generateNationalityProof(
   credential: Credential,
   targetNationality: number,
   nonce: string,
+  requestTimestampMs: number,
   wasmPath: string,
   zkeyPath: string
 ): Promise<NationalityProof> {
@@ -114,6 +119,7 @@ export async function generateNationalityProof(
     targetNationality: targetNationality,
     credentialHash: credentialHash.toString(),
     nonce: nonce,
+    requestTimestamp: requestTimestampMs,
   };
 
   // Generate the proof using snarkjs
@@ -138,6 +144,7 @@ export async function generateNationalityProof(
       targetNationality: parseInt(publicSignals[0]),
       credentialHash: publicSignals[1],
       nonce: publicSignals[2],
+      requestTimestamp: parseInt(publicSignals[3]),
     },
   };
 
@@ -151,11 +158,19 @@ export async function generateNationalityProof(
 export async function generateNationalityProofAuto(
   credential: Credential,
   targetNationality: number,
-  nonce: string
+  nonce: string,
+  requestTimestampMs: number
 ): Promise<NationalityProof> {
   // These paths would be resolved relative to the circuits package
   const wasmPath = require.resolve('@zk-id/circuits/build/nationality-verify_js/nationality-verify.wasm');
   const zkeyPath = require.resolve('@zk-id/circuits/build/nationality-verify.zkey');
 
-  return generateNationalityProof(credential, targetNationality, nonce, wasmPath, zkeyPath);
+  return generateNationalityProof(
+    credential,
+    targetNationality,
+    nonce,
+    requestTimestampMs,
+    wasmPath,
+    zkeyPath
+  );
 }

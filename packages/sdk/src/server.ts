@@ -236,6 +236,20 @@ export class ZkIdServer extends EventEmitter {
       return result;
     }
 
+    // Timestamp binding: ensure proof public timestamp matches request timestamp
+    if (proofResponse.requestTimestamp) {
+      const proofTimestamp = this.getProofTimestamp(proofResponse);
+      const requestMs = Date.parse(proofResponse.requestTimestamp);
+      if (Number.isNaN(requestMs) || proofTimestamp !== requestMs) {
+        const result = {
+          verified: false,
+          error: 'Proof timestamp does not match request timestamp',
+        };
+        this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
+        return result;
+      }
+    }
+
     // Replay protection
     if (this.config.nonceStore) {
       const nonceUsed = await this.config.nonceStore.has(proofResponse.nonce);
@@ -451,6 +465,17 @@ export class ZkIdServer extends EventEmitter {
       return (proof as NationalityProof).publicSignals.nonce;
     }
     return '';
+  }
+
+  private getProofTimestamp(proofResponse: ProofResponse): number {
+    const proof = proofResponse.proof as AgeProof | NationalityProof;
+    if (proofResponse.claimType === 'age') {
+      return (proof as AgeProof).publicSignals.requestTimestamp;
+    }
+    if (proofResponse.claimType === 'nationality') {
+      return (proof as NationalityProof).publicSignals.requestTimestamp;
+    }
+    return 0;
   }
 
   private async getIssuerRecord(issuer: string): Promise<IssuerRecord | null> {

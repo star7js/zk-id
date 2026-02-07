@@ -27,6 +27,7 @@ export async function verifyAgeProof(
     proof.publicSignals.minAge.toString(),
     proof.publicSignals.credentialHash,
     proof.publicSignals.nonce,
+    proof.publicSignals.requestTimestamp.toString(),
   ];
 
   // Verify the proof
@@ -66,6 +67,9 @@ export function validateProofConstraints(proof: AgeProof): {
   if (!proof.publicSignals.nonce || proof.publicSignals.nonce.length === 0) {
     errors.push('Missing nonce');
   }
+  if (!proof.publicSignals.requestTimestamp || proof.publicSignals.requestTimestamp <= 0) {
+    errors.push('Invalid request timestamp');
+  }
 
   return {
     valid: errors.length === 0,
@@ -98,6 +102,7 @@ export async function verifyNationalityProof(
     proof.publicSignals.targetNationality.toString(),
     proof.publicSignals.credentialHash,
     proof.publicSignals.nonce,
+    proof.publicSignals.requestTimestamp.toString(),
   ];
 
   // Verify the proof
@@ -130,6 +135,9 @@ export function validateNationalityProofConstraints(proof: NationalityProof): {
   }
   if (!proof.publicSignals.nonce || proof.publicSignals.nonce.length === 0) {
     errors.push('Missing nonce');
+  }
+  if (!proof.publicSignals.requestTimestamp || proof.publicSignals.requestTimestamp <= 0) {
+    errors.push('Invalid request timestamp');
   }
 
   return {

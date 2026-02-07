@@ -9,7 +9,12 @@ import {
   credentialSignaturePayload,
 } from '@zk-id/core';
 
-function makeAgeProof(credentialHash: string, minAge: number, nonce: string): AgeProof {
+function makeAgeProof(
+  credentialHash: string,
+  minAge: number,
+  nonce: string,
+  requestTimestamp: number
+): AgeProof {
   return {
     proof: {
       pi_a: ['1', '2'],
@@ -26,6 +31,7 @@ function makeAgeProof(credentialHash: string, minAge: number, nonce: string): Ag
       minAge,
       credentialHash,
       nonce,
+      requestTimestamp,
     },
   };
 }
@@ -68,7 +74,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
     const proofResponse = {
       credentialId: 'cred-1',
       claimType: 'age',
-      proof: makeAgeProof('123', 18, 'nonce-1'),
+      proof: makeAgeProof('123', 18, 'nonce-1', Date.now()),
       nonce: 'nonce-1',
     } as ProofResponse;
 
@@ -89,7 +95,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
     const proofResponse: ProofResponse = {
       credentialId: signedCredential.credential.id,
       claimType: 'age',
-      proof: makeAgeProof('123', 18, 'nonce-2'),
+      proof: makeAgeProof('123', 18, 'nonce-2', Date.now()),
       signedCredential,
       nonce: 'nonce-2',
     };
@@ -110,7 +116,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
     const proofResponse: ProofResponse = {
       credentialId: signedCredential.credential.id,
       claimType: 'age',
-      proof: makeAgeProof('123', 18, 'nonce-3'),
+      proof: makeAgeProof('123', 18, 'nonce-3', Date.now()),
       signedCredential,
       nonce: 'nonce-3',
     };
@@ -132,7 +138,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
     const proofResponse: ProofResponse = {
       credentialId: signedCredential.credential.id,
       claimType: 'age',
-      proof: makeAgeProof('123', 18, 'nonce-4'),
+      proof: makeAgeProof('123', 18, 'nonce-4', Date.now()),
       signedCredential,
       nonce: 'nonce-4',
     };
@@ -169,6 +175,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
           targetNationality: 826,
           credentialHash: '123',
           nonce: 'nonce-nat',
+          requestTimestamp: Date.now(),
         },
       },
       signedCredential,
@@ -191,7 +198,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
     const proofResponse: ProofResponse = {
       credentialId: signedCredential.credential.id,
       claimType: 'age',
-      proof: makeAgeProof('123', 18, 'proof-nonce'),
+      proof: makeAgeProof('123', 18, 'proof-nonce', Date.now()),
       signedCredential,
       nonce: 'request-nonce',
     };
@@ -223,7 +230,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
     const proofResponse: ProofResponse = {
       credentialId: signedCredential.credential.id,
       claimType: 'age',
-      proof: makeAgeProof('123', 18, 'nonce-5'),
+      proof: makeAgeProof('123', 18, 'nonce-5', Date.now()),
       signedCredential,
       nonce: 'nonce-5',
     };
@@ -254,7 +261,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
     const proofResponse: ProofResponse = {
       credentialId: signedCredential.credential.id,
       claimType: 'age',
-      proof: makeAgeProof('123', 18, 'nonce-6'),
+      proof: makeAgeProof('123', 18, 'nonce-6', Date.now()),
       signedCredential,
       nonce: 'nonce-6',
     };
@@ -273,13 +280,14 @@ describe('ZkIdServer - signature and policy enforcement', () => {
       maxRequestAgeMs: 1000,
     });
 
+    const oldMs = Date.now() - 10_000;
     const proofResponse: ProofResponse = {
       credentialId: signedCredential.credential.id,
       claimType: 'age',
-      proof: makeAgeProof('123', 18, 'nonce-7'),
+      proof: makeAgeProof('123', 18, 'nonce-7', oldMs),
       signedCredential,
       nonce: 'nonce-7',
-      requestTimestamp: new Date(Date.now() - 10_000).toISOString(),
+      requestTimestamp: new Date(oldMs).toISOString(),
     };
 
     const result = await server.verifyProof(proofResponse);

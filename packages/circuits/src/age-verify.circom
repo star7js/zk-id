@@ -14,6 +14,7 @@ include "../node_modules/circomlib/circuits/poseidon.circom";
  *   - minAge: Public input (minimum required age, e.g., 18 or 21)
  *   - credentialHash: Public input (Poseidon hash of the credential for binding)
  *   - nonce: Public input (replay protection, bound to proof)
+ *   - requestTimestamp: Public input (request time, bound to proof)
  *
  * Output:
  *   - Constraint passes if age >= minAge and credential hash is valid
@@ -29,6 +30,7 @@ template AgeVerify() {
     signal input minAge;
     signal input credentialHash;
     signal input nonce;
+    signal input requestTimestamp;
 
     // Compute age
     signal age <== currentYear - birthYear;
@@ -58,6 +60,10 @@ template AgeVerify() {
     // Bind nonce to the proof (no additional constraints)
     signal nonceCopy <== nonce;
     nonceCopy === nonce;
+
+    // Bind request timestamp to the proof (no additional constraints)
+    signal requestTimestampCopy <== requestTimestamp;
+    requestTimestampCopy === requestTimestamp;
 }
 
-component main {public [currentYear, minAge, credentialHash, nonce]} = AgeVerify();
+component main {public [currentYear, minAge, credentialHash, nonce, requestTimestamp]} = AgeVerify();

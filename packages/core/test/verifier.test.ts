@@ -19,6 +19,7 @@ describe('Verifier Tests', () => {
           minAge: 18,
           credentialHash: '12345678901234567890',
           nonce: 'nonce-1',
+          requestTimestamp: Date.now(),
         },
         ...overrides,
       };
@@ -39,6 +40,7 @@ describe('Verifier Tests', () => {
           minAge: 18,
           credentialHash: '12345',
           nonce: 'nonce-1',
+          requestTimestamp: Date.now(),
         },
       });
 
@@ -55,6 +57,7 @@ describe('Verifier Tests', () => {
           minAge: 18,
           credentialHash: '12345',
           nonce: 'nonce-1',
+          requestTimestamp: Date.now(),
         },
       });
 
@@ -70,6 +73,7 @@ describe('Verifier Tests', () => {
           minAge: -1,
           credentialHash: '12345',
           nonce: 'nonce-1',
+          requestTimestamp: Date.now(),
         },
       });
 
@@ -85,6 +89,7 @@ describe('Verifier Tests', () => {
           minAge: 200,
           credentialHash: '12345',
           nonce: 'nonce-1',
+          requestTimestamp: Date.now(),
         },
       });
 
@@ -100,6 +105,7 @@ describe('Verifier Tests', () => {
           minAge: 18,
           credentialHash: '',
           nonce: 'nonce-1',
+          requestTimestamp: Date.now(),
         },
       });
 
@@ -115,6 +121,7 @@ describe('Verifier Tests', () => {
           minAge: 18,
           credentialHash: '0',
           nonce: 'nonce-1',
+          requestTimestamp: Date.now(),
         },
       });
 
@@ -133,6 +140,7 @@ describe('Verifier Tests', () => {
           minAge: age,
           credentialHash: '12345',
           nonce: 'nonce-1',
+          requestTimestamp: Date.now(),
         },
       });
 
@@ -149,6 +157,7 @@ describe('Verifier Tests', () => {
           minAge: -5,
           credentialHash: '',
           nonce: '',
+          requestTimestamp: 0,
         },
       });
 
@@ -172,6 +181,7 @@ describe('Verifier Tests', () => {
           targetNationality: 840,
           credentialHash: '12345678901234567890',
           nonce: 'nonce-1',
+          requestTimestamp: Date.now(),
         },
         ...overrides,
       };
@@ -191,6 +201,7 @@ describe('Verifier Tests', () => {
           targetNationality: 0,
           credentialHash: '12345',
           nonce: 'nonce-1',
+          requestTimestamp: Date.now(),
         },
       });
 
@@ -205,6 +216,7 @@ describe('Verifier Tests', () => {
           targetNationality: 1000,
           credentialHash: '12345',
           nonce: 'nonce-1',
+          requestTimestamp: Date.now(),
         },
       });
 
@@ -248,6 +260,7 @@ describe('Verifier Tests', () => {
             targetNationality: code,
             credentialHash: '12345',
             nonce: 'nonce-1',
+            requestTimestamp: Date.now(),
           },
         });
 
@@ -263,6 +276,7 @@ describe('Verifier Tests', () => {
           targetNationality: 1500,
           credentialHash: '',
           nonce: '',
+          requestTimestamp: 0,
         },
       });
 
