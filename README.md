@@ -197,7 +197,12 @@ zk-id/
 
 ## Threat Model
 
-See `docs/THREAT-MODEL.md` for the current threat model and assumptions.
+Summary:
+- Issuer-signed credentials only
+- Verifier enforces policy and nonce binding
+- Trusted issuer keys are required
+
+See `docs/THREAT-MODEL.md` for full detail.
 
 ## Known Limitations
 
