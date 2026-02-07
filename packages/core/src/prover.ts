@@ -1,5 +1,12 @@
 import * as snarkjs from 'snarkjs';
-import { Credential, AgeProof, NationalityProof } from './types';
+import {
+  Credential,
+  AgeProof,
+  NationalityProof,
+  AgeProofSigned,
+  NationalityProofSigned,
+  CircuitSignatureInputs,
+} from './types';
 import { poseidonHash } from './poseidon';
 
 /**
@@ -170,6 +177,184 @@ export async function generateNationalityProofAuto(
     targetNationality,
     nonce,
     requestTimestampMs,
+    wasmPath,
+    zkeyPath
+  );
+}
+
+/**
+ * Generates a zero-knowledge proof that includes on-circuit issuer signature verification
+ */
+export async function generateAgeProofSigned(
+  credential: Credential,
+  minAge: number,
+  nonce: string,
+  requestTimestampMs: number,
+  signatureInputs: CircuitSignatureInputs,
+  wasmPath: string,
+  zkeyPath: string
+): Promise<AgeProofSigned> {
+  const currentYear = new Date().getFullYear();
+
+  const credentialHash = await poseidonHash([
+    credential.birthYear,
+    credential.nationality,
+    BigInt('0x' + credential.salt),
+  ]);
+
+  const input = {
+    birthYear: credential.birthYear,
+    nationality: credential.nationality,
+    salt: BigInt('0x' + credential.salt).toString(),
+    currentYear: currentYear,
+    minAge: minAge,
+    credentialHash: credentialHash.toString(),
+    nonce: nonce,
+    requestTimestamp: requestTimestampMs,
+    issuerPublicKey: signatureInputs.issuerPublicKey,
+    signatureR8: signatureInputs.signatureR8,
+    signatureS: signatureInputs.signatureS,
+  };
+
+  const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+    input,
+    wasmPath,
+    zkeyPath
+  );
+
+  const issuerPublicKey = publicSignals.slice(5, 5 + 256);
+
+  const formattedProof: AgeProofSigned = {
+    proof: {
+      pi_a: proof.pi_a.slice(0, 2).map((x: any) => x.toString()),
+      pi_b: proof.pi_b.slice(0, 2).map((arr: any) =>
+        arr.map((x: any) => x.toString())
+      ),
+      pi_c: proof.pi_c.slice(0, 2).map((x: any) => x.toString()),
+      protocol: proof.protocol,
+      curve: proof.curve,
+    },
+    publicSignals: {
+      currentYear: parseInt(publicSignals[0]),
+      minAge: parseInt(publicSignals[1]),
+      credentialHash: publicSignals[2],
+      nonce: publicSignals[3],
+      requestTimestamp: parseInt(publicSignals[4]),
+      issuerPublicKey: issuerPublicKey,
+    },
+  };
+
+  return formattedProof;
+}
+
+/**
+ * Generates age proof with signature verification using default circuit paths
+ */
+export async function generateAgeProofSignedAuto(
+  credential: Credential,
+  minAge: number,
+  nonce: string,
+  requestTimestampMs: number,
+  signatureInputs: CircuitSignatureInputs
+): Promise<AgeProofSigned> {
+  const wasmPath = require.resolve(
+    '@zk-id/circuits/build/age-verify-signed_js/age-verify-signed.wasm'
+  );
+  const zkeyPath = require.resolve('@zk-id/circuits/build/age-verify-signed.zkey');
+
+  return generateAgeProofSigned(
+    credential,
+    minAge,
+    nonce,
+    requestTimestampMs,
+    signatureInputs,
+    wasmPath,
+    zkeyPath
+  );
+}
+
+/**
+ * Generates nationality proof with on-circuit issuer signature verification
+ */
+export async function generateNationalityProofSigned(
+  credential: Credential,
+  targetNationality: number,
+  nonce: string,
+  requestTimestampMs: number,
+  signatureInputs: CircuitSignatureInputs,
+  wasmPath: string,
+  zkeyPath: string
+): Promise<NationalityProofSigned> {
+  const credentialHash = await poseidonHash([
+    credential.birthYear,
+    credential.nationality,
+    BigInt('0x' + credential.salt),
+  ]);
+
+  const input = {
+    birthYear: credential.birthYear,
+    nationality: credential.nationality,
+    salt: BigInt('0x' + credential.salt).toString(),
+    targetNationality: targetNationality,
+    credentialHash: credentialHash.toString(),
+    nonce: nonce,
+    requestTimestamp: requestTimestampMs,
+    issuerPublicKey: signatureInputs.issuerPublicKey,
+    signatureR8: signatureInputs.signatureR8,
+    signatureS: signatureInputs.signatureS,
+  };
+
+  const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+    input,
+    wasmPath,
+    zkeyPath
+  );
+
+  const issuerPublicKey = publicSignals.slice(4, 4 + 256);
+
+  const formattedProof: NationalityProofSigned = {
+    proof: {
+      pi_a: proof.pi_a.slice(0, 2).map((x: any) => x.toString()),
+      pi_b: proof.pi_b.slice(0, 2).map((arr: any) =>
+        arr.map((x: any) => x.toString())
+      ),
+      pi_c: proof.pi_c.slice(0, 2).map((x: any) => x.toString()),
+      protocol: proof.protocol,
+      curve: proof.curve,
+    },
+    publicSignals: {
+      targetNationality: parseInt(publicSignals[0]),
+      credentialHash: publicSignals[1],
+      nonce: publicSignals[2],
+      requestTimestamp: parseInt(publicSignals[3]),
+      issuerPublicKey: issuerPublicKey,
+    },
+  };
+
+  return formattedProof;
+}
+
+/**
+ * Generates nationality proof with signature verification using default circuit paths
+ */
+export async function generateNationalityProofSignedAuto(
+  credential: Credential,
+  targetNationality: number,
+  nonce: string,
+  requestTimestampMs: number,
+  signatureInputs: CircuitSignatureInputs
+): Promise<NationalityProofSigned> {
+  const wasmPath = require.resolve(
+    '@zk-id/circuits/build/nationality-verify-signed_js/nationality-verify-signed.wasm'
+  );
+  const zkeyPath = require.resolve('@zk-id/circuits/build/nationality-verify-signed.zkey');
+
+  return generateNationalityProofSigned(
+    credential,
+    targetNationality,
+    nonce,
+    requestTimestampMs,
+    signatureInputs,
     wasmPath,
     zkeyPath
   );
