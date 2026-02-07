@@ -418,6 +418,9 @@ class ZkIdServer {
 }
 ```
 
+**Policy enforcement**:
+- Prefer `requiredPolicy` in server config to enforce minAge or nationality.
+
 **ProofResponse (required fields)**:
 - `credentialId`
 - `claimType`

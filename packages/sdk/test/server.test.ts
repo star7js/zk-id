@@ -142,6 +142,44 @@ describe('ZkIdServer - signature and policy enforcement', () => {
     expect(result.error).to.equal('Proof does not satisfy required minimum age');
   });
 
+  it('enforces required nationality policy', async () => {
+    const { signedCredential, publicKey } = makeSignedCredential('123');
+
+    const server = new ZkIdServer({
+      verificationKeyPath: getVerificationKeyPath(),
+      issuerPublicKeys: { TestIssuer: publicKey },
+      requiredPolicy: { nationality: 840 },
+    });
+
+    const proofResponse: ProofResponse = {
+      credentialId: signedCredential.credential.id,
+      claimType: 'nationality',
+      proof: {
+        proof: {
+          pi_a: ['1', '2'],
+          pi_b: [
+            ['3', '4'],
+            ['5', '6'],
+          ],
+          pi_c: ['7', '8'],
+          protocol: 'groth16',
+          curve: 'bn128',
+        },
+        publicSignals: {
+          targetNationality: 826,
+          credentialHash: '123',
+          nonce: 'nonce-nat',
+        },
+      },
+      signedCredential,
+      nonce: 'nonce-nat',
+    };
+
+    const result = await server.verifyProof(proofResponse);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.equal('Proof does not satisfy required nationality');
+  });
+
   it('rejects proof when nonce does not match request nonce', async () => {
     const { signedCredential, publicKey } = makeSignedCredential('123');
 

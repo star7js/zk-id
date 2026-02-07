@@ -102,6 +102,7 @@ import { InMemoryRevocationStore } from '@zk-id/core';
 const server = new ZkIdServer({
   verificationKeyPath: './verification_key.json',
   revocationStore: new InMemoryRevocationStore(), // optional
+  requiredPolicy: { minAge: 18 }, // optional server-enforced policy
 });
 
 // Optional: Listen for verification events
