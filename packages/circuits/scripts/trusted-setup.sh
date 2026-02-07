@@ -65,6 +65,24 @@ $SNARKJS zkey export verificationkey \
   "$BUILD_DIR/credential-hash.zkey" \
   "$BUILD_DIR/credential-hash_verification_key.json"
 
+# Generate keys for nationality-verify
+echo "Generating keys for nationality-verify circuit..."
+$SNARKJS groth16 setup \
+  "$BUILD_DIR/nationality-verify.r1cs" \
+  "$POT_FILE" \
+  "$BUILD_DIR/nationality-verify_0000.zkey"
+
+$SNARKJS zkey contribute \
+  "$BUILD_DIR/nationality-verify_0000.zkey" \
+  "$BUILD_DIR/nationality-verify.zkey" \
+  --name="First contribution" \
+  -v \
+  -e="random entropy"
+
+$SNARKJS zkey export verificationkey \
+  "$BUILD_DIR/nationality-verify.zkey" \
+  "$BUILD_DIR/nationality-verify_verification_key.json"
+
 # Cleanup intermediate files
 rm "$BUILD_DIR"/*_0000.zkey
 
@@ -74,3 +92,5 @@ echo "  - $BUILD_DIR/age-verify.zkey"
 echo "  - $BUILD_DIR/age-verify_verification_key.json"
 echo "  - $BUILD_DIR/credential-hash.zkey"
 echo "  - $BUILD_DIR/credential-hash_verification_key.json"
+echo "  - $BUILD_DIR/nationality-verify.zkey"
+echo "  - $BUILD_DIR/nationality-verify_verification_key.json"

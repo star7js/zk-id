@@ -18,20 +18,22 @@ describe("AgeVerify Circuit Tests", function () {
   });
 
   // Helper function to compute credential hash
-  function computeHash(birthYear, salt) {
-    const hash = poseidon([birthYear, salt]);
+  function computeHash(birthYear, nationality, salt) {
+    const hash = poseidon([birthYear, nationality, salt]);
     return poseidon.F.toString(hash);
   }
 
   it("should verify age >= minAge (exactly equal)", async function () {
     const birthYear = 2005;
+    const nationality = 840;
     const salt = 12345n;
     const input = {
       birthYear: birthYear,
+      nationality: nationality,
       salt: salt.toString(),
       currentYear: 2023,
       minAge: 18,
-      credentialHash: computeHash(birthYear, salt),
+      credentialHash: computeHash(birthYear, nationality, salt),
     };
 
     const witness = await circuit.calculateWitness(input);
@@ -40,13 +42,15 @@ describe("AgeVerify Circuit Tests", function () {
 
   it("should verify age > minAge", async function () {
     const birthYear = 2000;
+    const nationality = 840;
     const salt = 12345n;
     const input = {
       birthYear: birthYear,
+      nationality: nationality,
       salt: salt.toString(),
       currentYear: 2023,
       minAge: 18,
-      credentialHash: computeHash(birthYear, salt),
+      credentialHash: computeHash(birthYear, nationality, salt),
     };
 
     const witness = await circuit.calculateWitness(input);
@@ -55,13 +59,15 @@ describe("AgeVerify Circuit Tests", function () {
 
   it("should fail when age < minAge", async function () {
     const birthYear = 2010;
+    const nationality = 840;
     const salt = 12345n;
     const input = {
       birthYear: birthYear,
+      nationality: nationality,
       salt: salt.toString(),
       currentYear: 2023,
       minAge: 18,
-      credentialHash: computeHash(birthYear, salt),
+      credentialHash: computeHash(birthYear, nationality, salt),
     };
 
     try {
@@ -78,13 +84,15 @@ describe("AgeVerify Circuit Tests", function () {
 
   it("should verify age 21+ requirement", async function () {
     const birthYear = 2000;
+    const nationality = 840;
     const salt = 12345n;
     const input = {
       birthYear: birthYear,
+      nationality: nationality,
       salt: salt.toString(),
       currentYear: 2023,
       minAge: 21,
-      credentialHash: computeHash(birthYear, salt),
+      credentialHash: computeHash(birthYear, nationality, salt),
     };
 
     const witness = await circuit.calculateWitness(input);
@@ -93,13 +101,15 @@ describe("AgeVerify Circuit Tests", function () {
 
   it("should fail when birthYear > currentYear", async function () {
     const birthYear = 2025;
+    const nationality = 840;
     const salt = 12345n;
     const input = {
       birthYear: birthYear,
+      nationality: nationality,
       salt: salt.toString(),
       currentYear: 2023,
       minAge: 18,
-      credentialHash: computeHash(birthYear, salt),
+      credentialHash: computeHash(birthYear, nationality, salt),
     };
 
     try {
@@ -115,23 +125,26 @@ describe("AgeVerify Circuit Tests", function () {
 
   it("should handle different credential hashes", async function () {
     const birthYear = 2000;
+    const nationality = 840;
     const salt1 = 11111n;
     const salt2 = 99999n;
 
     const input1 = {
       birthYear: birthYear,
+      nationality: nationality,
       salt: salt1.toString(),
       currentYear: 2023,
       minAge: 18,
-      credentialHash: computeHash(birthYear, salt1),
+      credentialHash: computeHash(birthYear, nationality, salt1),
     };
 
     const input2 = {
       birthYear: birthYear,
+      nationality: nationality,
       salt: salt2.toString(),
       currentYear: 2023,
       minAge: 18,
-      credentialHash: computeHash(birthYear, salt2),
+      credentialHash: computeHash(birthYear, nationality, salt2),
     };
 
     const witness1 = await circuit.calculateWitness(input1);
@@ -146,32 +159,69 @@ describe("AgeVerify Circuit Tests", function () {
 
   it("should verify senior age requirement (65+)", async function () {
     const birthYear = 1950;
+    const nationality = 840;
     const salt = 12345n;
     const input = {
       birthYear: birthYear,
+      nationality: nationality,
       salt: salt.toString(),
       currentYear: 2023,
       minAge: 65,
-      credentialHash: computeHash(birthYear, salt),
+      credentialHash: computeHash(birthYear, nationality, salt),
     };
 
     const witness = await circuit.calculateWitness(input);
     await circuit.checkConstraints(witness);
   });
 
+  it("should verify age regardless of nationality value", async function () {
+    const birthYear = 2000;
+    const nationality1 = 840; // USA
+    const nationality2 = 826; // UK
+    const salt = 12345n;
+
+    const input1 = {
+      birthYear: birthYear,
+      nationality: nationality1,
+      salt: salt.toString(),
+      currentYear: 2023,
+      minAge: 18,
+      credentialHash: computeHash(birthYear, nationality1, salt),
+    };
+
+    const input2 = {
+      birthYear: birthYear,
+      nationality: nationality2,
+      salt: salt.toString(),
+      currentYear: 2023,
+      minAge: 18,
+      credentialHash: computeHash(birthYear, nationality2, salt),
+    };
+
+    const witness1 = await circuit.calculateWitness(input1);
+    const witness2 = await circuit.calculateWitness(input2);
+
+    await circuit.checkConstraints(witness1);
+    await circuit.checkConstraints(witness2);
+
+    // Both should pass - nationality is not constrained in age verification
+  });
+
   // Security test: verify that mismatched credentialHash/birthYear/salt causes failure
   it("should fail when credentialHash does not match birthYear and salt", async function () {
     const birthYear = 2000;
+    const nationality = 840;
     const salt = 12345n;
     const wrongBirthYear = 1995;
 
     const input = {
       birthYear: birthYear,
+      nationality: nationality,
       salt: salt.toString(),
       currentYear: 2023,
       minAge: 18,
       // Using hash of wrong birth year - this should fail
-      credentialHash: computeHash(wrongBirthYear, salt),
+      credentialHash: computeHash(wrongBirthYear, nationality, salt),
     };
 
     try {
@@ -188,16 +238,18 @@ describe("AgeVerify Circuit Tests", function () {
   // Security test: verify that wrong salt with correct birthYear also fails
   it("should fail when salt does not match the credentialHash", async function () {
     const birthYear = 2000;
+    const nationality = 840;
     const correctSalt = 12345n;
     const wrongSalt = 99999n;
 
     const input = {
       birthYear: birthYear,
+      nationality: nationality,
       salt: wrongSalt.toString(),
       currentYear: 2023,
       minAge: 18,
       // Using hash with correct salt, but providing wrong salt as input
-      credentialHash: computeHash(birthYear, correctSalt),
+      credentialHash: computeHash(birthYear, nationality, correctSalt),
     };
 
     try {

@@ -17,6 +17,7 @@ describe("CredentialHash Circuit Tests", function () {
   it("should compute hash for valid inputs", async function () {
     const input = {
       birthYear: 1990,
+      nationality: 840, // USA
       salt: 123456789,
     };
 
@@ -33,11 +34,13 @@ describe("CredentialHash Circuit Tests", function () {
   it("should produce different hashes for different birth years", async function () {
     const input1 = {
       birthYear: 1990,
+      nationality: 840,
       salt: 123456789,
     };
 
     const input2 = {
       birthYear: 1991,
+      nationality: 840,
       salt: 123456789,
     };
 
@@ -58,11 +61,13 @@ describe("CredentialHash Circuit Tests", function () {
   it("should produce different hashes for different salts", async function () {
     const input1 = {
       birthYear: 1990,
+      nationality: 840,
       salt: 111111111,
     };
 
     const input2 = {
       birthYear: 1990,
+      nationality: 840,
       salt: 222222222,
     };
 
@@ -83,6 +88,7 @@ describe("CredentialHash Circuit Tests", function () {
   it("should produce same hash for same inputs (deterministic)", async function () {
     const input = {
       birthYear: 1995,
+      nationality: 840,
       salt: 987654321,
     };
 
@@ -100,11 +106,38 @@ describe("CredentialHash Circuit Tests", function () {
     }
   });
 
+  it("should produce different hashes for different nationalities", async function () {
+    const input1 = {
+      birthYear: 1990,
+      nationality: 840, // USA
+      salt: 123456789,
+    };
+
+    const input2 = {
+      birthYear: 1990,
+      nationality: 826, // UK
+      salt: 123456789,
+    };
+
+    const witness1 = await circuit.calculateWitness(input1);
+    const witness2 = await circuit.calculateWitness(input2);
+
+    await circuit.checkConstraints(witness1);
+    await circuit.checkConstraints(witness2);
+
+    const hash1 = witness1[1];
+    const hash2 = witness2[1];
+
+    if (hash1 === hash2) {
+      throw new Error("Different nationalities should produce different hashes");
+    }
+  });
+
   it("should handle edge case birth years", async function () {
     const inputs = [
-      { birthYear: 1900, salt: 111 },
-      { birthYear: 2023, salt: 222 },
-      { birthYear: 2000, salt: 333 },
+      { birthYear: 1900, nationality: 840, salt: 111 },
+      { birthYear: 2023, nationality: 826, salt: 222 },
+      { birthYear: 2000, nationality: 124, salt: 333 },
     ];
 
     for (const input of inputs) {
@@ -121,6 +154,7 @@ describe("CredentialHash Circuit Tests", function () {
   it("should handle large salt values", async function () {
     const input = {
       birthYear: 1990,
+      nationality: 840,
       salt: 999999999999,
     };
 

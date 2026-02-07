@@ -8,12 +8,23 @@
  * - Rate limiting and abuse prevention
  */
 
-import { ProofResponse, AgeProof, VerificationKey, verifyAgeProof, validateProofConstraints } from '@zk-id/core';
+import {
+  ProofResponse,
+  AgeProof,
+  NationalityProof,
+  VerificationKey,
+  verifyAgeProof,
+  verifyNationalityProof,
+  validateProofConstraints,
+  validateNationalityProofConstraints,
+} from '@zk-id/core';
 import { readFileSync } from 'fs';
 
 export interface ZkIdServerConfig {
-  /** Path to the verification key file */
+  /** Path to the age verification key file */
   verificationKeyPath: string;
+  /** Optional path to nationality verification key file */
+  nationalityVerificationKeyPath?: string;
   /** Optional nonce storage for replay protection */
   nonceStore?: NonceStore;
   /** Optional rate limiter */
@@ -38,10 +49,16 @@ export interface RateLimiter {
 export class ZkIdServer {
   private config: ZkIdServerConfig;
   private verificationKey: VerificationKey;
+  private nationalityVerificationKey?: VerificationKey;
 
   constructor(config: ZkIdServerConfig) {
     this.config = config;
-    this.verificationKey = this.loadVerificationKey();
+    this.verificationKey = this.loadVerificationKey(config.verificationKeyPath);
+    if (config.nationalityVerificationKeyPath) {
+      this.nationalityVerificationKey = this.loadVerificationKey(
+        config.nationalityVerificationKeyPath
+      );
+    }
   }
 
   /**
@@ -77,8 +94,29 @@ export class ZkIdServer {
       }
     }
 
+    // Dispatch based on claim type
+    if (proofResponse.claimType === 'age') {
+      return this.verifyAgeProofInternal(proofResponse);
+    } else if (proofResponse.claimType === 'nationality') {
+      return this.verifyNationalityProofInternal(proofResponse);
+    } else {
+      return {
+        verified: false,
+        error: 'Unknown claim type',
+      };
+    }
+  }
+
+  /**
+   * Internal age proof verification
+   */
+  private async verifyAgeProofInternal(
+    proofResponse: ProofResponse
+  ): Promise<VerificationResult> {
+    const proof = proofResponse.proof as AgeProof;
+
     // Validate proof constraints
-    const constraintCheck = validateProofConstraints(proofResponse.proof);
+    const constraintCheck = validateProofConstraints(proof);
     if (!constraintCheck.valid) {
       return {
         verified: false,
@@ -88,7 +126,7 @@ export class ZkIdServer {
 
     // Cryptographically verify the proof
     try {
-      const isValid = await verifyAgeProof(proofResponse.proof, this.verificationKey);
+      const isValid = await verifyAgeProof(proof, this.verificationKey);
 
       if (isValid) {
         // Mark nonce as used
@@ -99,7 +137,60 @@ export class ZkIdServer {
         return {
           verified: true,
           claimType: proofResponse.claimType,
-          minAge: proofResponse.proof.publicSignals.minAge,
+          minAge: proof.publicSignals.minAge,
+        };
+      } else {
+        return {
+          verified: false,
+          error: 'Proof verification failed',
+        };
+      }
+    } catch (error) {
+      return {
+        verified: false,
+        error: `Verification error: ${error}`,
+      };
+    }
+  }
+
+  /**
+   * Internal nationality proof verification
+   */
+  private async verifyNationalityProofInternal(
+    proofResponse: ProofResponse
+  ): Promise<VerificationResult> {
+    const proof = proofResponse.proof as NationalityProof;
+
+    if (!this.nationalityVerificationKey) {
+      return {
+        verified: false,
+        error: 'Nationality verification key not configured',
+      };
+    }
+
+    // Validate proof constraints
+    const constraintCheck = validateNationalityProofConstraints(proof);
+    if (!constraintCheck.valid) {
+      return {
+        verified: false,
+        error: `Invalid proof constraints: ${constraintCheck.errors.join(', ')}`,
+      };
+    }
+
+    // Cryptographically verify the proof
+    try {
+      const isValid = await verifyNationalityProof(proof, this.nationalityVerificationKey);
+
+      if (isValid) {
+        // Mark nonce as used
+        if (this.config.nonceStore) {
+          await this.config.nonceStore.add(proofResponse.nonce);
+        }
+
+        return {
+          verified: true,
+          claimType: proofResponse.claimType,
+          targetNationality: proof.publicSignals.targetNationality,
         };
       } else {
         return {
@@ -118,8 +209,8 @@ export class ZkIdServer {
   /**
    * Load verification key from file
    */
-  private loadVerificationKey(): VerificationKey {
-    const data = readFileSync(this.config.verificationKeyPath, 'utf8');
+  private loadVerificationKey(path: string): VerificationKey {
+    const data = readFileSync(path, 'utf8');
     return JSON.parse(data);
   }
 }
@@ -128,6 +219,7 @@ export interface VerificationResult {
   verified: boolean;
   claimType?: string;
   minAge?: number;
+  targetNationality?: number;
   error?: string;
 }
 

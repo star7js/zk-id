@@ -63,6 +63,35 @@ export class ZkIdClient {
   }
 
   /**
+   * Request nationality verification from the user
+   *
+   * @param targetNationality - Target nationality code (ISO 3166-1 numeric)
+   * @returns true if verification succeeds, false otherwise
+   */
+  async verifyNationality(targetNationality: number): Promise<boolean> {
+    try {
+      // Create proof request
+      const request: ProofRequest = {
+        claimType: 'nationality',
+        targetNationality,
+        nonce: this.generateNonce(),
+        timestamp: new Date().toISOString(),
+      };
+
+      // Get proof from wallet (or generate locally)
+      const proofResponse = await this.requestProof(request);
+
+      // Submit proof to backend for verification
+      const isValid = await this.submitProof(proofResponse);
+
+      return isValid;
+    } catch (error) {
+      console.error('[zk-id] Nationality verification failed:', error);
+      return false;
+    }
+  }
+
+  /**
    * Request a proof from the user's wallet
    */
   private async requestProof(request: ProofRequest): Promise<ProofResponse> {

@@ -1,13 +1,20 @@
 /**
- * Complete end-to-end demo of zk-id age verification
+ * Complete end-to-end demo of zk-id multi-attribute verification
  *
  * This demonstrates the full flow:
  * 1. Issuer creates a credential for a user (after verifying their ID)
- * 2. User generates a zero-knowledge proof of age
- * 3. Website verifies the proof without learning the user's birth year
+ * 2. User generates zero-knowledge proofs for age and nationality
+ * 3. Website verifies proofs without learning all attributes (selective disclosure)
  */
 
-import { createCredential, generateAgeProof, verifyAgeProof, loadVerificationKey } from '@zk-id/core';
+import {
+  createCredential,
+  generateAgeProof,
+  generateNationalityProof,
+  verifyAgeProof,
+  verifyNationalityProof,
+  loadVerificationKey,
+} from '@zk-id/core';
 import { CredentialIssuer } from '@zk-id/issuer';
 
 async function main() {
@@ -23,13 +30,14 @@ async function main() {
 
   const issuer = CredentialIssuer.createTestIssuer('Government Identity Service');
   const userBirthYear = 1995; // User is 29 years old (as of 2024)
+  const userNationality = 840; // USA (ISO 3166-1 numeric code)
 
-  const signedCredential = await issuer.issueCredential(userBirthYear, 'user-123');
+  const signedCredential = await issuer.issueCredential(userBirthYear, userNationality, 'user-123');
 
   console.log('   ✓ Credential issued');
   console.log(`   - Credential ID: ${signedCredential.credential.id}`);
   console.log(`   - Commitment: ${signedCredential.credential.commitment.substring(0, 16)}...`);
-  console.log('   - Birth year is NOT revealed in the commitment\n');
+  console.log('   - Birth year and nationality are NOT revealed in the commitment\n');
 
   // ============================================================================
   // STEP 2: User wants to access age-restricted content
@@ -107,13 +115,57 @@ async function main() {
   }
 
   // ============================================================================
+  // STEP 4: User proves nationality (selective disclosure)
+  // ============================================================================
+  console.log('🌍 Step 5: Nationality Verification (Selective Disclosure)');
+  console.log('   Website needs to verify user is from USA for region-restricted content');
+  console.log('   User generates proof of nationality WITHOUT revealing birth year\n');
+
+  let nationalityProof;
+  try {
+    const wasmPath = '../../packages/circuits/build/nationality-verify_js/nationality-verify.wasm';
+    const zkeyPath = '../../packages/circuits/build/nationality-verify.zkey';
+
+    nationalityProof = await generateNationalityProof(
+      signedCredential.credential,
+      userNationality,
+      wasmPath,
+      zkeyPath
+    );
+
+    console.log('   ✓ Nationality proof generated successfully!');
+    console.log('   ✓ Proof that nationality === USA (840)');
+    console.log('   ✓ Credential commitment (binds to same identity)');
+    console.log('   ✗ Birth year is NOT revealed in this proof');
+    console.log(`   - Proof size: ~${JSON.stringify(nationalityProof).length} bytes\n`);
+
+    // Verify nationality proof
+    const vkeyPath = '../../packages/circuits/build/nationality-verify_verification_key.json';
+    const verificationKey = await loadVerificationKey(vkeyPath);
+
+    const isValid = await verifyNationalityProof(nationalityProof, verificationKey);
+
+    if (isValid) {
+      console.log('   ✓ Nationality proof verified successfully!');
+      console.log('   ✓ User is confirmed to be from USA');
+      console.log('   ✓ Website grants access to region-restricted content\n');
+    } else {
+      console.log('   ✗ Proof verification failed\n');
+    }
+  } catch (error) {
+    console.log('   ⚠️  Nationality proof generation/verification failed');
+    console.log(`   Error: ${error}\n`);
+  }
+
+  // ============================================================================
   // SUMMARY
   // ============================================================================
   console.log('📊 Summary of Privacy Properties:\n');
   console.log('   What the website learns:');
-  console.log('   ✓ User is at least 18 years old');
-  console.log('   ✓ Proof is cryptographically valid');
-  console.log('   ✓ Credential was issued by a trusted authority\n');
+  console.log('   ✓ User is at least 18 years old (from age proof)');
+  console.log('   ✓ User is from USA (from nationality proof)');
+  console.log('   ✓ Proofs are cryptographically valid');
+  console.log('   ✓ Both proofs are bound to the same credential\n');
 
   console.log('   What the website does NOT learn:');
   console.log('   ✗ User\'s birth year');
@@ -121,12 +173,18 @@ async function main() {
   console.log('   ✗ User\'s name, address, or any other personal data');
   console.log('   ✗ When the credential was issued\n');
 
+  console.log('   🔑 Key Feature: Selective Disclosure');
+  console.log('   • Age proof: reveals age, hides nationality');
+  console.log('   • Nationality proof: reveals nationality, hides birth year');
+  console.log('   • Both proofs use the same credential commitment (binding)\n');
+
   console.log('🎯 Use Cases:');
   console.log('   • Age-gated content (18+, 21+ verification)');
   console.log('   • Social media age requirements');
+  console.log('   • Region-restricted content (prove nationality)');
   console.log('   • Alcohol/tobacco sales (prove 21+ without ID)');
   console.log('   • Student/senior discounts (prove age range)');
-  console.log('   • Voting eligibility (prove 18+ without revealing age)\n');
+  console.log('   • Voting eligibility (prove 18+ and citizenship)\n');
 
   console.log('🔧 Next Steps:');
   console.log('   1. Compile circuits: cd packages/circuits && npm run compile');
@@ -135,10 +193,11 @@ async function main() {
 
   console.log('📚 Technical Details:');
   console.log('   • Proof system: Groth16 (efficient ZK-SNARKs)');
-  console.log('   • Hash function: Poseidon (ZK-friendly)');
-  console.log('   • Circuit language: Circom 2.0');
-  console.log('   • Proof size: ~200 bytes');
-  console.log('   • Verification time: <100ms\n');
+  console.log('   • Hash function: Poseidon(3) - binds all attributes');
+  console.log('   • Circuit language: Circom 2.1.6');
+  console.log('   • Proof size: ~200 bytes per proof');
+  console.log('   • Verification time: <100ms per proof');
+  console.log('   • Credential schema: birthYear + nationality + salt\n');
 }
 
 main().catch(console.error);

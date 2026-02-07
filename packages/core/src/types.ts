@@ -7,9 +7,11 @@ export interface Credential {
   id: string;
   /** Birth year of the credential holder */
   birthYear: number;
+  /** Nationality of the credential holder (ISO 3166-1 numeric code) */
+  nationality: number;
   /** Random salt for privacy (used in commitment) */
   salt: string;
-  /** Poseidon hash commitment to (birthYear, salt) */
+  /** Poseidon hash commitment to (birthYear, nationality, salt) */
   commitment: string;
   /** ISO 8601 timestamp of credential creation */
   createdAt: string;
@@ -32,6 +34,22 @@ export interface AgeProof {
   };
 }
 
+export interface NationalityProof {
+  /** The zero-knowledge proof data (Groth16 format) */
+  proof: {
+    pi_a: string[];
+    pi_b: string[][];
+    pi_c: string[];
+    protocol: string;
+    curve: string;
+  };
+  /** Public signals used in the proof */
+  publicSignals: {
+    targetNationality: number;
+    credentialHash: string;
+  };
+}
+
 export interface VerificationKey {
   protocol: string;
   curve: string;
@@ -46,9 +64,11 @@ export interface VerificationKey {
 
 export interface ProofRequest {
   /** Type of claim being proven */
-  claimType: 'age' | 'attribute';
+  claimType: 'age' | 'nationality';
   /** Minimum age required (for age claims) */
   minAge?: number;
+  /** Target nationality to verify (for nationality claims) */
+  targetNationality?: number;
   /** Nonce to prevent replay attacks */
   nonce: string;
   /** Timestamp of request */
@@ -61,7 +81,7 @@ export interface ProofResponse {
   /** The type of claim */
   claimType: string;
   /** The zero-knowledge proof */
-  proof: AgeProof;
+  proof: AgeProof | NationalityProof;
   /** Nonce from the request (for replay protection) */
   nonce: string;
 }

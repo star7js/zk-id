@@ -44,15 +44,20 @@ export class CredentialIssuer {
    * Issues a new credential for a user after identity verification
    *
    * @param birthYear - The verified birth year from the user's government ID
+   * @param nationality - The verified nationality (ISO 3166-1 numeric code)
    * @param userId - Optional user identifier for audit logging
    * @returns A signed credential
    */
-  async issueCredential(birthYear: number, userId?: string): Promise<SignedCredential> {
+  async issueCredential(
+    birthYear: number,
+    nationality: number,
+    userId?: string
+  ): Promise<SignedCredential> {
     // In production, this would first verify the user's identity
     // through government ID, biometrics, or trusted identity provider
 
     // Create the base credential
-    const credential = await createCredential(birthYear);
+    const credential = await createCredential(birthYear, nationality);
 
     // Sign the credential
     const signature = this.signCredential(credential);

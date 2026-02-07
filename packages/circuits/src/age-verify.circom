@@ -8,6 +8,7 @@ include "../node_modules/circomlib/circuits/poseidon.circom";
  *
  * Inputs:
  *   - birthYear: Private input (the actual birth year)
+ *   - nationality: Private input (not constrained, enables selective disclosure)
  *   - salt: Private input (salt used in credential hash)
  *   - currentYear: Public input (the current year for verification)
  *   - minAge: Public input (minimum required age, e.g., 18 or 21)
@@ -19,6 +20,7 @@ include "../node_modules/circomlib/circuits/poseidon.circom";
 template AgeVerify() {
     // Private inputs
     signal input birthYear;
+    signal input nationality;
     signal input salt;
 
     // Public inputs
@@ -45,9 +47,10 @@ template AgeVerify() {
 
     // Verify credential binding: compute hash from private inputs
     // and verify it matches the public credentialHash
-    component hasher = Poseidon(2);
+    component hasher = Poseidon(3);
     hasher.inputs[0] <== birthYear;
-    hasher.inputs[1] <== salt;
+    hasher.inputs[1] <== nationality;
+    hasher.inputs[2] <== salt;
     hasher.out === credentialHash;
 }
 

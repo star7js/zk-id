@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { validateProofConstraints } from '../src/verifier';
-import { AgeProof } from '../src/types';
+import { validateProofConstraints, validateNationalityProofConstraints } from '../src/verifier';
+import { AgeProof, NationalityProof } from '../src/types';
 
 describe('Verifier Tests', () => {
   describe('validateProofConstraints', () => {
@@ -144,6 +144,115 @@ describe('Verifier Tests', () => {
       });
 
       const result = validateProofConstraints(proof);
+      expect(result.valid).to.be.false;
+      expect(result.errors.length).to.be.greaterThan(1);
+    });
+  });
+
+  describe('validateNationalityProofConstraints', () => {
+    const createMockNationalityProof = (overrides?: Partial<NationalityProof>): NationalityProof => {
+      return {
+        proof: {
+          pi_a: ['1', '2'],
+          pi_b: [['3', '4'], ['5', '6']],
+          pi_c: ['7', '8'],
+          protocol: 'groth16',
+          curve: 'bn128',
+        },
+        publicSignals: {
+          targetNationality: 840,
+          credentialHash: '12345678901234567890',
+        },
+        ...overrides,
+      };
+    };
+
+    it('should validate a good nationality proof', () => {
+      const proof = createMockNationalityProof();
+      const result = validateNationalityProofConstraints(proof);
+
+      expect(result.valid).to.be.true;
+      expect(result.errors).to.have.lengthOf(0);
+    });
+
+    it('should reject proof with invalid nationality code (too low)', () => {
+      const proof = createMockNationalityProof({
+        publicSignals: {
+          targetNationality: 0,
+          credentialHash: '12345',
+        },
+      });
+
+      const result = validateNationalityProofConstraints(proof);
+      expect(result.valid).to.be.false;
+      expect(result.errors).to.include('Invalid nationality code in proof');
+    });
+
+    it('should reject proof with invalid nationality code (too high)', () => {
+      const proof = createMockNationalityProof({
+        publicSignals: {
+          targetNationality: 1000,
+          credentialHash: '12345',
+        },
+      });
+
+      const result = validateNationalityProofConstraints(proof);
+      expect(result.valid).to.be.false;
+      expect(result.errors).to.include('Invalid nationality code in proof');
+    });
+
+    it('should reject proof with missing credential hash', () => {
+      const proof = createMockNationalityProof({
+        publicSignals: {
+          targetNationality: 840,
+          credentialHash: '',
+        },
+      });
+
+      const result = validateNationalityProofConstraints(proof);
+      expect(result.valid).to.be.false;
+      expect(result.errors).to.include('Missing or invalid credential hash');
+    });
+
+    it('should reject proof with zero credential hash', () => {
+      const proof = createMockNationalityProof({
+        publicSignals: {
+          targetNationality: 840,
+          credentialHash: '0',
+        },
+      });
+
+      const result = validateNationalityProofConstraints(proof);
+      expect(result.valid).to.be.false;
+      expect(result.errors).to.include('Missing or invalid credential hash');
+    });
+
+    it('should validate proof with various valid nationality codes', () => {
+      const validCodes = [840, 826, 124, 276, 392]; // USA, UK, Canada, Germany, Japan
+
+      for (const code of validCodes) {
+        const proof = createMockNationalityProof({
+          publicSignals: {
+            targetNationality: code,
+            credentialHash: '12345',
+          },
+        });
+
+        const result = validateNationalityProofConstraints(proof);
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.have.lengthOf(0);
+      }
+    });
+
+    it('should accumulate multiple errors', () => {
+      const proof = createMockNationalityProof({
+        publicSignals: {
+          targetNationality: 1500,
+          credentialHash: '',
+        },
+      });
+
+      const result = validateNationalityProofConstraints(proof);
       expect(result.valid).to.be.false;
       expect(result.errors.length).to.be.greaterThan(1);
     });

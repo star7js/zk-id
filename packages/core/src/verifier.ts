@@ -1,5 +1,5 @@
 import * as snarkjs from 'snarkjs';
-import { AgeProof, VerificationKey } from './types';
+import { AgeProof, NationalityProof, VerificationKey } from './types';
 
 /**
  * Verifies an age proof using the verification key
@@ -56,6 +56,67 @@ export function validateProofConstraints(proof: AgeProof): {
   // Check that minAge is reasonable
   if (proof.publicSignals.minAge < 0 || proof.publicSignals.minAge > 150) {
     errors.push('Invalid minimum age requirement');
+  }
+
+  // Check that credential hash is present
+  if (!proof.publicSignals.credentialHash || proof.publicSignals.credentialHash === '0') {
+    errors.push('Missing or invalid credential hash');
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
+ * Verifies a nationality proof using the verification key
+ *
+ * @param proof - The proof to verify
+ * @param verificationKey - The circuit's verification key (public)
+ * @returns true if the proof is valid, false otherwise
+ */
+export async function verifyNationalityProof(
+  proof: NationalityProof,
+  verificationKey: VerificationKey
+): Promise<boolean> {
+  // Convert proof to snarkjs format
+  const snarkProof = {
+    pi_a: proof.proof.pi_a,
+    pi_b: proof.proof.pi_b,
+    pi_c: proof.proof.pi_c,
+    protocol: proof.proof.protocol,
+    curve: proof.proof.curve,
+  };
+
+  // Convert public signals to array
+  const publicSignals = [
+    proof.publicSignals.targetNationality.toString(),
+    proof.publicSignals.credentialHash,
+  ];
+
+  // Verify the proof
+  const isValid = await snarkjs.groth16.verify(
+    verificationKey,
+    publicSignals,
+    snarkProof
+  );
+
+  return isValid;
+}
+
+/**
+ * Additional validation checks for nationality proofs
+ */
+export function validateNationalityProofConstraints(proof: NationalityProof): {
+  valid: boolean;
+  errors: string[];
+} {
+  const errors: string[] = [];
+
+  // Check that nationality code is valid (ISO 3166-1 numeric: 1-999)
+  if (proof.publicSignals.targetNationality < 1 || proof.publicSignals.targetNationality > 999) {
+    errors.push('Invalid nationality code in proof');
   }
 
   // Check that credential hash is present

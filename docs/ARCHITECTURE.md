@@ -18,17 +18,35 @@ The cryptographic foundation. Written in Circom, compiled to R1CS and WASM.
 
 #### `age-verify.circom`
 
-Proves that `currentYear - birthYear >= minAge` without revealing `birthYear`.
+Proves that `currentYear - birthYear >= minAge` without revealing `birthYear` or `nationality`.
 
 **Inputs:**
-- Private: `birthYear`
+- Private: `birthYear`, `nationality`, `salt`
 - Public: `currentYear`, `minAge`, `credentialHash`
 
 **Constraints:**
 - Age calculation: `age = currentYear - birthYear`
 - Range check: `age >= minAge`
 - Birth year validity: `birthYear <= currentYear`
-- Credential binding: includes `credentialHash` to prevent proof reuse
+- Credential binding: `credentialHash = Poseidon(birthYear, nationality, salt)`
+
+**Selective Disclosure:** Nationality is included in the hash but not constrained, enabling proof of age without revealing nationality.
+
+**Output:** Groth16 proof that constraints are satisfied
+
+#### `nationality-verify.circom`
+
+Proves that `nationality === targetNationality` without revealing `birthYear`.
+
+**Inputs:**
+- Private: `birthYear`, `nationality`, `salt`
+- Public: `targetNationality`, `credentialHash`
+
+**Constraints:**
+- Nationality check: `nationality === targetNationality`
+- Credential binding: `credentialHash = Poseidon(birthYear, nationality, salt)`
+
+**Selective Disclosure:** Birth year is included in the hash but not constrained, enabling proof of nationality without revealing age.
 
 **Output:** Groth16 proof that constraints are satisfied
 
@@ -38,14 +56,17 @@ Computes a Poseidon hash commitment to credential attributes.
 
 **Inputs:**
 - `birthYear`: The user's birth year
+- `nationality`: The user's nationality (ISO 3166-1 numeric code)
 - `salt`: Random value for hiding
 
-**Output:** `commitment = Poseidon(birthYear, salt)`
+**Output:** `commitment = Poseidon(birthYear, nationality, salt)`
 
 This commitment:
 - Binds proofs to a specific credential (prevents proof reuse)
-- Hides the birth year (can't be reversed without knowing the salt)
+- Binds all attributes together (can't prove mismatched age/nationality)
+- Hides the attributes (can't be reversed without knowing the salt)
 - Can be publicly shared without privacy loss
+- Enables selective disclosure through different proof circuits
 
 ### 2. Core Library (`packages/core/`)
 
@@ -63,13 +84,17 @@ TypeScript library that wraps the circuits and provides a developer-friendly API
 
 ```typescript
 // Create a credential
-const credential = await createCredential(birthYear);
+const credential = await createCredential(birthYear, nationality);
 
-// Generate proof
-const proof = await generateAgeProof(credential, minAge, wasmPath, zkeyPath);
+// Generate age proof (selective disclosure: hides nationality)
+const ageProof = await generateAgeProof(credential, minAge, wasmPath, zkeyPath);
 
-// Verify proof
-const isValid = await verifyAgeProof(proof, verificationKey);
+// Generate nationality proof (selective disclosure: hides birth year)
+const nationalityProof = await generateNationalityProof(credential, targetNationality, wasmPath, zkeyPath);
+
+// Verify proofs
+const ageValid = await verifyAgeProof(ageProof, verificationKey);
+const nationalityValid = await verifyNationalityProof(nationalityProof, verificationKey);
 ```
 
 ### 3. Issuer Package (`packages/issuer/`)
@@ -140,10 +165,10 @@ const result = await server.verifyProof(proofResponse);
 ```
 1. User visits issuer (e.g., government website)
 2. User proves identity (uploads ID, biometrics, in-person, etc.)
-3. Issuer extracts birth year from ID
+3. Issuer extracts birth year and nationality from ID
 4. Issuer generates credential:
    - Random salt
-   - Commitment = Poseidon(birthYear, salt)
+   - Commitment = Poseidon(birthYear, nationality, salt)
    - Signature over commitment
 5. Issuer returns signed credential to user
 6. User stores credential in wallet
@@ -243,11 +268,12 @@ const result = await server.verifyProof(proofResponse);
 
 ### Credential Privacy
 
-The credential commitment (`Poseidon(birthYear, salt)`) is:
+The credential commitment (`Poseidon(birthYear, nationality, salt)`) is:
 
-- **Binding**: Can't change birthYear without detection
-- **Hiding**: Can't reverse to find birthYear without salt
-- **Public**: Can be shared freely without revealing birthYear
+- **Binding**: Can't change any attribute without detection
+- **Hiding**: Can't reverse to find attributes without salt
+- **Public**: Can be shared freely without revealing attributes
+- **Selective**: Different circuits can prove different attributes while using the same commitment
 
 ## Comparison to Alternative Approaches
 
@@ -283,30 +309,48 @@ The credential commitment (`Poseidon(birthYear, salt)`) is:
 
 ### Adding New Claim Types
 
-Currently supports age claims. Can be extended to:
+Currently supports age and nationality claims. Can be extended to:
 
-- **Attribute claims**: "I have attribute X" (without revealing value)
 - **Range claims**: "My income is in range [A, B]"
 - **Set membership**: "I am a resident of {US, CA, UK}"
 - **Comparative claims**: "My credit score > 700"
+- **Date-based claims**: "My license was issued after 2020"
 
 Each requires a new circuit.
 
 ### Multi-Attribute Credentials
 
-Current credentials contain only birth year. Can be extended to:
+Current credentials contain birth year and nationality with selective disclosure:
+
+```typescript
+interface Credential {
+  id: string;
+  birthYear: number;      // Can prove age without revealing nationality
+  nationality: number;    // Can prove nationality without revealing age
+  salt: string;
+  commitment: string;     // Binds both attributes together
+}
+```
+
+**Selective Disclosure Design:**
+- Single commitment binds all attributes: `Poseidon(birthYear, nationality, salt)`
+- Each proof circuit includes ALL attributes as private inputs
+- Each circuit only constrains the attributes being proven
+- Unconstrained attributes remain hidden but contribute to credential binding
+
+This can be extended to additional attributes:
 
 ```typescript
 interface ExtendedCredential {
   birthYear: number;
-  country: string;
+  nationality: number;
   state?: string;
   issuerDID: string;
   salt: string;
 }
 ```
 
-Each attribute can be selectively disclosed using ZK proofs.
+Each attribute can be selectively disclosed using separate ZK proof circuits.
 
 ### Revocation
 

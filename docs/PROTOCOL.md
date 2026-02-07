@@ -59,16 +59,18 @@ A website or service that requests and verifies proofs.
 {
   id: string;              // Unique credential identifier (UUID)
   birthYear: number;       // Private: user's birth year (e.g., 1995)
+  nationality: number;     // Private: ISO 3166-1 numeric code (e.g., 840 for USA)
   salt: string;            // Private: random 256-bit value (hex)
-  commitment: string;      // Public: Poseidon(birthYear, salt)
+  commitment: string;      // Public: Poseidon(birthYear, nationality, salt)
   createdAt: string;       // ISO 8601 timestamp
 }
 ```
 
 **Privacy Properties:**
-- `birthYear` and `salt` are private, never shared
+- `birthYear`, `nationality`, and `salt` are private, never shared
 - `commitment` is public and can be shared freely
-- `commitment` binds the credential without revealing `birthYear`
+- `commitment` binds all credential attributes without revealing them
+- Different proof circuits enable selective disclosure of attributes
 
 ### Signed Credential
 
@@ -85,10 +87,11 @@ A website or service that requests and verifies proofs.
 
 ```typescript
 {
-  claimType: 'age' | 'attribute';  // Type of claim to prove
-  minAge?: number;                  // For age claims (e.g., 18, 21)
-  nonce: string;                    // 128-bit random value (hex)
-  timestamp: string;                // ISO 8601 timestamp
+  claimType: 'age' | 'nationality';  // Type of claim to prove
+  minAge?: number;                    // For age claims (e.g., 18, 21)
+  targetNationality?: number;         // For nationality claims (ISO 3166-1 code)
+  nonce: string;                      // 128-bit random value (hex)
+  timestamp: string;                  // ISO 8601 timestamp
 }
 ```
 
@@ -115,14 +118,36 @@ A website or service that requests and verifies proofs.
 }
 ```
 
+**Selective Disclosure:** Nationality is included in the credential hash computation but not revealed in the proof.
+
+### Nationality Proof
+
+```typescript
+{
+  proof: {
+    pi_a: string[];        // Groth16 proof component A
+    pi_b: string[][];      // Groth16 proof component B
+    pi_c: string[];        // Groth16 proof component C
+    protocol: 'groth16';
+    curve: 'bn128';
+  };
+  publicSignals: {
+    targetNationality: number;  // Nationality being proven (ISO 3166-1 code)
+    credentialHash: string;     // Public credential commitment
+  };
+}
+```
+
+**Selective Disclosure:** Birth year is included in the credential hash computation but not revealed in the proof.
+
 ### Proof Response
 
 ```typescript
 {
-  credentialId: string;    // ID of credential used
-  claimType: string;       // Type of claim proven
-  proof: AgeProof;         // The zero-knowledge proof
-  nonce: string;           // From the request (replay protection)
+  credentialId: string;           // ID of credential used
+  claimType: string;              // Type of claim proven
+  proof: AgeProof | NationalityProof;  // The zero-knowledge proof
+  nonce: string;                  // From the request (replay protection)
 }
 ```
 
@@ -130,10 +155,11 @@ A website or service that requests and verifies proofs.
 
 ```typescript
 {
-  verified: boolean;       // True if proof is valid
-  claimType?: string;      // Type of claim verified
-  minAge?: number;         // Minimum age proven
-  error?: string;          // Error message if verification failed
+  verified: boolean;         // True if proof is valid
+  claimType?: string;        // Type of claim verified
+  minAge?: number;           // Minimum age proven (for age claims)
+  targetNationality?: number; // Nationality proven (for nationality claims)
+  error?: string;            // Error message if verification failed
 }
 ```
 
@@ -161,12 +187,12 @@ A website or service that requests and verifies proofs.
 
 1. User requests credential from issuer, provides identity proof (ID document, biometrics, etc.)
 2. Issuer verifies user's identity through KYC process
-3. Issuer extracts birth year from verified ID
+3. Issuer extracts birth year and nationality from verified ID
 4. Issuer generates credential:
    ```typescript
    salt = randomBytes(32);
-   commitment = Poseidon(birthYear, salt);
-   credential = { id, birthYear, salt, commitment, createdAt };
+   commitment = Poseidon(birthYear, nationality, salt);
+   credential = { id, birthYear, nationality, salt, commitment, createdAt };
    signature = Sign(issuer.privateKey, commitment);
    signedCredential = { credential, issuer, signature, issuedAt };
    ```
@@ -220,6 +246,8 @@ A website or service that requests and verifies proofs.
    // Circuit inputs
    input = {
      birthYear: credential.birthYear,        // Private
+     nationality: credential.nationality,    // Private (not constrained, hidden)
+     salt: credential.salt,                  // Private
      currentYear: new Date().getFullYear(), // Public
      minAge: request.minAge,                 // Public
      credentialHash: credential.commitment   // Public
@@ -257,13 +285,14 @@ A website or service that requests and verifies proofs.
 Used for credential commitments.
 
 ```
-commitment = Poseidon(birthYear, salt)
+commitment = Poseidon(birthYear, nationality, salt)
 ```
 
 **Properties:**
 - ZK-friendly (efficient inside SNARKs)
 - Collision-resistant
 - One-way function (can't reverse without salt)
+- Binds all attributes together in a single commitment
 
 **Implementation**: circomlibjs
 
