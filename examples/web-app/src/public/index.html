@@ -20,7 +20,7 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
         }
 
@@ -52,6 +52,12 @@
             color: #667eea;
             margin-bottom: 20px;
             font-size: 1.5rem;
+        }
+
+        .card-subtitle {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.6;
         }
 
         .form-group {
@@ -92,17 +98,18 @@
             width: 100%;
         }
 
-        button:hover {
+        button:hover:not(:disabled) {
             background: #5568d3;
         }
 
-        button:active {
+        button:active:not(:disabled) {
             transform: scale(0.98);
         }
 
         button:disabled {
             background: #ccc;
             cursor: not-allowed;
+            opacity: 0.6;
         }
 
         .result {
@@ -126,6 +133,26 @@
             display: block;
         }
 
+        .result.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+            display: block;
+        }
+
+        .result.loading {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+            display: block;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
         .credential-info {
             background: #f8f9fa;
             padding: 15px;
@@ -134,6 +161,101 @@
             font-family: 'Courier New', monospace;
             font-size: 0.9rem;
             word-break: break-all;
+        }
+
+        .timing-section {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .timing-bar {
+            display: flex;
+            height: 30px;
+            border-radius: 6px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .timing-proof {
+            background: #667eea;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .timing-verify {
+            background: #764ba2;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .privacy-section {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .privacy-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .privacy-col h4 {
+            color: #667eea;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .privacy-col ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .privacy-col li {
+            padding: 5px 0;
+            font-size: 0.9rem;
+        }
+
+        .privacy-col.revealed li:before {
+            content: "✓ ";
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .privacy-col.hidden li:before {
+            content: "🔒 ";
+        }
+
+        .proof-details {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .proof-details dt {
+            font-weight: 600;
+            color: #667eea;
+            margin-top: 8px;
+        }
+
+        .proof-details dd {
+            margin-left: 0;
+            margin-bottom: 5px;
+            color: #555;
         }
 
         .features {
@@ -160,20 +282,33 @@
             font-size: 0.9rem;
             color: #666;
         }
+
+        .step-number {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            margin-right: 10px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🔐 ZK-ID Demo</h1>
-            <p>Zero-Knowledge Identity Verification</p>
+            <p>Privacy-Preserving Identity Verification with Zero-Knowledge Proofs</p>
         </div>
 
         <!-- Step 1: Issue Credential -->
         <div class="card">
-            <h2>Step 1: Get Your Credential</h2>
-            <p style="margin-bottom: 20px; color: #666;">
-                In production, this would require government ID verification. For this demo, you can create a test credential.
+            <h2><span class="step-number">1</span>Issue Credential</h2>
+            <p class="card-subtitle">
+                In production, this requires government ID verification. For this demo, create a test credential with your chosen attributes.
             </p>
             <div class="form-group">
                 <label for="birthYear">Birth Year:</label>
@@ -196,19 +331,50 @@
 
         <!-- Step 2: Verify Age -->
         <div class="card">
-            <h2>Step 2: Verify Age (18+)</h2>
-            <p style="margin-bottom: 20px; color: #666;">
-                This demonstrates zero-knowledge proof: you can prove you're over 18 without revealing your exact birth year.
+            <h2><span class="step-number">2</span>Verify Age</h2>
+            <p class="card-subtitle">
+                Prove you meet the age requirement without revealing your exact birth year. The server generates a real Groth16 ZK proof.
             </p>
             <div class="form-group">
                 <label for="minAge">Minimum Age Required:</label>
                 <input type="number" id="minAge" value="18" min="0" max="100">
             </div>
-            <button onclick="verifyAge()" id="verifyAgeBtn" disabled>Verify Age</button>
+            <button onclick="verifyAge()" id="verifyAgeBtn" disabled>Verify Age (Generates Real ZK Proof)</button>
             <div id="verifyResult" class="result"></div>
         </div>
 
-        <!-- Features -->
+        <!-- Step 3: Verify Nationality -->
+        <div class="card">
+            <h2><span class="step-number">3</span>Verify Nationality</h2>
+            <p class="card-subtitle">
+                Prove your nationality without revealing age or other attributes. This demonstrates selective disclosure.
+            </p>
+            <div class="form-group">
+                <label for="targetNationality">Target Nationality:</label>
+                <select id="targetNationality">
+                    <option value="840">United States (840)</option>
+                    <option value="826">United Kingdom (826)</option>
+                    <option value="124">Canada (124)</option>
+                    <option value="276">Germany (276)</option>
+                    <option value="250">France (250)</option>
+                    <option value="392">Japan (392)</option>
+                </select>
+            </div>
+            <button onclick="verifyNationality()" id="verifyNationalityBtn" disabled>Verify Nationality (Generates Real ZK Proof)</button>
+            <div id="verifyNationalityResult" class="result"></div>
+        </div>
+
+        <!-- Step 4: Revoke Credential -->
+        <div class="card">
+            <h2><span class="step-number">4</span>Revoke Credential</h2>
+            <p class="card-subtitle">
+                Revoke a credential to prevent future verifications. After revoking, try verifying again to see it fail.
+            </p>
+            <button onclick="revokeCredential()" id="revokeBtn" disabled>Revoke Credential</button>
+            <div id="revokeResult" class="result"></div>
+        </div>
+
+        <!-- Production Features -->
         <div class="card">
             <h2>Production Features</h2>
             <div class="features">
@@ -218,7 +384,11 @@
                 </div>
                 <div class="feature">
                     <h3>🚫 Revocation</h3>
-                    <p>Credential revocation support</p>
+                    <p>Instant credential revocation</p>
+                </div>
+                <div class="feature">
+                    <h3>⚡ Batch Verify</h3>
+                    <p>High-throughput verification</p>
                 </div>
                 <div class="feature">
                     <h3>📊 Telemetry</h3>
@@ -228,12 +398,21 @@
                     <h3>🔄 W3C VC</h3>
                     <p>Standards-compliant format</p>
                 </div>
+                <div class="feature">
+                    <h3>🔐 Groth16</h3>
+                    <p>Efficient ZK proof system</p>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        let currentCredential = null;
+        // Application state
+        let state = {
+            credential: null,
+            credentialId: null,
+            isRevoked: false
+        };
 
         async function issueCredential() {
             const birthYear = parseInt(document.getElementById('birthYear').value);
@@ -252,17 +431,31 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    currentCredential = data.credential;
+                    state.credential = data.credential;
+                    state.credentialId = data.credential.credential.id;
+                    state.isRevoked = false;
+
                     resultDiv.className = 'result success';
                     resultDiv.innerHTML = `
-                        <strong>✓ Success!</strong> Credential issued.
+                        <strong>✓ Success!</strong> Credential issued successfully.
                         <div class="credential-info">
-                            <strong>ID:</strong> ${currentCredential.credential.id}<br>
-                            <strong>Issuer:</strong> ${currentCredential.issuer}<br>
-                            <strong>Commitment:</strong> ${currentCredential.credential.commitment.substring(0, 40)}...
+                            <strong>Credential ID:</strong> ${state.credentialId}<br>
+                            <strong>Issuer:</strong> ${data.credential.issuer}<br>
+                            <strong>Commitment:</strong> ${data.credential.credential.commitment.substring(0, 50)}...<br>
+                            <strong>Birth Year:</strong> ${birthYear}<br>
+                            <strong>Nationality:</strong> ${getNationalityName(nationality)} (${nationality})
                         </div>
                     `;
+
+                    // Enable verification buttons
                     document.getElementById('verifyAgeBtn').disabled = false;
+                    document.getElementById('verifyNationalityBtn').disabled = false;
+                    document.getElementById('revokeBtn').disabled = false;
+
+                    // Clear previous results
+                    document.getElementById('verifyResult').style.display = 'none';
+                    document.getElementById('verifyNationalityResult').style.display = 'none';
+                    document.getElementById('revokeResult').style.display = 'none';
                 } else {
                     resultDiv.className = 'result error';
                     resultDiv.textContent = `✗ Error: ${data.error}`;
@@ -277,19 +470,236 @@
             const minAge = parseInt(document.getElementById('minAge').value);
             const resultDiv = document.getElementById('verifyResult');
 
-            if (!currentCredential) {
+            if (!state.credentialId) {
                 resultDiv.className = 'result error';
                 resultDiv.textContent = '✗ Please issue a credential first';
+                resultDiv.style.display = 'block';
                 return;
             }
 
-            resultDiv.style.display = 'none';
-            resultDiv.textContent = 'Note: In a real implementation, this would generate a zero-knowledge proof using the circuit. For this demo, we simulate the verification process.';
-            resultDiv.className = 'result success';
+            // Show loading state
+            resultDiv.className = 'result loading';
+            resultDiv.innerHTML = '⏳ Generating zero-knowledge proof... (this takes 2-5 seconds)';
             resultDiv.style.display = 'block';
 
-            // Note: Actual proof generation would happen here with the circuit
-            // For now, we just demonstrate the API structure
+            try {
+                const response = await fetch('/api/demo/verify-age', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        credentialId: state.credentialId,
+                        minAge
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.verified) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <strong>✓ ${data.message}</strong>
+
+                        <div class="timing-section">
+                            <strong>⏱️ Performance</strong>
+                            <div class="timing-bar">
+                                <div class="timing-proof" style="width: ${(data.timing.proofGenerationMs / data.timing.totalMs) * 100}%">
+                                    Proof Gen: ${data.timing.proofGenerationMs}ms
+                                </div>
+                                <div class="timing-verify" style="width: ${(data.timing.verificationMs / data.timing.totalMs) * 100}%">
+                                    Verify: ${data.timing.verificationMs}ms
+                                </div>
+                            </div>
+                            <div style="font-size: 0.85rem; color: #666;">Total: ${data.timing.totalMs}ms</div>
+                        </div>
+
+                        <div class="privacy-section">
+                            <strong>🔒 Privacy Properties</strong>
+                            <div class="privacy-columns">
+                                <div class="privacy-col revealed">
+                                    <h4>Revealed</h4>
+                                    <ul>
+                                        ${data.privacy.revealed.map(item => `<li>${item}</li>`).join('')}
+                                    </ul>
+                                </div>
+                                <div class="privacy-col hidden">
+                                    <h4>Hidden</h4>
+                                    <ul>
+                                        ${data.privacy.hidden.map(item => `<li>${item}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="proof-details">
+                            <strong>🔐 Proof System Details</strong>
+                            <dl>
+                                <dt>System:</dt>
+                                <dd>${data.proofDetails.system}</dd>
+                                <dt>Elliptic Curve:</dt>
+                                <dd>${data.proofDetails.curve}</dd>
+                                <dt>Proof Size:</dt>
+                                <dd>${data.proofDetails.proofSize}</dd>
+                            </dl>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.className = state.isRevoked ? 'result warning' : 'result error';
+                    resultDiv.innerHTML = `<strong>✗ ${data.message}</strong>`;
+                    if (data.timing) {
+                        resultDiv.innerHTML += `<div style="margin-top: 10px; font-size: 0.9rem;">Proof generation took ${data.timing.proofGenerationMs}ms before failing verification.</div>`;
+                    }
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `✗ Error: ${error.message}`;
+            }
+        }
+
+        async function verifyNationality() {
+            const targetNationality = parseInt(document.getElementById('targetNationality').value);
+            const resultDiv = document.getElementById('verifyNationalityResult');
+
+            if (!state.credentialId) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '✗ Please issue a credential first';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            // Show loading state
+            resultDiv.className = 'result loading';
+            resultDiv.innerHTML = '⏳ Generating zero-knowledge proof... (this takes 2-5 seconds)';
+            resultDiv.style.display = 'block';
+
+            try {
+                const response = await fetch('/api/demo/verify-nationality', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        credentialId: state.credentialId,
+                        targetNationality
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.verified) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <strong>✓ ${data.message}</strong>
+
+                        <div class="timing-section">
+                            <strong>⏱️ Performance</strong>
+                            <div class="timing-bar">
+                                <div class="timing-proof" style="width: ${(data.timing.proofGenerationMs / data.timing.totalMs) * 100}%">
+                                    Proof Gen: ${data.timing.proofGenerationMs}ms
+                                </div>
+                                <div class="timing-verify" style="width: ${(data.timing.verificationMs / data.timing.totalMs) * 100}%">
+                                    Verify: ${data.timing.verificationMs}ms
+                                </div>
+                            </div>
+                            <div style="font-size: 0.85rem; color: #666;">Total: ${data.timing.totalMs}ms</div>
+                        </div>
+
+                        <div class="privacy-section">
+                            <strong>🔒 Privacy Properties (Selective Disclosure)</strong>
+                            <div class="privacy-columns">
+                                <div class="privacy-col revealed">
+                                    <h4>Revealed</h4>
+                                    <ul>
+                                        ${data.privacy.revealed.map(item => `<li>${item}</li>`).join('')}
+                                    </ul>
+                                </div>
+                                <div class="privacy-col hidden">
+                                    <h4>Hidden</h4>
+                                    <ul>
+                                        ${data.privacy.hidden.map(item => `<li>${item}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="proof-details">
+                            <strong>🔐 Proof System Details</strong>
+                            <dl>
+                                <dt>System:</dt>
+                                <dd>${data.proofDetails.system}</dd>
+                                <dt>Elliptic Curve:</dt>
+                                <dd>${data.proofDetails.curve}</dd>
+                                <dt>Proof Size:</dt>
+                                <dd>${data.proofDetails.proofSize}</dd>
+                            </dl>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.className = state.isRevoked ? 'result warning' : 'result error';
+                    resultDiv.innerHTML = `<strong>✗ ${data.message}</strong>`;
+                    if (data.timing) {
+                        resultDiv.innerHTML += `<div style="margin-top: 10px; font-size: 0.9rem;">Proof generation took ${data.timing.proofGenerationMs}ms before failing verification.</div>`;
+                    }
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `✗ Error: ${error.message}`;
+            }
+        }
+
+        async function revokeCredential() {
+            const resultDiv = document.getElementById('revokeResult');
+
+            if (!state.credentialId) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '✗ Please issue a credential first';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            if (state.isRevoked) {
+                resultDiv.className = 'result warning';
+                resultDiv.textContent = '⚠️ This credential is already revoked';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/revoke-credential', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ credentialId: state.credentialId })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    state.isRevoked = true;
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <strong>✓ ${data.message}</strong>
+                        <div style="margin-top: 10px;">
+                            Try clicking "Verify Age" or "Verify Nationality" again to see revocation in action.
+                            The proof will be generated but verification will fail.
+                        </div>
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `✗ Error: ${data.error}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `✗ Error: ${error.message}`;
+            }
+        }
+
+        function getNationalityName(code) {
+            const names = {
+                840: 'United States',
+                826: 'United Kingdom',
+                124: 'Canada',
+                276: 'Germany',
+                250: 'France',
+                392: 'Japan'
+            };
+            return names[code] || `Country ${code}`;
         }
     </script>
 </body>

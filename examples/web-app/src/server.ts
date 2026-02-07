@@ -2,10 +2,18 @@ import express from 'express';
 import { join } from 'path';
 import { CredentialIssuer } from '@zk-id/issuer';
 import { ZkIdServer, InMemoryNonceStore } from '@zk-id/sdk';
-import { ProofResponse, InMemoryRevocationStore } from '@zk-id/core';
+import { ProofResponse, InMemoryRevocationStore, generateAgeProof, generateNationalityProof } from '@zk-id/core';
+import { randomBytes } from 'crypto';
 
 const app = express();
 const PORT = 3000;
+
+// Circuit paths for proof generation
+const CIRCUITS_BASE = join(__dirname, '../../../packages/circuits/build');
+const AGE_WASM_PATH = join(CIRCUITS_BASE, 'age-verify_js/age-verify.wasm');
+const AGE_ZKEY_PATH = join(CIRCUITS_BASE, 'age-verify.zkey');
+const NATIONALITY_WASM_PATH = join(CIRCUITS_BASE, 'nationality-verify_js/nationality-verify.wasm');
+const NATIONALITY_ZKEY_PATH = join(CIRCUITS_BASE, 'nationality-verify.zkey');
 
 // Middleware
 app.use(express.json());
@@ -161,6 +169,208 @@ app.post('/api/verify-nationality', async (req, res) => {
 });
 
 /**
+ * Demo endpoint: Generate and verify age proof
+ * This endpoint combines proof generation + verification for the web demo.
+ * It generates a real ZK proof server-side and then verifies it.
+ */
+app.post('/api/demo/verify-age', async (req, res) => {
+  try {
+    const { credentialId, minAge } = req.body;
+
+    if (!credentialId || minAge === undefined) {
+      return res.status(400).json({
+        error: 'Missing required fields: credentialId, minAge',
+      });
+    }
+
+    // Look up stored credential
+    const signedCredential = issuedCredentials.get(credentialId);
+    if (!signedCredential) {
+      return res.status(404).json({
+        error: 'Credential not found',
+      });
+    }
+
+    // Generate proof (this is the expensive operation)
+    const proofGenStart = Date.now();
+    const proof = await generateAgeProof(
+      signedCredential.credential,
+      minAge,
+      AGE_WASM_PATH,
+      AGE_ZKEY_PATH
+    );
+    const proofGenTime = Date.now() - proofGenStart;
+
+    // Wrap in ProofResponse with a fresh nonce
+    const nonce = randomBytes(32).toString('hex');
+    const proofResponse: ProofResponse = {
+      proof,
+      nonce,
+      claimType: 'age',
+      credentialId,
+    };
+
+    // Verify the proof
+    const verifyStart = Date.now();
+    const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+    const result = await zkIdServer.verifyProof(proofResponse, clientIp);
+    const verifyTime = Date.now() - verifyStart;
+    const totalTime = Date.now() - proofGenStart;
+
+    if (result.verified) {
+      res.json({
+        verified: true,
+        message: `Age verification successful! User is at least ${result.minAge} years old.`,
+        timing: {
+          proofGenerationMs: proofGenTime,
+          verificationMs: verifyTime,
+          totalMs: totalTime,
+        },
+        privacy: {
+          revealed: [`Age ≥ ${result.minAge}`],
+          hidden: ['Exact birth year', 'Nationality', 'Other attributes'],
+        },
+        proofDetails: {
+          system: 'Groth16',
+          curve: 'BN128',
+          proofSize: `${JSON.stringify(proof.proof).length} bytes`,
+        },
+      });
+    } else {
+      res.json({
+        verified: false,
+        message: result.error || 'Age verification failed',
+        timing: {
+          proofGenerationMs: proofGenTime,
+          verificationMs: verifyTime,
+          totalMs: totalTime,
+        },
+      });
+    }
+  } catch (error) {
+    console.error('Error in demo age verification:', error);
+    // Check if this is a circuit assertion failure (user doesn't meet the requirement)
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    const isAssertionFailure = errorMsg.includes('Assert Failed');
+
+    res.status(400).json({
+      verified: false,
+      message: isAssertionFailure
+        ? `Age verification failed: User does not meet the minimum age requirement`
+        : `Failed to generate or verify proof: ${errorMsg}`,
+    });
+  }
+});
+
+/**
+ * Demo endpoint: Generate and verify nationality proof
+ * This endpoint combines proof generation + verification for the web demo.
+ * It generates a real ZK proof server-side and then verifies it.
+ */
+app.post('/api/demo/verify-nationality', async (req, res) => {
+  try {
+    const { credentialId, targetNationality } = req.body;
+
+    if (!credentialId || targetNationality === undefined) {
+      return res.status(400).json({
+        error: 'Missing required fields: credentialId, targetNationality',
+      });
+    }
+
+    // Look up stored credential
+    const signedCredential = issuedCredentials.get(credentialId);
+    if (!signedCredential) {
+      return res.status(404).json({
+        error: 'Credential not found',
+      });
+    }
+
+    // Generate proof (this is the expensive operation)
+    const proofGenStart = Date.now();
+    const proof = await generateNationalityProof(
+      signedCredential.credential,
+      targetNationality,
+      NATIONALITY_WASM_PATH,
+      NATIONALITY_ZKEY_PATH
+    );
+    const proofGenTime = Date.now() - proofGenStart;
+
+    // Wrap in ProofResponse with a fresh nonce
+    const nonce = randomBytes(32).toString('hex');
+    const proofResponse: ProofResponse = {
+      proof,
+      nonce,
+      claimType: 'nationality',
+      credentialId,
+    };
+
+    // Verify the proof
+    const verifyStart = Date.now();
+    const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+    const result = await zkIdServer.verifyProof(proofResponse, clientIp);
+    const verifyTime = Date.now() - verifyStart;
+    const totalTime = Date.now() - proofGenStart;
+
+    if (result.verified) {
+      const nationalityName = getNationalityName(targetNationality);
+      res.json({
+        verified: true,
+        message: `Nationality verification successful! User has nationality: ${nationalityName}`,
+        timing: {
+          proofGenerationMs: proofGenTime,
+          verificationMs: verifyTime,
+          totalMs: totalTime,
+        },
+        privacy: {
+          revealed: [`Nationality = ${nationalityName} (${targetNationality})`],
+          hidden: ['Birth year', 'Age', 'Other attributes'],
+        },
+        proofDetails: {
+          system: 'Groth16',
+          curve: 'BN128',
+          proofSize: `${JSON.stringify(proof.proof).length} bytes`,
+        },
+      });
+    } else {
+      res.json({
+        verified: false,
+        message: result.error || 'Nationality verification failed',
+        timing: {
+          proofGenerationMs: proofGenTime,
+          verificationMs: verifyTime,
+          totalMs: totalTime,
+        },
+      });
+    }
+  } catch (error) {
+    console.error('Error in demo nationality verification:', error);
+    // Check if this is a circuit assertion failure (user doesn't have the target nationality)
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    const isAssertionFailure = errorMsg.includes('Assert Failed');
+
+    res.status(400).json({
+      verified: false,
+      message: isAssertionFailure
+        ? `Nationality verification failed: User does not have the target nationality`
+        : `Failed to generate or verify proof: ${errorMsg}`,
+    });
+  }
+});
+
+// Helper function to get nationality name
+function getNationalityName(code: number): string {
+  const names: { [key: number]: string } = {
+    840: 'United States',
+    826: 'United Kingdom',
+    124: 'Canada',
+    276: 'Germany',
+    250: 'France',
+    392: 'Japan',
+  };
+  return names[code] || `Country ${code}`;
+}
+
+/**
  * Demo endpoint: Revoke a credential (admin only - would require auth in production)
  */
 app.post('/api/revoke-credential', async (req, res) => {
@@ -211,6 +421,8 @@ app.listen(PORT, () => {
   console.log(`  POST /api/issue-credential`);
   console.log(`  POST /api/verify-age`);
   console.log(`  POST /api/verify-nationality`);
+  console.log(`  POST /api/demo/verify-age`);
+  console.log(`  POST /api/demo/verify-nationality`);
   console.log(`  POST /api/revoke-credential`);
   console.log(`  GET  /api/health\n`);
 });
