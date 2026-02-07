@@ -7,7 +7,7 @@
  * - Submitting proofs to the website's backend
  */
 
-import { ProofRequest, ProofResponse, AgeProof } from '@zk-id/core';
+import { ProofRequest, ProofResponse, Credential, generateAgeProof, generateNationalityProof } from '@zk-id/core';
 
 export interface ZkIdClientConfig {
   /** URL of the website's proof verification endpoint */
@@ -147,12 +147,26 @@ export class ZkIdClient {
   }
 }
 
+export interface InMemoryWalletConfig {
+  circuitPaths: {
+    ageWasm: string;
+    ageZkey: string;
+    nationalityWasm?: string;
+    nationalityZkey?: string;
+  };
+}
+
 /**
  * Simple in-memory wallet for demo purposes
  * (Production would use browser extension, mobile app, or OS-level wallet)
  */
 export class InMemoryWallet implements WalletConnector {
-  private credentials: Map<string, any> = new Map();
+  private credentials: Map<string, Credential> = new Map();
+  private config: InMemoryWalletConfig;
+
+  constructor(config: InMemoryWalletConfig) {
+    this.config = config;
+  }
 
   async isAvailable(): Promise<boolean> {
     return true;
@@ -165,10 +179,59 @@ export class InMemoryWallet implements WalletConnector {
     // 3. Generate proof locally using wasm
     // 4. Return proof without revealing private data
 
-    throw new Error('Demo wallet: implement proof generation');
+    // Find a stored credential (use first available)
+    const credential = Array.from(this.credentials.values())[0];
+    if (!credential) {
+      throw new Error('No credentials stored in wallet');
+    }
+
+    // Generate proof based on claim type
+    if (request.claimType === 'age') {
+      if (!request.minAge) {
+        throw new Error('minAge is required for age proof');
+      }
+
+      const proof = await generateAgeProof(
+        credential,
+        request.minAge,
+        this.config.circuitPaths.ageWasm,
+        this.config.circuitPaths.ageZkey
+      );
+
+      return {
+        credentialId: credential.id,
+        claimType: 'age',
+        proof,
+        nonce: request.nonce,
+      };
+    } else if (request.claimType === 'nationality') {
+      if (!request.targetNationality) {
+        throw new Error('targetNationality is required for nationality proof');
+      }
+
+      if (!this.config.circuitPaths.nationalityWasm || !this.config.circuitPaths.nationalityZkey) {
+        throw new Error('Nationality circuit paths not configured');
+      }
+
+      const proof = await generateNationalityProof(
+        credential,
+        request.targetNationality,
+        this.config.circuitPaths.nationalityWasm,
+        this.config.circuitPaths.nationalityZkey
+      );
+
+      return {
+        credentialId: credential.id,
+        claimType: 'nationality',
+        proof,
+        nonce: request.nonce,
+      };
+    } else {
+      throw new Error(`Unsupported claim type: ${request.claimType}`);
+    }
   }
 
-  addCredential(credential: any): void {
+  addCredential(credential: Credential): void {
     this.credentials.set(credential.id, credential);
   }
 }
