@@ -208,6 +208,10 @@ See `docs/THREAT-MODEL.md` for full detail.
 
 See `docs/KNOWN-LIMITATIONS.md` for current limitations and non-goals.
 
+## Signed Circuits (Optional)
+
+See `docs/SIGNED-CIRCUITS.md` for how to use circuits that verify issuer signatures inside the proof.
+
 - [x] Core cryptographic primitives
 - [x] Age verification circuit
 - [x] TypeScript SDK
