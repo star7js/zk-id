@@ -28,6 +28,7 @@ export async function generateAgeProof(
   // Prepare circuit inputs
   const input = {
     birthYear: credential.birthYear,
+    salt: BigInt('0x' + credential.salt).toString(),
     currentYear: currentYear,
     minAge: minAge,
     credentialHash: credentialHash.toString(),
