@@ -38,12 +38,18 @@ export interface ZkIdServerConfig {
   revocationStore?: RevocationStore;
   /** Map of trusted issuer names to their public keys */
   issuerPublicKeys?: Record<string, KeyObject>;
+  /** Optional issuer registry for key rotation and status checks */
+  issuerRegistry?: IssuerRegistry;
   /** Require signed credentials (default: true) */
   requireSignedCredentials?: boolean;
   /** Enforce a required minimum age (server policy) */
   requiredMinAge?: number;
   /** Enforce a required nationality code (server policy) */
   requiredNationality?: number;
+  /** Optional required policy object (preferred over requiredMinAge/requiredNationality) */
+  requiredPolicy?: RequiredPolicy;
+  /** Maximum allowed clock skew for request timestamps (ms) */
+  maxRequestAgeMs?: number;
 }
 
 export interface NonceStore {
@@ -56,6 +62,23 @@ export interface NonceStore {
 export interface RateLimiter {
   /** Check if request should be allowed */
   allowRequest(identifier: string): Promise<boolean>;
+}
+
+export interface IssuerRecord {
+  issuer: string;
+  publicKey: KeyObject;
+  status?: 'active' | 'revoked' | 'suspended';
+  validFrom?: string;
+  validTo?: string;
+}
+
+export interface IssuerRegistry {
+  getIssuer(issuer: string): Promise<IssuerRecord | null>;
+}
+
+export interface RequiredPolicy {
+  minAge?: number;
+  nationality?: number;
 }
 
 export interface VerificationEvent {
@@ -128,7 +151,7 @@ export class ZkIdServer extends EventEmitter {
         return result;
       }
 
-      const bindingCheck = this.validateSignedCredentialBinding(
+      const bindingCheck = await this.validateSignedCredentialBinding(
         signedCredential,
         proofResponse
       );
@@ -140,26 +163,62 @@ export class ZkIdServer extends EventEmitter {
     }
 
     // Server-side policy enforcement
-    if (proofResponse.claimType === 'age' && this.config.requiredMinAge !== undefined) {
-      const proof = proofResponse.proof as AgeProof;
-      if (proof.publicSignals.minAge !== this.config.requiredMinAge) {
+    const requiredPolicy = this.config.requiredPolicy;
+    if (proofResponse.claimType === 'age') {
+      const requiredMinAge = requiredPolicy?.minAge ?? this.config.requiredMinAge;
+      if (requiredMinAge !== undefined) {
+        const proof = proofResponse.proof as AgeProof;
+        if (proof.publicSignals.minAge !== requiredMinAge) {
+          const result = {
+            verified: false,
+            error: 'Proof does not satisfy required minimum age',
+          };
+          this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
+          return result;
+        }
+      }
+    }
+    if (proofResponse.claimType === 'nationality') {
+      const requiredNationality =
+        requiredPolicy?.nationality ?? this.config.requiredNationality;
+      if (requiredNationality !== undefined) {
+        const proof = proofResponse.proof as NationalityProof;
+        if (proof.publicSignals.targetNationality !== requiredNationality) {
+          const result = {
+            verified: false,
+            error: 'Proof does not satisfy required nationality',
+          };
+          this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
+          return result;
+        }
+      }
+    }
+
+    // Request timestamp freshness check (optional)
+    if (this.config.maxRequestAgeMs !== undefined) {
+      const requestTimestamp = proofResponse.requestTimestamp;
+      if (!requestTimestamp) {
         const result = {
           verified: false,
-          error: 'Proof does not satisfy required minimum age',
+          error: 'Missing request timestamp',
         };
         this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
         return result;
       }
-    }
-    if (
-      proofResponse.claimType === 'nationality' &&
-      this.config.requiredNationality !== undefined
-    ) {
-      const proof = proofResponse.proof as NationalityProof;
-      if (proof.publicSignals.targetNationality !== this.config.requiredNationality) {
+      const requestMs = Date.parse(requestTimestamp);
+      if (Number.isNaN(requestMs)) {
         const result = {
           verified: false,
-          error: 'Proof does not satisfy required nationality',
+          error: 'Invalid request timestamp',
+        };
+        this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
+        return result;
+      }
+      const ageMs = Math.abs(Date.now() - requestMs);
+      if (ageMs > this.config.maxRequestAgeMs) {
+        const result = {
+          verified: false,
+          error: 'Request timestamp outside allowed window',
         };
         this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
         return result;
@@ -331,13 +390,26 @@ export class ZkIdServer extends EventEmitter {
   /**
    * Validate issuer signature and binding between proof and credential
    */
-  private validateSignedCredentialBinding(
+  private async validateSignedCredentialBinding(
     signedCredential: SignedCredential,
     proofResponse: ProofResponse
   ): { valid: boolean; error?: string } {
-    const issuerKey = this.config.issuerPublicKeys?.[signedCredential.issuer];
+    const issuerRecord = await this.getIssuerRecord(signedCredential.issuer);
+    const issuerKey = issuerRecord?.publicKey;
     if (!issuerKey) {
       return { valid: false, error: 'Unknown or untrusted issuer' };
+    }
+    if (issuerRecord?.status && issuerRecord.status !== 'active') {
+      return { valid: false, error: 'Issuer is not active' };
+    }
+    if (issuerRecord?.validFrom || issuerRecord?.validTo) {
+      const now = Date.now();
+      if (issuerRecord.validFrom && Date.parse(issuerRecord.validFrom) > now) {
+        return { valid: false, error: 'Issuer key not yet valid' };
+      }
+      if (issuerRecord.validTo && Date.parse(issuerRecord.validTo) < now) {
+        return { valid: false, error: 'Issuer key expired' };
+      }
     }
 
     const payload = credentialSignaturePayload(signedCredential.credential);
@@ -379,6 +451,17 @@ export class ZkIdServer extends EventEmitter {
       return (proof as NationalityProof).publicSignals.nonce;
     }
     return '';
+  }
+
+  private async getIssuerRecord(issuer: string): Promise<IssuerRecord | null> {
+    if (this.config.issuerRegistry) {
+      return this.config.issuerRegistry.getIssuer(issuer);
+    }
+    const key = this.config.issuerPublicKeys?.[issuer];
+    if (!key) {
+      return null;
+    }
+    return { issuer, publicKey: key, status: 'active' };
   }
 
   /**

@@ -99,6 +99,8 @@ export interface ProofResponse {
   signedCredential: SignedCredential;
   /** Nonce from the request (for replay protection) */
   nonce: string;
+  /** Request timestamp (ISO 8601) */
+  requestTimestamp?: string;
 }
 
 export interface BatchVerificationResult {

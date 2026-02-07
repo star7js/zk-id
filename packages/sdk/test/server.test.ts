@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import path from 'path';
 import { generateKeyPairSync, sign } from 'crypto';
-import { ZkIdServer } from '../src/server';
+import { ZkIdServer, IssuerRegistry } from '../src/server';
 import {
   AgeProof,
   ProofResponse,
@@ -161,5 +161,91 @@ describe('ZkIdServer - signature and policy enforcement', () => {
     const result = await server.verifyProof(proofResponse);
     expect(result.verified).to.equal(false);
     expect(result.error).to.equal('Proof nonce does not match request nonce');
+  });
+
+  it('rejects proof when issuer key is expired', async () => {
+    const { signedCredential, publicKey } = makeSignedCredential('123');
+
+    const registry: IssuerRegistry = {
+      async getIssuer() {
+        return {
+          issuer: 'TestIssuer',
+          publicKey,
+          status: 'active',
+          validTo: new Date(Date.now() - 1000).toISOString(),
+        };
+      },
+    };
+
+    const server = new ZkIdServer({
+      verificationKeyPath: getVerificationKeyPath(),
+      issuerRegistry: registry,
+    });
+
+    const proofResponse: ProofResponse = {
+      credentialId: signedCredential.credential.id,
+      claimType: 'age',
+      proof: makeAgeProof('123', 18, 'nonce-5'),
+      signedCredential,
+      nonce: 'nonce-5',
+    };
+
+    const result = await server.verifyProof(proofResponse);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.equal('Issuer key expired');
+  });
+
+  it('rejects proof when issuer is suspended', async () => {
+    const { signedCredential, publicKey } = makeSignedCredential('123');
+
+    const registry: IssuerRegistry = {
+      async getIssuer() {
+        return {
+          issuer: 'TestIssuer',
+          publicKey,
+          status: 'suspended',
+        };
+      },
+    };
+
+    const server = new ZkIdServer({
+      verificationKeyPath: getVerificationKeyPath(),
+      issuerRegistry: registry,
+    });
+
+    const proofResponse: ProofResponse = {
+      credentialId: signedCredential.credential.id,
+      claimType: 'age',
+      proof: makeAgeProof('123', 18, 'nonce-6'),
+      signedCredential,
+      nonce: 'nonce-6',
+    };
+
+    const result = await server.verifyProof(proofResponse);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.equal('Issuer is not active');
+  });
+
+  it('rejects proof when request timestamp is too old', async () => {
+    const { signedCredential, publicKey } = makeSignedCredential('123');
+
+    const server = new ZkIdServer({
+      verificationKeyPath: getVerificationKeyPath(),
+      issuerPublicKeys: { TestIssuer: publicKey },
+      maxRequestAgeMs: 1000,
+    });
+
+    const proofResponse: ProofResponse = {
+      credentialId: signedCredential.credential.id,
+      claimType: 'age',
+      proof: makeAgeProof('123', 18, 'nonce-7'),
+      signedCredential,
+      nonce: 'nonce-7',
+      requestTimestamp: new Date(Date.now() - 10_000).toISOString(),
+    };
+
+    const result = await server.verifyProof(proofResponse);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.equal('Request timestamp outside allowed window');
   });
 });

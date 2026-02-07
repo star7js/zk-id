@@ -213,6 +213,7 @@ export class InMemoryWallet implements WalletConnector {
         proof,
         signedCredential,
         nonce: request.nonce,
+        requestTimestamp: request.timestamp,
       };
     } else if (request.claimType === 'nationality') {
       if (!request.targetNationality) {
@@ -237,6 +238,7 @@ export class InMemoryWallet implements WalletConnector {
         proof,
         signedCredential,
         nonce: request.nonce,
+        requestTimestamp: request.timestamp,
       };
     } else {
       throw new Error(`Unsupported claim type: ${request.claimType}`);
