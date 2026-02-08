@@ -2,6 +2,12 @@
   "name": "@zk-id/circuits",
   "version": "0.1.0",
   "description": "Zero-knowledge circuits for identity verification",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/star7js/zk-id.git",
+    "directory": "packages/circuits"
+  },
   "scripts": {
     "compile": "bash scripts/compile.sh",
     "setup": "bash scripts/trusted-setup.sh",
