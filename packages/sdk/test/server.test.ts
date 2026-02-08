@@ -4,6 +4,7 @@ import { generateKeyPairSync, sign } from 'crypto';
 import { ZkIdServer, IssuerRegistry } from '../src/server';
 import {
   AgeProof,
+  AgeProofRevocable,
   ProofResponse,
   SignedCredential,
   credentialSignaturePayload,
@@ -30,6 +31,35 @@ function makeAgeProof(
       currentYear: new Date().getFullYear(),
       minAge,
       credentialHash,
+      nonce,
+      requestTimestamp,
+    },
+  };
+}
+
+function makeAgeProofRevocable(
+  credentialHash: string,
+  merkleRoot: string,
+  minAge: number,
+  nonce: string,
+  requestTimestamp: number
+): AgeProofRevocable {
+  return {
+    proof: {
+      pi_a: ['1', '2'],
+      pi_b: [
+        ['3', '4'],
+        ['5', '6'],
+      ],
+      pi_c: ['7', '8'],
+      protocol: 'groth16',
+      curve: 'bn128',
+    },
+    publicSignals: {
+      currentYear: new Date().getFullYear(),
+      minAge,
+      credentialHash,
+      merkleRoot,
       nonce,
       requestTimestamp,
     },
@@ -404,7 +434,7 @@ describe('ZkIdServer - revocation root info', () => {
     };
 
     const server = new ZkIdServer({
-      verificationKeyPath: getVerificationKeyPath(),
+      verificationKeys: { age: {} as any },
       requireSignedCredentials: false,
       validCredentialTree: tree as any,
     });
@@ -413,5 +443,172 @@ describe('ZkIdServer - revocation root info', () => {
     expect(info.root).to.be.a('string');
     expect(info.version).to.equal(1);
     expect(info.updatedAt).to.be.a('string');
+  });
+
+  it('includes ttlSeconds and expiresAt with default TTL', async () => {
+    const now = new Date().toISOString();
+    const tree = {
+      add: async () => undefined,
+      remove: async () => undefined,
+      contains: async () => true,
+      getRoot: async () => '456',
+      getRootInfo: async () => ({
+        root: '456',
+        version: 3,
+        updatedAt: now,
+      }),
+      getWitness: async () => null,
+      size: async () => 2,
+    };
+
+    const server = new ZkIdServer({
+      verificationKeys: { age: {} as any },
+      requireSignedCredentials: false,
+      validCredentialTree: tree as any,
+    });
+
+    const info = await server.getRevocationRootInfo();
+    expect(info.ttlSeconds).to.equal(300);
+    expect(info.expiresAt).to.be.a('string');
+    const expiresMs = Date.parse(info.expiresAt!);
+    const updatedMs = Date.parse(now);
+    expect(expiresMs - updatedMs).to.equal(300 * 1000);
+  });
+
+  it('uses custom TTL and source from config', async () => {
+    const now = new Date().toISOString();
+    const tree = {
+      add: async () => undefined,
+      remove: async () => undefined,
+      contains: async () => true,
+      getRoot: async () => '789',
+      getRootInfo: async () => ({
+        root: '789',
+        version: 5,
+        updatedAt: now,
+      }),
+      getWitness: async () => null,
+      size: async () => 1,
+    };
+
+    const server = new ZkIdServer({
+      verificationKeys: { age: {} as any },
+      requireSignedCredentials: false,
+      validCredentialTree: tree as any,
+      revocationRootTtlSeconds: 60,
+      revocationRootSource: 'test-issuer',
+    });
+
+    const info = await server.getRevocationRootInfo();
+    expect(info.ttlSeconds).to.equal(60);
+    expect(info.source).to.equal('test-issuer');
+    const expiresMs = Date.parse(info.expiresAt!);
+    const updatedMs = Date.parse(now);
+    expect(expiresMs - updatedMs).to.equal(60 * 1000);
+  });
+
+  it('populates TTL fields even when tree lacks getRootInfo', async () => {
+    const tree = {
+      add: async () => undefined,
+      remove: async () => undefined,
+      contains: async () => true,
+      getRoot: async () => '111',
+      getWitness: async () => null,
+      size: async () => 0,
+    };
+
+    const server = new ZkIdServer({
+      verificationKeys: { age: {} as any },
+      requireSignedCredentials: false,
+      validCredentialTree: tree as any,
+    });
+
+    const info = await server.getRevocationRootInfo();
+    expect(info.root).to.equal('111');
+    expect(info.version).to.equal(0);
+    expect(info.ttlSeconds).to.equal(300);
+    expect(info.expiresAt).to.be.a('string');
+  });
+});
+
+describe('ZkIdServer - revocation root staleness', () => {
+  it('rejects revocable proof when root is stale', async () => {
+    const staleDate = new Date(Date.now() - 120_000).toISOString(); // 2 min ago
+    const tree = {
+      add: async () => undefined,
+      remove: async () => undefined,
+      contains: async () => false,
+      getRoot: async () => '0',
+      getRootInfo: async () => ({
+        root: '0',
+        version: 1,
+        updatedAt: staleDate,
+      }),
+      getWitness: async () => null,
+      size: async () => 0,
+    };
+
+    const server = new ZkIdServer({
+      requireSignedCredentials: false,
+      verificationKeys: {
+        age: {} as any,
+        ageRevocable: {} as any,
+      },
+      validCredentialTree: tree as any,
+      maxRevocationRootAgeMs: 60_000, // 1 min max
+    });
+
+    const timestamp = Date.now();
+    const proofResponse: ProofResponse = {
+      credentialId: 'cred-1',
+      claimType: 'age-revocable',
+      proof: makeAgeProofRevocable('123', '0', 18, 'nonce-stale', timestamp),
+      nonce: 'nonce-stale',
+      requestTimestamp: new Date(timestamp).toISOString(),
+    } as ProofResponse;
+
+    const result = await server.verifyProof(proofResponse);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.equal('Revocation root is stale');
+  });
+
+  it('allows revocable proof when root is fresh', async () => {
+    const freshDate = new Date().toISOString();
+    const tree = {
+      add: async () => undefined,
+      remove: async () => undefined,
+      contains: async () => false,
+      getRoot: async () => '0',
+      getRootInfo: async () => ({
+        root: '0',
+        version: 1,
+        updatedAt: freshDate,
+      }),
+      getWitness: async () => null,
+      size: async () => 0,
+    };
+
+    const server = new ZkIdServer({
+      requireSignedCredentials: false,
+      verificationKeys: {
+        age: {} as any,
+        ageRevocable: {} as any,
+      },
+      validCredentialTree: tree as any,
+      maxRevocationRootAgeMs: 60_000, // 1 min max
+    });
+
+    const timestamp = Date.now();
+    const proofResponse: ProofResponse = {
+      credentialId: 'cred-1',
+      claimType: 'age-revocable',
+      proof: makeAgeProofRevocable('123', '0', 18, 'nonce-fresh', timestamp),
+      nonce: 'nonce-fresh',
+      requestTimestamp: new Date(timestamp).toISOString(),
+    } as ProofResponse;
+
+    const result = await server.verifyProof(proofResponse);
+    // Should get past staleness check — will fail at proof verification (expected)
+    expect(result.error).to.not.equal('Revocation root is stale');
   });
 });

@@ -472,7 +472,11 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
   /api/revocation/root:
     get:
-      summary: Get current revocation root and version
+      summary: Get current revocation root info with versioning and TTL
+      description: |
+        Returns the current valid-set Merkle root along with version metadata
+        and caching guidance. Clients should cache the response for `ttlSeconds`
+        and re-fetch before `expiresAt`. See PROTOCOL.md §Revocation Root Distribution.
       parameters:
         - $ref: '#/components/parameters/ProtocolVersionHeader'
       responses:
@@ -485,6 +489,10 @@ paths:
           headers:
             X-ZkId-Protocol-Version:
               $ref: '#/components/headers/ProtocolVersion'
+            Cache-Control:
+              description: Cache guidance based on configured TTL (e.g., "public, max-age=300")
+              schema:
+                type: string
         '400':
           description: Bad request (including incompatible protocol version)
           content:
@@ -541,11 +549,24 @@ components:
       properties:
         root:
           type: string
+          description: Current Merkle root (decimal string)
         version:
           type: integer
+          description: Monotonic root version (increments on each tree mutation)
         updatedAt:
           type: string
           format: date-time
+          description: ISO 8601 timestamp of last tree mutation
+        expiresAt:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp after which this root should be re-fetched
+        ttlSeconds:
+          type: integer
+          description: Recommended cache lifetime in seconds (default 300)
+        source:
+          type: string
+          description: Identifier for the root source (issuer name, registry URL)
     Credential:
       type: object
       properties:

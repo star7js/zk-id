@@ -35,6 +35,8 @@ export interface ZkIdClientConfig {
    * - "never": never send header
    */
   protocolVersionHeader?: 'same-origin' | 'always' | 'never';
+  /** Maximum acceptable root age in ms. fetchRevocationRootInfo() warns when root exceeds this age. */
+  maxRevocationRootAgeMs?: number;
 }
 
 export interface WalletConnector {
@@ -143,6 +145,9 @@ export class ZkIdClient {
 
   /**
    * Fetch current revocation root info from server (if configured).
+   *
+   * When `maxRevocationRootAgeMs` is set in config, logs a warning if the
+   * returned root is older than the threshold.
    */
   async fetchRevocationRootInfo(): Promise<RevocationRootInfo> {
     if (!this.config.revocationRootEndpoint) {
@@ -158,8 +163,19 @@ export class ZkIdClient {
       throw new Error(`Failed to fetch revocation root: ${response.statusText}`);
     }
 
-    const info = await response.json();
-    return info as RevocationRootInfo;
+    const info = (await response.json()) as RevocationRootInfo;
+
+    if (this.config.maxRevocationRootAgeMs !== undefined && info.updatedAt) {
+      const rootAgeMs = Date.now() - Date.parse(info.updatedAt);
+      if (rootAgeMs > this.config.maxRevocationRootAgeMs) {
+        console.warn(
+          `[zk-id] Revocation root is stale: age=${Math.round(rootAgeMs / 1000)}s, ` +
+            `max=${Math.round(this.config.maxRevocationRootAgeMs / 1000)}s`
+        );
+      }
+    }
+
+    return info;
   }
 
   /**

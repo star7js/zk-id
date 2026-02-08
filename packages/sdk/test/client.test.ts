@@ -570,6 +570,99 @@ describe('SDK Client Tests', () => {
         expect(info.root).to.equal('123');
         expect(info.version).to.equal(2);
       });
+
+      it('returns extended fields (ttlSeconds, expiresAt, source)', async () => {
+        const now = new Date().toISOString();
+        const mockRoot = {
+          root: '456',
+          version: 3,
+          updatedAt: now,
+          ttlSeconds: 120,
+          expiresAt: new Date(Date.parse(now) + 120_000).toISOString(),
+          source: 'test-registry',
+        };
+
+        (global as any).fetch = async () => ({
+          ok: true,
+          json: async () => mockRoot,
+          statusText: 'OK',
+          headers: { get: () => null },
+        });
+
+        const client = new ZkIdClient({
+          verificationEndpoint: 'http://localhost:3000/verify',
+          revocationRootEndpoint: 'http://localhost:3000/api/revocation/root',
+        });
+
+        const info = await client.fetchRevocationRootInfo();
+        expect(info.ttlSeconds).to.equal(120);
+        expect(info.expiresAt).to.be.a('string');
+        expect(info.source).to.equal('test-registry');
+      });
+
+      it('warns when root is stale and maxRevocationRootAgeMs is set', async () => {
+        const staleDate = new Date(Date.now() - 600_000).toISOString(); // 10 min ago
+        const mockRoot = {
+          root: '789',
+          version: 4,
+          updatedAt: staleDate,
+        };
+
+        (global as any).fetch = async () => ({
+          ok: true,
+          json: async () => mockRoot,
+          statusText: 'OK',
+          headers: { get: () => null },
+        });
+
+        const warnings: string[] = [];
+        const origWarn = console.warn;
+        console.warn = (msg: string) => warnings.push(msg);
+
+        const client = new ZkIdClient({
+          verificationEndpoint: 'http://localhost:3000/verify',
+          revocationRootEndpoint: 'http://localhost:3000/api/revocation/root',
+          maxRevocationRootAgeMs: 60_000, // 1 min
+        });
+
+        const info = await client.fetchRevocationRootInfo();
+        console.warn = origWarn;
+
+        expect(info.root).to.equal('789');
+        expect(warnings.length).to.be.greaterThan(0);
+        expect(warnings[0]).to.include('stale');
+      });
+
+      it('does not warn when root is fresh', async () => {
+        const freshDate = new Date().toISOString();
+        const mockRoot = {
+          root: '111',
+          version: 5,
+          updatedAt: freshDate,
+        };
+
+        (global as any).fetch = async () => ({
+          ok: true,
+          json: async () => mockRoot,
+          statusText: 'OK',
+          headers: { get: () => null },
+        });
+
+        const warnings: string[] = [];
+        const origWarn = console.warn;
+        console.warn = (msg: string) => warnings.push(msg);
+
+        const client = new ZkIdClient({
+          verificationEndpoint: 'http://localhost:3000/verify',
+          revocationRootEndpoint: 'http://localhost:3000/api/revocation/root',
+          maxRevocationRootAgeMs: 60_000,
+        });
+
+        await client.fetchRevocationRootInfo();
+        console.warn = origWarn;
+
+        expect(warnings.length).to.equal(0);
+      });
     });
 
     describe('InMemoryWallet', () => {

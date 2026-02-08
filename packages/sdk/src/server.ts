@@ -81,6 +81,12 @@ export interface ZkIdServerConfig {
   maxRequestAgeMs?: number;
   /** Protocol version enforcement policy (default: warn) */
   protocolVersionPolicy?: ProtocolVersionPolicy;
+  /** Revocation root TTL in seconds (default: 300). Used in getRevocationRootInfo(). */
+  revocationRootTtlSeconds?: number;
+  /** Source identifier for revocation root metadata (e.g., issuer name or registry URL) */
+  revocationRootSource?: string;
+  /** Maximum acceptable root age in ms. If set, verifyProof rejects revocable proofs when the root is stale. */
+  maxRevocationRootAgeMs?: number;
 }
 
 export interface VerificationKeySet {
@@ -179,6 +185,7 @@ export interface ProofChallenge {
 }
 
 const DEFAULT_CHALLENGE_TTL_MS = 5 * 60 * 1000;
+const DEFAULT_REVOCATION_ROOT_TTL_SECONDS = 300;
 
 /**
  * Server SDK for verifying zk-id proofs
@@ -787,6 +794,21 @@ export class ZkIdServer extends EventEmitter {
       };
     }
 
+    // Revocation root staleness check (before proof validation)
+    if (
+      this.config.maxRevocationRootAgeMs !== undefined &&
+      this.config.validCredentialTree?.getRootInfo
+    ) {
+      const rootInfo = await this.config.validCredentialTree.getRootInfo();
+      const rootAgeMs = Date.now() - Date.parse(rootInfo.updatedAt);
+      if (rootAgeMs > this.config.maxRevocationRootAgeMs) {
+        return {
+          verified: false,
+          error: 'Revocation root is stale',
+        };
+      }
+    }
+
     // Validate proof constraints
     const constraintCheck = validateAgeProofRevocableConstraints(proof);
     if (!constraintCheck.valid) {
@@ -1018,20 +1040,34 @@ export class ZkIdServer extends EventEmitter {
 
   /**
    * Get current revocation root info (if valid credential tree is configured).
+   *
+   * Populates `expiresAt`, `ttlSeconds`, and `source` from server config when available.
    */
   async getRevocationRootInfo(): Promise<RevocationRootInfo> {
     if (!this.config.validCredentialTree) {
       throw new Error('Valid credential tree not configured');
     }
+
+    let info: RevocationRootInfo;
     if (this.config.validCredentialTree.getRootInfo) {
-      return this.config.validCredentialTree.getRootInfo();
+      info = await this.config.validCredentialTree.getRootInfo();
+    } else {
+      const root = await this.config.validCredentialTree.getRoot();
+      info = {
+        root,
+        version: 0,
+        updatedAt: new Date().toISOString(),
+      };
     }
-    const root = await this.config.validCredentialTree.getRoot();
-    return {
-      root,
-      version: 0,
-      updatedAt: new Date().toISOString(),
-    };
+
+    const ttl = this.config.revocationRootTtlSeconds ?? DEFAULT_REVOCATION_ROOT_TTL_SECONDS;
+    info.ttlSeconds = ttl;
+    info.expiresAt = new Date(Date.parse(info.updatedAt) + ttl * 1000).toISOString();
+    if (this.config.revocationRootSource) {
+      info.source = this.config.revocationRootSource;
+    }
+
+    return info;
   }
 
   private checkProtocolVersion(

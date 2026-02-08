@@ -4,7 +4,7 @@ These are concrete tickets derived from the near-term roadmap. Use them as GitHu
 
 ## Revocation Root Distribution (MVP)
 
-### T-001: Define Revocation Root Metadata Schema + Endpoint Contract
+### T-001: Define Revocation Root Metadata Schema + Endpoint Contract ✅
 **Goal:** Standardize the root info shape and how it is served/cached.
 
 **Scope**
@@ -20,7 +20,7 @@ These are concrete tickets derived from the near-term roadmap. Use them as GitHu
 **Out of scope**
 - Root signing / provenance (covered elsewhere).
 
-### T-002: Client/Server Freshness Policy for Revocation Roots
+### T-002: Client/Server Freshness Policy for Revocation Roots ✅
 **Goal:** Provide a consistent policy for how old a root can be.
 
 **Scope**

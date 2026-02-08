@@ -202,7 +202,7 @@ A website or service that requests and verifies proofs.
 
 **Revocation Support:** The `merkleRoot` public signal binds the proof to a specific state of the valid credentials tree, enabling privacy-preserving revocation checks.
 
-**Root Distribution:** Verifiers should fetch the current valid-set Merkle root and version from the issuer or registry (e.g., `GET /api/revocation/root`). Clients may need to refresh witnesses when the root version advances.
+**Root Distribution:** See the _Revocation Root Distribution_ section below for versioning, TTL, and freshness rules.
 
 **Storage Implementations:** The SDK includes a Postgres-backed `ValidCredentialTree` implementation for production deployments.
 
@@ -429,6 +429,47 @@ if (await revocationStore.isRevoked(credentialCommitment)) {
   return { verified: false, error: 'Credential has been revoked' };
 }
 ```
+
+### Revocation Root Distribution
+
+Revocable proofs bind to the current valid-set Merkle root. Verifiers and clients need a
+reliable way to obtain fresh root data and detect stale state.
+
+**Root Info Endpoint:** `GET /api/revocation/root`
+
+Returns a `RevocationRootInfo` object:
+
+```typescript
+{
+  root: string;          // Current Merkle root (decimal string)
+  version: number;       // Monotonic root version (increments on every add/remove)
+  updatedAt: string;     // ISO 8601 timestamp of last tree mutation
+  expiresAt?: string;    // ISO 8601 timestamp after which this root should be re-fetched
+  ttlSeconds?: number;   // Recommended cache lifetime in seconds (default: 300)
+  source?: string;       // Identifier for the root source (issuer name, registry URL)
+}
+```
+
+**Versioning Rules:**
+- `version` is a monotonically increasing counter; each tree mutation (add or remove) increments it by 1.
+- Clients SHOULD track the last-seen version and re-fetch witnesses when the version advances.
+- Verifiers MAY accept proofs against a recent-but-not-latest root within a configurable tolerance window (`maxRevocationRootAgeMs`).
+
+**TTL & Caching Policy:**
+- Servers set `ttlSeconds` (default: 300s / 5 minutes) and compute `expiresAt` from `updatedAt + ttlSeconds`.
+- HTTP responses SHOULD include `Cache-Control: public, max-age=<ttlSeconds>` when served behind a CDN or reverse proxy.
+- Clients SHOULD cache root info for at most `ttlSeconds` and re-fetch before generating proofs with stale roots.
+- When `expiresAt` has passed, clients MUST re-fetch before relying on the root.
+
+**Freshness Policy:**
+- Servers can enforce a maximum root age via `maxRevocationRootAgeMs` in `ZkIdServerConfig`. When set, revocable proof verification rejects proofs if the tree's `updatedAt` is older than the threshold.
+- Clients can set `maxRevocationRootAgeMs` in `ZkIdClientConfig`; `fetchRevocationRootInfo()` logs a warning when the root exceeds this age.
+- Recommended defaults: 5 minutes for interactive flows, up to 1 hour for batch/offline scenarios.
+
+**Witness Refresh:**
+- When the root version advances, existing Merkle witnesses become invalid.
+- Clients holding credentials SHOULD re-fetch witnesses from the tree before generating new proofs.
+- The SDK's `ValidCredentialTree.getWitness(commitment)` always returns a witness for the current root.
 
 ### External Credential Formats
 
