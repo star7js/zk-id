@@ -922,7 +922,7 @@
             const resultDiv = document.getElementById('revokeResult');
             const revokeBtn = document.getElementById('revokeBtn');
 
-            if (!state.credentialId) {
+            if (!state.lastIssuedCredentialId) {
                 resultDiv.className = 'result error';
                 resultDiv.textContent = '✗ Please issue a credential first';
                 resultDiv.style.display = 'block';

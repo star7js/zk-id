@@ -214,7 +214,7 @@ export class ZkIdServer extends EventEmitter {
    * Generate a server-issued nonce + timestamp challenge.
    */
   async createChallenge(): Promise<ProofChallenge> {
-    const nonce = randomBytes(32).toString('hex');
+    const nonce = BigInt('0x' + randomBytes(31).toString('hex')).toString();
     const requestTimestamp = new Date().toISOString();
 
     if (this.config.challengeStore) {
