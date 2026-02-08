@@ -20,10 +20,10 @@
     "circomlib": "^2.0.5"
   },
   "devDependencies": {
-    "snarkjs": "^0.7.6",
+    "chai": "^6.2.2",
     "circom_tester": "^0.0.24",
-    "mocha": "^11.7.5",
-    "chai": "^6.2.2"
+    "mocha": "^12.0.0-beta-8",
+    "snarkjs": "^0.7.6"
   },
   "files": [
     "src/*.circom",
