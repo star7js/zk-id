@@ -20,7 +20,7 @@
   "devDependencies": {
     "snarkjs": "^0.7.6",
     "circom_tester": "^0.0.24",
-    "mocha": "^10.3.0",
+    "mocha": "^11.7.5",
     "chai": "^6.2.2"
   },
   "files": [
