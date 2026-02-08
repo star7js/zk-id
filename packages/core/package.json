@@ -22,7 +22,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "mocha -r ts-node/register/transpile-only test/**/*.test.ts --timeout 10000",
+    "test": "mocha -r ts-node/register/transpile-only test/**/*.test.ts --timeout 10000 --exit",
     "test:watch": "mocha -r ts-node/register/transpile-only test/**/*.test.ts --watch --watch-extensions ts"
   },
   "dependencies": {

@@ -11,7 +11,7 @@
   "scripts": {
     "compile": "bash scripts/compile.sh",
     "setup": "bash scripts/trusted-setup.sh",
-    "test": "PATH=\"$HOME/.cargo/bin:$PATH\" mocha test/**/*.test.js --timeout 60000",
+    "test": "PATH=\"$HOME/.cargo/bin:$PATH\" mocha test/**/*.test.js --timeout 60000 --exit",
     "build": "echo 'Circuits use compile script — no tsc build needed'"
   },
   "dependencies": {

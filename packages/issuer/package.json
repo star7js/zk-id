@@ -22,7 +22,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "mocha -r ts-node/register/transpile-only test/**/*.test.ts --timeout 10000"
+    "test": "mocha -r ts-node/register/transpile-only test/**/*.test.ts --timeout 10000 --exit"
   },
   "dependencies": {
     "@zk-id/core": "^0.2.0",
