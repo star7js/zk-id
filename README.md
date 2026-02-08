@@ -273,6 +273,7 @@ Note: These circuits use BabyJub EdDSA signatures (circomlib), not Ed25519.
 
 ### Recent Security Updates
 
+- ✅ **Fixed nonce BigInt conversion** (Feb 2026): Fixed ZK proof generation failure caused by hex nonces. Nonces are now generated as decimal strings compatible with snarkjs BigInt parsing, and use 31 bytes to stay below the BN128 field modulus.
 - ✅ **Fixed credential hash verification** (Feb 2026): The circuit now properly verifies that the credential hash matches the prover's private inputs (birthYear, salt), preventing malicious proofs with arbitrary birth years.
 
 ### Production Checklist
