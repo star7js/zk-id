@@ -1,7 +1,13 @@
 import { expect } from 'chai';
 import path from 'path';
 import { generateKeyPairSync, sign } from 'crypto';
-import { ZkIdServer, IssuerRegistry, InMemoryIssuerRegistry } from '../src/server';
+import {
+  ZkIdServer,
+  IssuerRegistry,
+  InMemoryIssuerRegistry,
+  validateProofResponsePayload,
+  validateSignedProofRequestPayload,
+} from '../src/server';
 import {
   AgeProof,
   AgeProofRevocable,
@@ -842,3 +848,179 @@ describe('InMemoryIssuerRegistry', () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// Payload validation helpers (T-007)
+// ---------------------------------------------------------------------------
+
+describe('validateProofResponsePayload', () => {
+  it('returns empty array for valid payload', () => {
+    const valid = {
+      credentialId: 'cred-1',
+      claimType: 'age',
+      proof: {
+        proof: { pi_a: ['1'], pi_b: [['2']], pi_c: ['3'], protocol: 'groth16', curve: 'bn128' },
+        publicSignals: { currentYear: 2026, minAge: 18, credentialHash: 'h', nonce: 'n', requestTimestamp: 123 },
+      },
+      signedCredential: { credential: {}, issuer: 'test', signature: 'sig', issuedAt: '2026-01-01T00:00:00Z' },
+      nonce: 'nonce-1',
+      requestTimestamp: '2026-01-01T00:00:00Z',
+    };
+    const errors = validateProofResponsePayload(valid);
+    expect(errors).to.have.length(0);
+  });
+
+  it('rejects null body', () => {
+    const errors = validateProofResponsePayload(null);
+    expect(errors).to.have.length(1);
+    expect(errors[0].field).to.equal('(root)');
+  });
+
+  it('rejects invalid claimType', () => {
+    const errors = validateProofResponsePayload({
+      claimType: 'invalid',
+      nonce: 'n',
+      requestTimestamp: '2026-01-01T00:00:00Z',
+      proof: { proof: {}, publicSignals: {} },
+      signedCredential: {},
+    });
+    expect(errors.some((e: { field: string }) => e.field === 'claimType')).to.equal(true);
+  });
+
+  it('rejects empty nonce', () => {
+    const errors = validateProofResponsePayload({
+      claimType: 'age',
+      nonce: '',
+      requestTimestamp: '2026-01-01T00:00:00Z',
+      proof: { proof: {}, publicSignals: {} },
+      signedCredential: {},
+    });
+    expect(errors.some((e: { field: string }) => e.field === 'nonce')).to.equal(true);
+  });
+
+  it('rejects missing proof object', () => {
+    const errors = validateProofResponsePayload({
+      claimType: 'age',
+      nonce: 'n',
+      requestTimestamp: '2026-01-01T00:00:00Z',
+      signedCredential: {},
+    });
+    expect(errors.some((e: { field: string }) => e.field === 'proof')).to.equal(true);
+  });
+
+  it('rejects missing signedCredential', () => {
+    const errors = validateProofResponsePayload({
+      claimType: 'age',
+      nonce: 'n',
+      requestTimestamp: '2026-01-01T00:00:00Z',
+      proof: { proof: {}, publicSignals: {} },
+    });
+    expect(errors.some((e: { field: string }) => e.field === 'signedCredential')).to.equal(true);
+  });
+
+  it('rejects missing nested proof.proof', () => {
+    const errors = validateProofResponsePayload({
+      claimType: 'age',
+      nonce: 'n',
+      requestTimestamp: '2026-01-01T00:00:00Z',
+      proof: { publicSignals: {} },
+      signedCredential: {},
+    });
+    expect(errors.some((e: { field: string }) => e.field === 'proof.proof')).to.equal(true);
+  });
+});
+
+describe('validateSignedProofRequestPayload', () => {
+  it('returns empty array for valid payload', () => {
+    const valid = {
+      claimType: 'age',
+      issuer: 'test-issuer',
+      nonce: 'nonce-1',
+      requestTimestamp: '2026-01-01T00:00:00Z',
+      proof: {
+        proof: { pi_a: ['1'], pi_b: [['2']], pi_c: ['3'], protocol: 'groth16', curve: 'bn128' },
+        publicSignals: { currentYear: 2026, minAge: 18, credentialHash: 'h', nonce: 'n', requestTimestamp: 123, issuerPublicKey: ['pk'] },
+      },
+    };
+    const errors = validateSignedProofRequestPayload(valid);
+    expect(errors).to.have.length(0);
+  });
+
+  it('rejects invalid claimType', () => {
+    const errors = validateSignedProofRequestPayload({
+      claimType: 'age-revocable',
+      issuer: 'i',
+      nonce: 'n',
+      requestTimestamp: 'ts',
+      proof: { proof: {}, publicSignals: {} },
+    });
+    expect(errors.some((e: { field: string }) => e.field === 'claimType')).to.equal(true);
+  });
+
+  it('rejects missing issuer', () => {
+    const errors = validateSignedProofRequestPayload({
+      claimType: 'age',
+      nonce: 'n',
+      requestTimestamp: 'ts',
+      proof: { proof: {}, publicSignals: {} },
+    });
+    expect(errors.some((e: { field: string }) => e.field === 'issuer')).to.equal(true);
+  });
+
+  it('rejects null body', () => {
+    const errors = validateSignedProofRequestPayload(null);
+    expect(errors).to.have.length(1);
+  });
+});
+
+describe('ZkIdServer - validatePayloads integration', () => {
+  it('rejects invalid payload when validatePayloads is true', async () => {
+    const server = new ZkIdServer({
+      verificationKeys: { age: {} as any },
+      validatePayloads: true,
+    });
+
+    const result = await server.verifyProof({} as any);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.match(/Invalid payload/);
+  });
+
+  it('does not validate payload when validatePayloads is false', async () => {
+    const server = new ZkIdServer({
+      verificationKeys: { age: {} as any },
+      validatePayloads: false,
+      requireSignedCredentials: false,
+    });
+
+    // This will fail at the proof verification level, not at payload validation
+    const proofResponse = makeValidProofResponse();
+    const result = await server.verifyProof(proofResponse);
+    // Should NOT contain "Invalid payload" - it should fail deeper in the verification pipeline
+    if (result.error) {
+      expect(result.error).to.not.match(/Invalid payload/);
+    }
+  });
+});
+
+function makeValidProofResponse(): ProofResponse {
+  return {
+    credentialId: 'cred-1',
+    claimType: 'age',
+    proof: makeAgeProof('hash-1', 18, 'nonce-vp', Date.now()),
+    signedCredential: {
+      credential: {
+        id: 'cred-1',
+        birthYear: 2000,
+        nationality: 840,
+        salt: 'salt',
+        commitment: 'hash-1',
+        createdAt: new Date().toISOString(),
+      },
+      issuer: 'test-issuer',
+      signature: 'sig',
+      issuedAt: new Date().toISOString(),
+    },
+    nonce: 'nonce-vp',
+    requestTimestamp: new Date().toISOString(),
+  };
+}

@@ -593,6 +593,27 @@ class ZkIdServer {
 - Server issues `nonce` + `requestTimestamp` (see `/api/challenge`).
 - Clients must embed these values into the proof.
 
+### JSON Schemas
+
+Machine-readable JSON schemas for the core protocol payloads are published in
+`docs/schemas/`:
+
+| Schema | Description |
+|--------|-------------|
+| `proof-request.json` | ProofRequest — sent to a wallet to request a proof |
+| `proof-response.json` | ProofResponse — proof + credential submitted to verifier |
+| `signed-proof-request.json` | SignedProofRequest — proof with in-circuit issuer signature |
+| `verification-result.json` | VerificationResult — verifier response |
+| `defs.json` | Shared definitions (Proof, PublicSignals, Credential, etc.) |
+
+Schemas use JSON Schema draft-07 and reference each other via relative `$ref`.
+
+**Strict payload validation**: The SDK server supports optional structural
+validation before cryptographic verification. Enable it with
+`validatePayloads: true` in `ZkIdServerConfig`. When enabled, `verifyProof()`
+and `verifySignedProof()` return early with `{ verified: false, error: "Invalid payload: ..." }`
+if required fields are missing or malformed.
+
 ### Issuer Trust & Registry
 
 Verifiers maintain an issuer registry that maps issuer identifiers to their

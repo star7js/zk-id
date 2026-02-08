@@ -89,7 +89,7 @@ These are concrete tickets derived from the near-term roadmap. Use them as GitHu
 
 ## API & Protocol Clarity
 
-### T-007: JSON Schemas for SDK Inputs
+### T-007: JSON Schemas for SDK Inputs ✅
 **Goal:** Provide machine-readable validation for API payloads.
 
 **Scope**
@@ -101,7 +101,7 @@ These are concrete tickets derived from the near-term roadmap. Use them as GitHu
 - Schemas exist and are referenced in docs.
 - Optional strict validation path in SDK server is documented.
 
-### T-008: OpenAPI Completion for Verification Flows
+### T-008: OpenAPI Completion for Verification Flows ✅
 **Goal:** Ensure public API docs are complete and accurate.
 
 **Scope**
