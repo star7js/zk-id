@@ -43,12 +43,13 @@ describe('ZkIdServer - revocable proof support', () => {
       requireSignedCredentials: false,
     });
 
+    const timestamp = Date.now();
     const proofResponse: ProofResponse = {
       credentialId: 'cred-1',
       claimType: 'age-revocable',
-      proof: makeAgeProofRevocable('123', '456', 18, 'nonce-1', Date.now()),
+      proof: makeAgeProofRevocable('123', '456', 18, 'nonce-1', timestamp),
       nonce: 'nonce-1',
-      requestTimestamp: new Date().toISOString(),
+      requestTimestamp: new Date(timestamp).toISOString(),
     } as ProofResponse;
 
     const result = await server.verifyProof(proofResponse);
@@ -63,12 +64,13 @@ describe('ZkIdServer - revocable proof support', () => {
       requiredMinAge: 21,
     });
 
+    const timestamp = Date.now();
     const proofResponse: ProofResponse = {
       credentialId: 'cred-1',
       claimType: 'age-revocable',
-      proof: makeAgeProofRevocable('123', '456', 18, 'nonce-1', Date.now()),
+      proof: makeAgeProofRevocable('123', '456', 18, 'nonce-1', timestamp),
       nonce: 'nonce-1',
-      requestTimestamp: new Date().toISOString(),
+      requestTimestamp: new Date(timestamp).toISOString(),
     } as ProofResponse;
 
     const result = await server.verifyProof(proofResponse);
