@@ -31,6 +31,8 @@ import {
   validateAgeProofRevocableConstraints,
   PROTOCOL_VERSION,
   isProtocolCompatible,
+  AuditLogger,
+  ConsoleAuditLogger,
 } from '@zk-id/core';
 import { readFileSync } from 'fs';
 import { EventEmitter } from 'events';
@@ -89,6 +91,8 @@ export interface ZkIdServerConfig {
   maxRevocationRootAgeMs?: number;
   /** Enable strict payload validation before verification (default: false). Checks required fields and types. */
   validatePayloads?: boolean;
+  /** Optional audit logger for verification and registry events. Defaults to ConsoleAuditLogger. */
+  auditLogger?: AuditLogger;
 }
 
 export interface VerificationKeySet {
@@ -154,9 +158,11 @@ export interface IssuerRegistry {
  */
 export class InMemoryIssuerRegistry implements IssuerRegistry {
   private issuers: Map<string, IssuerRecord[]>;
+  private auditLogger?: AuditLogger;
 
-  constructor(records: IssuerRecord[] = []) {
+  constructor(records: IssuerRecord[] = [], auditLogger?: AuditLogger) {
     this.issuers = new Map();
+    this.auditLogger = auditLogger;
     for (const r of records) {
       this.addRecord(r);
     }
@@ -222,6 +228,13 @@ export class InMemoryIssuerRegistry implements IssuerRegistry {
         r.status = 'suspended';
       }
     }
+    this.auditLogger?.log({
+      timestamp: new Date().toISOString(),
+      action: 'suspend',
+      actor: 'registry',
+      target: issuer,
+      success: !!records,
+    });
   }
 
   /**
@@ -234,6 +247,13 @@ export class InMemoryIssuerRegistry implements IssuerRegistry {
         r.status = 'active';
       }
     }
+    this.auditLogger?.log({
+      timestamp: new Date().toISOString(),
+      action: 'reactivate',
+      actor: 'registry',
+      target: issuer,
+      success: !!records,
+    });
   }
 
   /**
@@ -246,6 +266,13 @@ export class InMemoryIssuerRegistry implements IssuerRegistry {
         r.status = 'revoked';
       }
     }
+    this.auditLogger?.log({
+      timestamp: new Date().toISOString(),
+      action: 'deactivate',
+      actor: 'registry',
+      target: issuer,
+      success: !!records,
+    });
   }
 
   private addRecord(record: IssuerRecord): void {
@@ -304,6 +331,7 @@ export class ZkIdServer extends EventEmitter {
   private signedVerificationKey?: VerificationKey;
   private signedNationalityVerificationKey?: VerificationKey;
   private revocableVerificationKey?: VerificationKey;
+  private auditLogger: AuditLogger;
 
   /**
    * Get the protocol version implemented by this SDK
@@ -315,6 +343,7 @@ export class ZkIdServer extends EventEmitter {
   constructor(config: ZkIdServerConfig) {
     super();
     this.config = config;
+    this.auditLogger = config.auditLogger ?? new ConsoleAuditLogger();
     if (config.verificationKeys?.age) {
       this.verificationKey = config.verificationKeys.age;
     } else if (config.verificationKeyPath) {
@@ -1147,8 +1176,9 @@ export class ZkIdServer extends EventEmitter {
     startTime: number,
     clientIdentifier?: string
   ): void {
+    const timestamp = new Date().toISOString();
     const event: VerificationEvent = {
-      timestamp: new Date().toISOString(),
+      timestamp,
       claimType,
       verified: result.verified,
       verificationTimeMs: Date.now() - startTime,
@@ -1156,6 +1186,19 @@ export class ZkIdServer extends EventEmitter {
       error: result.error,
     };
     this.emit('verification', event);
+
+    // Structured audit log entry
+    this.auditLogger.log({
+      timestamp,
+      action: 'verify',
+      actor: clientIdentifier ?? 'unknown',
+      target: claimType,
+      success: result.verified,
+      metadata: {
+        verificationTimeMs: event.verificationTimeMs,
+        ...(result.error ? { error: result.error } : {}),
+      },
+    });
   }
 
   /**

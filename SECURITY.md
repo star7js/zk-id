@@ -52,3 +52,42 @@ We appreciate security researchers who help keep zk-id safe. With your permissio
 - Acknowledge your contribution in our security advisories
 
 Thank you for helping keep zk-id and its users secure!
+
+## Supported Versions
+
+| Version | Supported |
+|---------|-----------|
+| 0.4.x   | Current development — security fixes applied |
+| < 0.4   | No longer supported |
+
+Only the latest release on the `main` branch receives security updates.
+Pre-release (`-draft`) protocol versions may change without notice.
+
+## Security Hardening Checklist
+
+Before deploying any zk-id component to a non-demo environment, review the
+following:
+
+1. **Key management** — Never embed private keys in source code or environment
+   variables. Use a hardware security module (HSM) or cloud KMS
+   (e.g., AWS KMS, GCP Cloud HSM). The `IssuerKeyManager` interface supports
+   this pattern.
+2. **Issuer registry** — Populate the registry from a trusted, versioned source
+   (config file, database, or remote registry). Validate `validFrom`/`validTo`
+   windows and enforce `status` checks.
+3. **Nonce storage** — Replace `InMemoryNonceStore` with a durable store
+   (Redis, database) that enforces TTL-based expiry to prevent replay attacks.
+4. **Rate limiting** — Replace `SimpleRateLimiter` with a production-grade
+   solution (token-bucket or sliding-window backed by Redis).
+5. **Revocation root freshness** — Set `maxRevocationRootAgeMs` to reject
+   stale roots. Monitor `expiresAt` in client-side caching.
+6. **Audit logging** — Configure an `AuditLogger` implementation that writes
+   to a tamper-evident log (append-only database, SIEM, or cloud audit trail).
+7. **TLS** — All endpoints must use HTTPS. The `X-ZkId-Protocol-Version`
+   header is sent in plaintext; ensure transport encryption.
+8. **CORS** — Restrict allowed origins. The custom protocol header triggers
+   preflight requests; configure `Access-Control-Allow-Headers` narrowly.
+9. **Payload validation** — Enable `validatePayloads: true` in server config
+   to reject malformed requests before cryptographic verification.
+10. **Circuit artifact integrity** — When circuit build artifacts are available,
+    verify WASM and ZKEY hashes against a signed manifest before loading.

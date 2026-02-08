@@ -514,19 +514,41 @@ const signedCredential = fromExternalCredentialFormat(external);
    - Private salt value required to generate proofs
    - Credentials stored securely by user
 
-**What We Don't Protect Against:**
+**What We Don't Protect Against (with Mitigations):**
 
-1. **Issuer compromise**: If issuer is malicious, can issue fake credentials
-   - Mitigation: Use trusted issuers (government, banks)
-   - Future: Multi-issuer credentials
+1. **Issuer compromise**: If issuer is malicious or key is stolen, fake credentials can be issued.
+   - *Detection*: Audit logs (`AuditLogger`) record every issuance event with timestamp, credential ID, and user ID. Anomalous issuance volume triggers investigation.
+   - *Containment*: Suspend the issuer via `IssuerRegistry.suspend()` immediately. All proofs from the compromised issuer will fail verification.
+   - *Recovery*: Rotate issuer key with overlapping validity windows (`validFrom`/`validTo`). Revoke affected credentials via the revocation store. Deactivate old key once overlap expires.
+   - *Prevention*: Use HSM/KMS for key storage (`IssuerKeyManager` interface). Restrict issuance to authenticated, rate-limited endpoints.
+   - *Future*: Multi-issuer credentials (threshold issuance) eliminate single-issuer trust.
 
-2. **Credential theft**: If attacker gets credential + salt, can impersonate
-   - Mitigation: Secure storage (encrypted, wallet apps)
-   - Future: Biometric binding
+2. **Credential theft**: If attacker obtains credential + salt, they can impersonate the holder.
+   - *Prevention*: Store credentials in encrypted wallet storage. Never transmit raw credential data — only ZK proofs leave the client.
+   - *Detection*: If a credential is suspected stolen, revoke it. The revocation proof circuit ensures revoked credentials cannot produce valid proofs.
+   - *Limitation*: Revocation only works for `age-revocable` claim type. Standard `age` and `nationality` proofs do not check revocation status.
+   - *Future*: Biometric binding (credential tied to holder's biometric hash).
 
-3. **Circuit bugs**: Flaws in circuit logic could break soundness
-   - Mitigation: Professional audit before production
-   - Open source for community review
+3. **Circuit bugs**: Flaws in circuit constraint logic could break soundness (allow forged proofs).
+   - *Prevention*: Professional audit before production. Open-source circuits for community review.
+   - *Detection*: Circuit artifact hash manifest (when available) allows verifiers to confirm they use audited artifacts.
+   - *Limitation*: No formal verification of circuits yet (planned for v1.0).
+
+4. **Replay attacks**: Attacker intercepts and resubmits a valid proof.
+   - *Prevention*: Server-issued nonce (`/api/challenge`) bound as a public signal in the circuit. `NonceStore` tracks consumed nonces. `ChallengeStore` enforces TTL.
+   - *Configuration*: Set `maxRequestAgeMs` to reject stale proofs. Use `challengeTtlMs` to limit challenge window.
+
+5. **Merkle root staleness**: Verifier accepts a proof against an outdated revocation root, allowing a revoked credential to pass.
+   - *Prevention*: Set `maxRevocationRootAgeMs` in server config. Client caches root for at most `ttlSeconds`.
+   - *Detection*: Client `fetchRevocationRootInfo()` warns when root is stale. Server rejects proofs with stale roots before cryptographic verification.
+
+6. **Metadata leakage**: Verification timing, request patterns, or issuer identity may leak information about the user.
+   - *Limitation*: The `issuer` field in `SignedCredential` reveals which authority issued the credential. `issuedAt` reveals approximate issuance time.
+   - *Mitigation*: Use generic issuer names. Avoid correlating verification requests across sessions. Future: credential re-randomization.
+
+7. **Revocation correlation**: Observing which commitments are added/removed from the valid-credential tree may reveal information.
+   - *Limitation*: The valid-set model leaks the set of valid commitments (though commitments are hiding).
+   - *Mitigation*: Batch tree updates to reduce timing correlation. Future: sparse Merkle exclusion proofs for better privacy.
 
 ### Privacy Properties
 
