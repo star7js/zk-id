@@ -17,6 +17,7 @@ import {
   RevocationStore,
   ValidCredentialTree,
   SignedCredential,
+  RevocationRootInfo,
   credentialSignaturePayload,
   AgeProofSigned,
   NationalityProofSigned,
@@ -1013,6 +1014,24 @@ export class ZkIdServer extends EventEmitter {
    */
   onVerification(callback: (event: VerificationEvent) => void): void {
     this.on('verification', callback);
+  }
+
+  /**
+   * Get current revocation root info (if valid credential tree is configured).
+   */
+  async getRevocationRootInfo(): Promise<RevocationRootInfo> {
+    if (!this.config.validCredentialTree) {
+      throw new Error('Valid credential tree not configured');
+    }
+    if (this.config.validCredentialTree.getRootInfo) {
+      return this.config.validCredentialTree.getRootInfo();
+    }
+    const root = await this.config.validCredentialTree.getRoot();
+    return {
+      root,
+      version: 0,
+      updatedAt: new Date().toISOString(),
+    };
   }
 
   private checkProtocolVersion(

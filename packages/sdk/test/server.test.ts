@@ -386,3 +386,32 @@ describe('ZkIdServer - signature and policy enforcement', () => {
     expect(result.error).to.equal('Request timestamp outside allowed window');
   });
 });
+
+describe('ZkIdServer - revocation root info', () => {
+  it('returns root info when valid credential tree is configured', async () => {
+    const tree = {
+      add: async () => undefined,
+      remove: async () => undefined,
+      contains: async () => true,
+      getRoot: async () => '123',
+      getRootInfo: async () => ({
+        root: '123',
+        version: 1,
+        updatedAt: new Date().toISOString(),
+      }),
+      getWitness: async () => null,
+      size: async () => 1,
+    };
+
+    const server = new ZkIdServer({
+      verificationKeyPath: getVerificationKeyPath(),
+      requireSignedCredentials: false,
+      validCredentialTree: tree as any,
+    });
+
+    const info = await server.getRevocationRootInfo();
+    expect(info.root).to.be.a('string');
+    expect(info.version).to.equal(1);
+    expect(info.updatedAt).to.be.a('string');
+  });
+});

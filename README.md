@@ -144,6 +144,29 @@ app.post('/api/verify-age', async (req, res) => {
 });
 ```
 
+**Production storage (Postgres)**:
+```typescript
+import { ZkIdServer, PostgresValidCredentialTree } from '@zk-id/sdk';
+import { Client } from 'pg';
+
+const pg = new Client({ connectionString: process.env.PG_URL });
+await pg.connect();
+await pg.query('CREATE SCHEMA IF NOT EXISTS zkid;');
+
+const validCredentialTree = new PostgresValidCredentialTree(pg, {
+  schema: 'zkid',
+  depth: 10,
+});
+
+const server = new ZkIdServer({
+  verificationKeyPath: './verification_key.json',
+  validCredentialTree,
+});
+
+// Optional: expose revocation root metadata
+const rootInfo = await server.getRevocationRootInfo();
+```
+
 ### For Issuers
 
 ```typescript
