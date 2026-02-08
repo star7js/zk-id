@@ -250,7 +250,7 @@ export async function verifyBatch(
     };
   }
 
-  // Verify all proofs in parallel using Promise.allSettled
+  // Verify all proofs in parallel (errors caught per-promise)
   const verificationPromises = proofs.map(async ({ proof, verificationKey, type }, index) => {
     try {
       let verified: boolean;

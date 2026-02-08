@@ -410,10 +410,32 @@
             isRevoked: false
         };
 
+        // HTML escaping helper to prevent XSS
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
         async function issueCredential() {
             const birthYear = parseInt(document.getElementById('birthYear').value);
             const nationality = parseInt(document.getElementById('nationality').value);
             const resultDiv = document.getElementById('issueResult');
+
+            // Validate inputs
+            if (isNaN(birthYear)) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '✗ Invalid birth year';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            if (isNaN(nationality)) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '✗ Invalid nationality';
+                resultDiv.style.display = 'block';
+                return;
+            }
 
             resultDiv.style.display = 'none';
 
@@ -435,11 +457,11 @@
                     resultDiv.innerHTML = `
                         <strong>✓ Success!</strong> Credential issued successfully.
                         <div class="credential-info">
-                            <strong>Credential ID:</strong> ${state.credentialId}<br>
-                            <strong>Issuer:</strong> ${data.credential.issuer}<br>
-                            <strong>Commitment:</strong> ${data.credential.credential.commitment.substring(0, 50)}...<br>
+                            <strong>Credential ID:</strong> ${escapeHtml(state.credentialId)}<br>
+                            <strong>Issuer:</strong> ${escapeHtml(data.credential.issuer)}<br>
+                            <strong>Commitment:</strong> ${escapeHtml(data.credential.credential.commitment.substring(0, 50))}...<br>
                             <strong>Birth Year:</strong> ${birthYear}<br>
-                            <strong>Nationality:</strong> ${getNationalityName(nationality)} (${nationality})
+                            <strong>Nationality:</strong> ${escapeHtml(getNationalityName(nationality))} (${nationality})
                         </div>
                     `;
 
@@ -454,17 +476,18 @@
                     document.getElementById('revokeResult').style.display = 'none';
                 } else {
                     resultDiv.className = 'result error';
-                    resultDiv.textContent = `✗ Error: ${data.error}`;
+                    resultDiv.innerHTML = `✗ Error: ${escapeHtml(data.error)}`;
                 }
             } catch (error) {
                 resultDiv.className = 'result error';
-                resultDiv.textContent = `✗ Error: ${error.message}`;
+                resultDiv.innerHTML = `✗ Error: ${escapeHtml(error.message)}`;
             }
         }
 
         async function verifyAge() {
             const minAge = parseInt(document.getElementById('minAge').value);
             const resultDiv = document.getElementById('verifyResult');
+            const verifyAgeBtn = document.getElementById('verifyAgeBtn');
 
             if (!state.credentialId) {
                 resultDiv.className = 'result error';
@@ -472,6 +495,17 @@
                 resultDiv.style.display = 'block';
                 return;
             }
+
+            // Validate input
+            if (isNaN(minAge)) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '✗ Invalid minimum age';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            // Disable button during operation
+            verifyAgeBtn.disabled = true;
 
             // Show loading state
             resultDiv.className = 'result loading';
@@ -493,7 +527,7 @@
                 if (data.verified) {
                     resultDiv.className = 'result success';
                     resultDiv.innerHTML = `
-                        <strong>✓ ${data.message}</strong>
+                        <strong>✓ ${escapeHtml(data.message)}</strong>
 
                         <div class="timing-section">
                             <strong>⏱️ Performance</strong>
@@ -514,13 +548,13 @@
                                 <div class="privacy-col revealed">
                                     <h4>Revealed</h4>
                                     <ul>
-                                        ${data.privacy.revealed.map(item => `<li>${item}</li>`).join('')}
+                                        ${data.privacy.revealed.map(item => `<li>${escapeHtml(item)}</li>`).join('')}
                                     </ul>
                                 </div>
                                 <div class="privacy-col hidden">
                                     <h4>Hidden</h4>
                                     <ul>
-                                        ${data.privacy.hidden.map(item => `<li>${item}</li>`).join('')}
+                                        ${data.privacy.hidden.map(item => `<li>${escapeHtml(item)}</li>`).join('')}
                                     </ul>
                                 </div>
                             </div>
@@ -530,30 +564,34 @@
                             <strong>🔐 Proof System Details</strong>
                             <dl>
                                 <dt>System:</dt>
-                                <dd>${data.proofDetails.system}</dd>
+                                <dd>${escapeHtml(data.proofDetails.system)}</dd>
                                 <dt>Elliptic Curve:</dt>
-                                <dd>${data.proofDetails.curve}</dd>
+                                <dd>${escapeHtml(data.proofDetails.curve)}</dd>
                                 <dt>Proof Size:</dt>
-                                <dd>${data.proofDetails.proofSize}</dd>
+                                <dd>${escapeHtml(data.proofDetails.proofSize)}</dd>
                             </dl>
                         </div>
                     `;
                 } else {
                     resultDiv.className = state.isRevoked ? 'result warning' : 'result error';
-                    resultDiv.innerHTML = `<strong>✗ ${data.message}</strong>`;
+                    resultDiv.innerHTML = `<strong>✗ ${escapeHtml(data.message)}</strong>`;
                     if (data.timing) {
                         resultDiv.innerHTML += `<div style="margin-top: 10px; font-size: 0.9rem;">Proof generation took ${data.timing.proofGenerationMs}ms before failing verification.</div>`;
                     }
                 }
             } catch (error) {
                 resultDiv.className = 'result error';
-                resultDiv.textContent = `✗ Error: ${error.message}`;
+                resultDiv.innerHTML = `✗ Error: ${escapeHtml(error.message)}`;
+            } finally {
+                // Re-enable button
+                verifyAgeBtn.disabled = false;
             }
         }
 
         async function verifyNationality() {
             const targetNationality = parseInt(document.getElementById('targetNationality').value);
             const resultDiv = document.getElementById('verifyNationalityResult');
+            const verifyNationalityBtn = document.getElementById('verifyNationalityBtn');
 
             if (!state.credentialId) {
                 resultDiv.className = 'result error';
@@ -561,6 +599,17 @@
                 resultDiv.style.display = 'block';
                 return;
             }
+
+            // Validate input
+            if (isNaN(targetNationality)) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '✗ Invalid target nationality';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            // Disable button during operation
+            verifyNationalityBtn.disabled = true;
 
             // Show loading state
             resultDiv.className = 'result loading';
@@ -582,7 +631,7 @@
                 if (data.verified) {
                     resultDiv.className = 'result success';
                     resultDiv.innerHTML = `
-                        <strong>✓ ${data.message}</strong>
+                        <strong>✓ ${escapeHtml(data.message)}</strong>
 
                         <div class="timing-section">
                             <strong>⏱️ Performance</strong>
@@ -603,13 +652,13 @@
                                 <div class="privacy-col revealed">
                                     <h4>Revealed</h4>
                                     <ul>
-                                        ${data.privacy.revealed.map(item => `<li>${item}</li>`).join('')}
+                                        ${data.privacy.revealed.map(item => `<li>${escapeHtml(item)}</li>`).join('')}
                                     </ul>
                                 </div>
                                 <div class="privacy-col hidden">
                                     <h4>Hidden</h4>
                                     <ul>
-                                        ${data.privacy.hidden.map(item => `<li>${item}</li>`).join('')}
+                                        ${data.privacy.hidden.map(item => `<li>${escapeHtml(item)}</li>`).join('')}
                                     </ul>
                                 </div>
                             </div>
@@ -619,29 +668,33 @@
                             <strong>🔐 Proof System Details</strong>
                             <dl>
                                 <dt>System:</dt>
-                                <dd>${data.proofDetails.system}</dd>
+                                <dd>${escapeHtml(data.proofDetails.system)}</dd>
                                 <dt>Elliptic Curve:</dt>
-                                <dd>${data.proofDetails.curve}</dd>
+                                <dd>${escapeHtml(data.proofDetails.curve)}</dd>
                                 <dt>Proof Size:</dt>
-                                <dd>${data.proofDetails.proofSize}</dd>
+                                <dd>${escapeHtml(data.proofDetails.proofSize)}</dd>
                             </dl>
                         </div>
                     `;
                 } else {
                     resultDiv.className = state.isRevoked ? 'result warning' : 'result error';
-                    resultDiv.innerHTML = `<strong>✗ ${data.message}</strong>`;
+                    resultDiv.innerHTML = `<strong>✗ ${escapeHtml(data.message)}</strong>`;
                     if (data.timing) {
                         resultDiv.innerHTML += `<div style="margin-top: 10px; font-size: 0.9rem;">Proof generation took ${data.timing.proofGenerationMs}ms before failing verification.</div>`;
                     }
                 }
             } catch (error) {
                 resultDiv.className = 'result error';
-                resultDiv.textContent = `✗ Error: ${error.message}`;
+                resultDiv.innerHTML = `✗ Error: ${escapeHtml(error.message)}`;
+            } finally {
+                // Re-enable button
+                verifyNationalityBtn.disabled = false;
             }
         }
 
         async function revokeCredential() {
             const resultDiv = document.getElementById('revokeResult');
+            const revokeBtn = document.getElementById('revokeBtn');
 
             if (!state.credentialId) {
                 resultDiv.className = 'result error';
@@ -657,7 +710,10 @@
                 return;
             }
 
-            try {
+            // Disable button during operation
+            revokeBtn.disabled = true;
+
+            try{
                 const response = await fetch('/api/revoke-credential', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -670,7 +726,7 @@
                     state.isRevoked = true;
                     resultDiv.className = 'result success';
                     resultDiv.innerHTML = `
-                        <strong>✓ ${data.message}</strong>
+                        <strong>✓ ${escapeHtml(data.message)}</strong>
                         <div style="margin-top: 10px;">
                             Try clicking "Verify Age" or "Verify Nationality" again to see revocation in action.
                             The proof will be generated but verification will fail.
@@ -678,11 +734,14 @@
                     `;
                 } else {
                     resultDiv.className = 'result error';
-                    resultDiv.textContent = `✗ Error: ${data.error}`;
+                    resultDiv.innerHTML = `✗ Error: ${escapeHtml(data.error)}`;
                 }
             } catch (error) {
                 resultDiv.className = 'result error';
-                resultDiv.textContent = `✗ Error: ${error.message}`;
+                resultDiv.innerHTML = `✗ Error: ${escapeHtml(error.message)}`;
+            } finally {
+                // Re-enable button
+                revokeBtn.disabled = false;
             }
         }
 

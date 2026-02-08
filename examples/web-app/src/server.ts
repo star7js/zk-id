@@ -16,7 +16,7 @@ const NATIONALITY_WASM_PATH = join(CIRCUITS_BASE, 'nationality-verify_js/nationa
 const NATIONALITY_ZKEY_PATH = join(CIRCUITS_BASE, 'nationality-verify.zkey');
 
 // Middleware
-app.use(express.json());
+app.use(express.json({ limit: '100kb' }));
 app.use(express.static(join(__dirname, 'public')));
 
 // Create a test issuer (in production, this would use secure key management)
@@ -187,6 +187,13 @@ app.post('/api/demo/verify-age', async (req, res) => {
       });
     }
 
+    // Validate minAge
+    if (typeof minAge !== 'number' || minAge < 0 || minAge > 150) {
+      return res.status(400).json({
+        error: 'Invalid minAge: must be a number between 0 and 150',
+      });
+    }
+
     // Look up stored credential
     const signedCredential = issuedCredentials.get(credentialId);
     if (!signedCredential) {
@@ -284,6 +291,13 @@ app.post('/api/demo/verify-nationality', async (req, res) => {
     if (!credentialId || targetNationality === undefined) {
       return res.status(400).json({
         error: 'Missing required fields: credentialId, targetNationality',
+      });
+    }
+
+    // Validate targetNationality
+    if (typeof targetNationality !== 'number' || targetNationality < 1 || targetNationality > 999) {
+      return res.status(400).json({
+        error: 'Invalid targetNationality: must be a number between 1 and 999',
       });
     }
 
