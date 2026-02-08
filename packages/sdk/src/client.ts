@@ -25,6 +25,13 @@ export interface ZkIdClientConfig {
   verificationEndpoint: string;
   /** Optional custom wallet connector */
   walletConnector?: WalletConnector;
+  /**
+   * Control when to send the protocol version header.
+   * - "same-origin" (default): only send for same-origin endpoints in browsers
+   * - "always": always send header
+   * - "never": never send header
+   */
+  protocolVersionHeader?: 'same-origin' | 'always' | 'never';
 }
 
 export interface WalletConnector {
@@ -151,12 +158,17 @@ export class ZkIdClient {
    * Submit proof to backend for verification
    */
   private async submitProof(proofResponse: ProofResponse): Promise<boolean> {
+    const shouldSendProtocolHeader = this.shouldSendProtocolHeader();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (shouldSendProtocolHeader) {
+      headers['X-ZkId-Protocol-Version'] = PROTOCOL_VERSION;
+    }
+
     const response = await fetch(this.config.verificationEndpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-ZkId-Protocol-Version': PROTOCOL_VERSION,
-      },
+      headers,
       body: JSON.stringify(proofResponse),
     });
 
@@ -165,7 +177,10 @@ export class ZkIdClient {
     }
 
     // Check protocol version compatibility
-    const serverProtocolVersion = response.headers.get('X-ZkId-Protocol-Version');
+    const serverProtocolVersion =
+      response.headers && typeof response.headers.get === 'function'
+        ? response.headers.get('X-ZkId-Protocol-Version')
+        : null;
     if (serverProtocolVersion && !isProtocolCompatible(PROTOCOL_VERSION, serverProtocolVersion)) {
       console.warn(
         `[zk-id] Protocol version mismatch: client=${PROTOCOL_VERSION}, server=${serverProtocolVersion}. ` +
@@ -194,6 +209,28 @@ export class ZkIdClient {
       return false;
     }
     return this.config.walletConnector.isAvailable();
+  }
+
+  private shouldSendProtocolHeader(): boolean {
+    const policy = this.config.protocolVersionHeader ?? 'same-origin';
+    if (policy === 'always') {
+      return true;
+    }
+    if (policy === 'never') {
+      return false;
+    }
+
+    if (typeof window === 'undefined' || !window.location) {
+      // Non-browser environment: no CORS preflight concerns.
+      return true;
+    }
+
+    try {
+      const endpoint = new URL(this.config.verificationEndpoint, window.location.href);
+      return endpoint.origin === window.location.origin;
+    } catch {
+      return true;
+    }
   }
 }
 

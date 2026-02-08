@@ -18,6 +18,7 @@ import {
   generateNationalityProofSigned,
   generateAgeProofRevocable,
   PROTOCOL_VERSION,
+  isProtocolCompatible,
 } from '@zk-id/core';
 
 async function main() {
@@ -47,6 +48,14 @@ app.use(express.static(join(__dirname, 'public')));
 // Protocol version header middleware
 app.use((req, res, next) => {
   res.setHeader('X-ZkId-Protocol-Version', PROTOCOL_VERSION);
+  const clientVersion = req.get('X-ZkId-Protocol-Version');
+  if (clientVersion && !isProtocolCompatible(PROTOCOL_VERSION, clientVersion)) {
+    return res.status(400).json({
+      error: 'Incompatible protocol version',
+      clientVersion,
+      serverVersion: PROTOCOL_VERSION,
+    });
+  }
   next();
 });
 

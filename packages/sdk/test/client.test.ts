@@ -258,6 +258,173 @@ describe('SDK Client Tests', () => {
 
         expect(result).to.be.false;
       });
+
+      it('should include protocol header by default in non-browser environments', async () => {
+        let capturedHeaders: Record<string, string> | null = null;
+
+        const mockWallet: WalletConnector = {
+          isAvailable: async () => true,
+          requestProof: async (req) => ({
+            credentialId: 'test-cred',
+            claimType: req.claimType,
+            proof: {} as any,
+            signedCredential: mockSignedCredential,
+            nonce: req.nonce,
+            requestTimestamp: req.timestamp,
+          }),
+        };
+
+        (global as any).fetch = async (_url: string, options: any) => {
+          capturedHeaders = options.headers;
+          return {
+            ok: true,
+            json: async () => ({ verified: true }),
+            statusText: 'OK',
+            headers: {
+              get: () => null,
+            },
+          };
+        };
+
+        const client = new ZkIdClient({
+          verificationEndpoint: 'http://localhost:3000/verify',
+          walletConnector: mockWallet,
+        });
+
+        await client.verifyAge(18);
+
+        expect(capturedHeaders).to.have.property('X-ZkId-Protocol-Version');
+      });
+
+      it('should omit protocol header when policy is never', async () => {
+        let capturedHeaders: Record<string, string> | null = null;
+
+        const mockWallet: WalletConnector = {
+          isAvailable: async () => true,
+          requestProof: async (req) => ({
+            credentialId: 'test-cred',
+            claimType: req.claimType,
+            proof: {} as any,
+            signedCredential: mockSignedCredential,
+            nonce: req.nonce,
+            requestTimestamp: req.timestamp,
+          }),
+        };
+
+        (global as any).fetch = async (_url: string, options: any) => {
+          capturedHeaders = options.headers;
+          return {
+            ok: true,
+            json: async () => ({ verified: true }),
+            statusText: 'OK',
+            headers: {
+              get: () => null,
+            },
+          };
+        };
+
+        const client = new ZkIdClient({
+          verificationEndpoint: 'http://localhost:3000/verify',
+          walletConnector: mockWallet,
+          protocolVersionHeader: 'never',
+        });
+
+        await client.verifyAge(18);
+
+        expect(capturedHeaders).to.not.have.property('X-ZkId-Protocol-Version');
+      });
+
+      it('should omit protocol header for cross-origin when policy is same-origin', async () => {
+        let capturedHeaders: Record<string, string> | null = null;
+        const originalWindow = (global as any).window;
+        (global as any).window = {
+          location: {
+            origin: 'https://app.example.com',
+            href: 'https://app.example.com/',
+          },
+        };
+
+        const mockWallet: WalletConnector = {
+          isAvailable: async () => true,
+          requestProof: async (req) => ({
+            credentialId: 'test-cred',
+            claimType: req.claimType,
+            proof: {} as any,
+            signedCredential: mockSignedCredential,
+            nonce: req.nonce,
+            requestTimestamp: req.timestamp,
+          }),
+        };
+
+        (global as any).fetch = async (_url: string, options: any) => {
+          capturedHeaders = options.headers;
+          return {
+            ok: true,
+            json: async () => ({ verified: true }),
+            statusText: 'OK',
+            headers: {
+              get: () => null,
+            },
+          };
+        };
+
+        const client = new ZkIdClient({
+          verificationEndpoint: 'https://api.example.com/verify',
+          walletConnector: mockWallet,
+          protocolVersionHeader: 'same-origin',
+        });
+
+        await client.verifyAge(18);
+
+        expect(capturedHeaders).to.not.have.property('X-ZkId-Protocol-Version');
+        (global as any).window = originalWindow;
+      });
+
+      it('should include protocol header for cross-origin when policy is always', async () => {
+        let capturedHeaders: Record<string, string> | null = null;
+        const originalWindow = (global as any).window;
+        (global as any).window = {
+          location: {
+            origin: 'https://app.example.com',
+            href: 'https://app.example.com/',
+          },
+        };
+
+        const mockWallet: WalletConnector = {
+          isAvailable: async () => true,
+          requestProof: async (req) => ({
+            credentialId: 'test-cred',
+            claimType: req.claimType,
+            proof: {} as any,
+            signedCredential: mockSignedCredential,
+            nonce: req.nonce,
+            requestTimestamp: req.timestamp,
+          }),
+        };
+
+        (global as any).fetch = async (_url: string, options: any) => {
+          capturedHeaders = options.headers;
+          return {
+            ok: true,
+            json: async () => ({ verified: true }),
+            statusText: 'OK',
+            headers: {
+              get: () => null,
+            },
+          };
+        };
+
+        const client = new ZkIdClient({
+          verificationEndpoint: 'https://api.example.com/verify',
+          walletConnector: mockWallet,
+          protocolVersionHeader: 'always',
+        });
+
+        await client.verifyAge(18);
+
+        expect(capturedHeaders).to.have.property('X-ZkId-Protocol-Version');
+        (global as any).window = originalWindow;
+      });
     });
 
     describe('verifyNationality()', () => {
