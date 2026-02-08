@@ -113,6 +113,7 @@ const server = new ZkIdServer({
 });
 
 // Optional: issue a nonce+timestamp challenge for clients before proof generation
+// If you configure a challenge store, clients must use this challenge in proofs.
 const challenge = await server.createChallenge();
 
 // Optional: load verification keys from KMS/HSM
