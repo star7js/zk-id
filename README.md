@@ -96,7 +96,7 @@ if (verified) {
 
 **Server side** (your backend):
 ```typescript
-import { ZkIdServer, InMemoryIssuerRegistry } from '@zk-id/sdk';
+import { ZkIdServer, InMemoryIssuerRegistry, InMemoryChallengeStore } from '@zk-id/sdk';
 import { InMemoryRevocationStore } from '@zk-id/core';
 
 const issuerPublicKey = loadIssuerPublicKeyFromKms();
@@ -109,7 +109,11 @@ const server = new ZkIdServer({
   revocationStore: new InMemoryRevocationStore(), // optional
   requiredPolicy: { minAge: 18 }, // optional server-enforced policy
   issuerRegistry, // trusted issuer keys for signature checks
+  challengeStore: new InMemoryChallengeStore(), // optional server-issued nonces
 });
+
+// Optional: issue a nonce+timestamp challenge for clients before proof generation
+const challenge = await server.createChallenge();
 
 // Optional: Listen for verification events
 server.onVerification((event) => {

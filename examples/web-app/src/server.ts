@@ -1,7 +1,13 @@
 import express from 'express';
 import { join } from 'path';
 import { CredentialIssuer, CircuitCredentialIssuer } from '@zk-id/issuer';
-import { ZkIdServer, InMemoryNonceStore, InMemoryIssuerRegistry, SignedProofRequest } from '@zk-id/sdk';
+import {
+  ZkIdServer,
+  InMemoryNonceStore,
+  InMemoryIssuerRegistry,
+  InMemoryChallengeStore,
+  SignedProofRequest,
+} from '@zk-id/sdk';
 import {
   ProofResponse,
   InMemoryRevocationStore,
@@ -10,7 +16,6 @@ import {
   generateAgeProofSigned,
   generateNationalityProofSigned,
 } from '@zk-id/core';
-import { randomBytes } from 'crypto';
 
 async function main() {
   const app = express();
@@ -63,6 +68,8 @@ const zkIdServer = new ZkIdServer({
     '../../../packages/circuits/build/nationality-verify-signed_verification_key.json'
   ),
   nonceStore: new InMemoryNonceStore(),
+  challengeStore: new InMemoryChallengeStore(),
+  challengeTtlMs: 5 * 60 * 1000,
   revocationStore,
   issuerRegistry,
   issuerPublicKeyBits: {
@@ -135,6 +142,14 @@ app.post('/api/issue-credential', async (req, res) => {
       details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
+});
+
+/**
+ * Demo endpoint: Get a server-issued nonce + timestamp challenge
+ */
+app.get('/api/challenge', async (_req, res) => {
+  const challenge = await zkIdServer.createChallenge();
+  res.json(challenge);
 });
 
 /**
@@ -283,8 +298,7 @@ app.post('/api/demo/verify-age', async (req, res) => {
 
     // Generate proof (this is the expensive operation)
     const proofGenStart = Date.now();
-    const nonce = randomBytes(32).toString('hex');
-    const requestTimestamp = new Date().toISOString();
+    const { nonce, requestTimestamp } = await zkIdServer.createChallenge();
     const requestTimestampMs = Date.parse(requestTimestamp);
     const proof = await generateAgeProof(
       signedCredential.credential,
@@ -385,8 +399,7 @@ app.post('/api/demo/verify-age-signed', async (req, res) => {
     }
 
     const proofGenStart = Date.now();
-    const nonce = randomBytes(32).toString('hex');
-    const requestTimestamp = new Date().toISOString();
+    const { nonce, requestTimestamp } = await zkIdServer.createChallenge();
     const requestTimestampMs = Date.parse(requestTimestamp);
     const signatureInputs = circuitIssuer.getSignatureInputs(signedCredential);
 
@@ -492,8 +505,7 @@ app.post('/api/demo/verify-nationality', async (req, res) => {
 
     // Generate proof (this is the expensive operation)
     const proofGenStart = Date.now();
-    const nonce = randomBytes(32).toString('hex');
-    const requestTimestamp = new Date().toISOString();
+    const { nonce, requestTimestamp } = await zkIdServer.createChallenge();
     const requestTimestampMs = Date.parse(requestTimestamp);
     const proof = await generateNationalityProof(
       signedCredential.credential,
@@ -595,8 +607,7 @@ app.post('/api/demo/verify-nationality-signed', async (req, res) => {
     }
 
     const proofGenStart = Date.now();
-    const nonce = randomBytes(32).toString('hex');
-    const requestTimestamp = new Date().toISOString();
+    const { nonce, requestTimestamp } = await zkIdServer.createChallenge();
     const requestTimestampMs = Date.parse(requestTimestamp);
     const signatureInputs = circuitIssuer.getSignatureInputs(signedCredential);
 
@@ -744,6 +755,7 @@ app.get('/api/health', (req, res) => {
     console.log(`\nEndpoints:`);
     console.log(`  POST /api/issue-credential`);
     console.log(`  POST /api/issue-credential-signed`);
+    console.log(`  GET  /api/challenge`);
     console.log(`  POST /api/verify-age`);
     console.log(`  POST /api/verify-nationality`);
     console.log(`  POST /api/demo/verify-age`);

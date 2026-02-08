@@ -27,7 +27,7 @@ import {
 } from '@zk-id/core';
 import { readFileSync } from 'fs';
 import { EventEmitter } from 'events';
-import { KeyObject, verify as cryptoVerify } from 'crypto';
+import { KeyObject, randomBytes, verify as cryptoVerify } from 'crypto';
 
 export interface ZkIdServerConfig {
   /** Path to the age verification key file */
@@ -44,6 +44,10 @@ export interface ZkIdServerConfig {
   rateLimiter?: RateLimiter;
   /** Optional revocation store for checking revoked credentials */
   revocationStore?: RevocationStore;
+  /** Optional challenge store for server-issued nonces */
+  challengeStore?: ChallengeStore;
+  /** Challenge TTL in ms (default: 5 minutes) */
+  challengeTtlMs?: number;
   /** Map of trusted issuer names to their public keys */
   issuerPublicKeys?: Record<string, KeyObject>;
   /** Map of trusted issuer names to BabyJub public key bits (for signed circuits) */
@@ -67,6 +71,13 @@ export interface NonceStore {
   has(nonce: string): Promise<boolean>;
   /** Mark nonce as used */
   add(nonce: string): Promise<void>;
+}
+
+export interface ChallengeStore {
+  /** Issue a nonce challenge with a timestamp and TTL */
+  issue(nonce: string, requestTimestampMs: number, ttlMs: number): Promise<void>;
+  /** Consume a nonce challenge and return its timestamp, or null if missing/expired */
+  consume(nonce: string): Promise<number | null>;
 }
 
 export interface RateLimiter {
@@ -133,6 +144,13 @@ export interface SignedProofRequest {
   proof: AgeProofSigned | NationalityProofSigned;
 }
 
+export interface ProofChallenge {
+  nonce: string;
+  requestTimestamp: string;
+}
+
+const DEFAULT_CHALLENGE_TTL_MS = 5 * 60 * 1000;
+
 /**
  * Server SDK for verifying zk-id proofs
  */
@@ -162,6 +180,22 @@ export class ZkIdServer extends EventEmitter {
         config.signedNationalityVerificationKeyPath
       );
     }
+  }
+
+  /**
+   * Generate a server-issued nonce + timestamp challenge.
+   */
+  async createChallenge(): Promise<ProofChallenge> {
+    const nonce = randomBytes(32).toString('hex');
+    const requestTimestamp = new Date().toISOString();
+
+    if (this.config.challengeStore) {
+      const requestTimestampMs = Date.parse(requestTimestamp);
+      const ttlMs = this.config.challengeTtlMs ?? DEFAULT_CHALLENGE_TTL_MS;
+      await this.config.challengeStore.issue(nonce, requestTimestampMs, ttlMs);
+    }
+
+    return { nonce, requestTimestamp };
   }
 
   /**
@@ -274,6 +308,13 @@ export class ZkIdServer extends EventEmitter {
       }
     }
 
+    const challengeError = await this.validateChallenge(proofResponse.nonce, requestMs);
+    if (challengeError) {
+      const result = { verified: false, error: challengeError };
+      this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
+      return result;
+    }
+
     // Nonce binding: ensure proof public nonce matches the request nonce
     const proofNonce = this.getProofNonce(proofResponse);
     if (proofNonce !== proofResponse.nonce) {
@@ -376,6 +417,13 @@ export class ZkIdServer extends EventEmitter {
         this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier);
         return result;
       }
+    }
+
+    const challengeError = await this.validateChallenge(request.nonce, requestMs);
+    if (challengeError) {
+      const result = { verified: false, error: challengeError };
+      this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier);
+      return result;
     }
 
     // Replay protection
@@ -693,6 +741,23 @@ export class ZkIdServer extends EventEmitter {
     return 0;
   }
 
+  private async validateChallenge(nonce: string, requestTimestampMs: number): Promise<string | null> {
+    if (!this.config.challengeStore) {
+      return null;
+    }
+
+    const expectedTimestamp = await this.config.challengeStore.consume(nonce);
+    if (expectedTimestamp === null) {
+      return 'Unknown or expired challenge';
+    }
+
+    if (expectedTimestamp !== requestTimestampMs) {
+      return 'Challenge timestamp mismatch';
+    }
+
+    return null;
+  }
+
   private getSignedProofNonce(
     proof: AgeProofSigned | NationalityProofSigned,
     claimType: 'age' | 'nationality'
@@ -788,6 +853,33 @@ export class InMemoryNonceStore implements NonceStore {
 
     // Auto-expire after 5 minutes
     setTimeout(() => this.nonces.delete(nonce), 5 * 60 * 1000);
+  }
+}
+
+/**
+ * Simple in-memory challenge store (for demo)
+ */
+export class InMemoryChallengeStore implements ChallengeStore {
+  private challenges: Map<string, { requestTimestampMs: number; expiresAtMs: number }> = new Map();
+
+  async issue(nonce: string, requestTimestampMs: number, ttlMs: number): Promise<void> {
+    const expiresAtMs = Date.now() + ttlMs;
+    this.challenges.set(nonce, { requestTimestampMs, expiresAtMs });
+  }
+
+  async consume(nonce: string): Promise<number | null> {
+    const entry = this.challenges.get(nonce);
+    if (!entry) {
+      return null;
+    }
+
+    if (Date.now() > entry.expiresAtMs) {
+      this.challenges.delete(nonce);
+      return null;
+    }
+
+    this.challenges.delete(nonce);
+    return entry.requestTimestampMs;
   }
 }
 
