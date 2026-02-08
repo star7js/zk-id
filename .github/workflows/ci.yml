@@ -18,10 +18,50 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Install
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Cache circom binary
+        id: cache-circom
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/circom
+          key: circom-${{ runner.os }}-v2.1.8
+
+      - name: Install circom
+        if: steps.cache-circom.outputs.cache-hit != 'true'
+        run: |
+          git clone https://github.com/iden3/circom.git
+          cd circom
+          git checkout v2.1.8
+          cargo build --release
+          cargo install --path circom
+          cd ..
+          rm -rf circom
+
+      - name: Cache circuit build artifacts
+        id: cache-circuits
+        uses: actions/cache@v4
+        with:
+          path: packages/circuits/build
+          key: circuits-${{ runner.os }}-${{ hashFiles('packages/circuits/src/**/*.circom', 'packages/circuits/scripts/*.sh') }}
+          restore-keys: |
+            circuits-${{ runner.os }}-
+
+      - name: Install dependencies
         run: npm ci
 
-      - name: Build
+      - name: Compile circuits
+        if: steps.cache-circuits.outputs.cache-hit != 'true'
+        run: npm run compile:circuits
+
+      - name: Setup circuits (trusted setup)
+        if: steps.cache-circuits.outputs.cache-hit != 'true'
+        run: npm run --workspace=@zk-id/circuits setup
+
+      - name: Build TypeScript packages
         run: npm run build
 
       - name: Test

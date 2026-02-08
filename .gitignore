@@ -7,9 +7,8 @@ build/
 *.tsbuildinfo
 packages/*/test/**/*.d.ts
 
-# TODO: packages/circuits/build/ (~47MB) is currently tracked because
-# these artifacts are required for tests/demo. Consider untracking once
-# we have CI that rebuilds circuits or distribute pre-built artifacts.
+# Circuit build artifacts - built in CI
+packages/circuits/build/
 
 # Circom artifacts
 packages/circuits/*.zkey
