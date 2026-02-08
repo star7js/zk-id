@@ -19,7 +19,7 @@ import {
 
 async function main() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
 // Circuit paths for proof generation
 const CIRCUITS_BASE = join(__dirname, '../../../packages/circuits/build');

@@ -711,7 +711,7 @@ export class ZkIdServer extends EventEmitter {
   private async validateSignedCredentialBinding(
     signedCredential: SignedCredential,
     proofResponse: ProofResponse
-  ): { valid: boolean; error?: string } {
+  ): Promise<{ valid: boolean; error?: string }> {
     const issuerRecord = await this.getIssuerRecord(signedCredential.issuer);
     const issuerKey = issuerRecord?.publicKey;
     if (!issuerKey) {
