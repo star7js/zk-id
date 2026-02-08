@@ -18,11 +18,17 @@ mkdir -p "$POT_DIR"
 # Production should use larger ceremonies from trusted sources
 
 POT_FILE_SMALL="$POT_DIR/powersOfTau28_hez_final_12.ptau"
+POT_FILE_MEDIUM="$POT_DIR/powersOfTau28_hez_final_13.ptau"
 POT_FILE_LARGE="$POT_DIR/powersOfTau28_hez_final_16.ptau"
 
 if [ ! -f "$POT_FILE_SMALL" ]; then
   echo "Downloading Powers of Tau (small) file..."
   curl -L -o "$POT_FILE_SMALL" https://storage.googleapis.com/zkevm/ptau/powersOfTau28_hez_final_12.ptau
+fi
+
+if [ ! -f "$POT_FILE_MEDIUM" ]; then
+  echo "Downloading Powers of Tau (medium) file..."
+  curl -L -o "$POT_FILE_MEDIUM" https://storage.googleapis.com/zkevm/ptau/powersOfTau28_hez_final_13.ptau
 fi
 
 if [ ! -f "$POT_FILE_LARGE" ]; then
@@ -124,6 +130,24 @@ $SNARKJS zkey export verificationkey \
   "$BUILD_DIR/nationality-verify-signed.zkey" \
   "$BUILD_DIR/nationality-verify-signed_verification_key.json"
 
+# Generate keys for age-verify-revocable
+echo "Generating keys for age-verify-revocable circuit..."
+$SNARKJS groth16 setup \
+  "$BUILD_DIR/age-verify-revocable.r1cs" \
+  "$POT_FILE_MEDIUM" \
+  "$BUILD_DIR/age-verify-revocable_0000.zkey"
+
+$SNARKJS zkey contribute \
+  "$BUILD_DIR/age-verify-revocable_0000.zkey" \
+  "$BUILD_DIR/age-verify-revocable.zkey" \
+  --name="First contribution" \
+  -v \
+  -e="random entropy"
+
+$SNARKJS zkey export verificationkey \
+  "$BUILD_DIR/age-verify-revocable.zkey" \
+  "$BUILD_DIR/age-verify-revocable_verification_key.json"
+
 # Cleanup intermediate files
 rm "$BUILD_DIR"/*_0000.zkey
 
@@ -139,3 +163,5 @@ echo "  - $BUILD_DIR/age-verify-signed.zkey"
 echo "  - $BUILD_DIR/age-verify-signed_verification_key.json"
 echo "  - $BUILD_DIR/nationality-verify-signed.zkey"
 echo "  - $BUILD_DIR/nationality-verify-signed_verification_key.json"
+echo "  - $BUILD_DIR/age-verify-revocable.zkey"
+echo "  - $BUILD_DIR/age-verify-revocable_verification_key.json"
