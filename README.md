@@ -42,15 +42,15 @@ Current age verification systems force users to expose sensitive information:
 
 ## Features
 
-✅ **Privacy-Preserving**: Prove eligibility without revealing personal data
-✅ **Fast**: Proof verification in <100ms
-✅ **Small**: Proofs are ~200 bytes
-✅ **Secure**: Built on Groth16 ZK-SNARKs with Ed25519 signatures
-✅ **Multi-Attribute**: Support for multiple credential attributes with selective disclosure
-✅ **Revocation**: Production-ready credential revocation system
-✅ **Telemetry**: Built-in verification event monitoring
-✅ **Batch Verification**: Efficient verification of multiple proofs
-✅ **Developer-Friendly**: Simple SDK for easy website integration
+- ✅ **Privacy-Preserving**: Prove eligibility without revealing personal data
+- ✅ **Fast**: Proof verification in <100ms
+- ✅ **Small**: Proofs are ~200 bytes
+- ✅ **Secure**: Built on Groth16 ZK-SNARKs with Ed25519 signatures
+- ✅ **Multi-Attribute**: Support for multiple credential attributes with selective disclosure
+- ✅ **Revocation**: Production-ready credential revocation system
+- ✅ **Telemetry**: Built-in verification event monitoring
+- ✅ **Batch Verification**: Efficient verification of multiple proofs
+- ✅ **Developer-Friendly**: Simple SDK for easy website integration
 
 ## Quick Start
 
