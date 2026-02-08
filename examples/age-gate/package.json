@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "demo": "ts-node src/demo.ts",
+    "revocation-demo": "ts-node src/revocation-accumulator-demo.ts",
     "build": "tsc"
   },
   "dependencies": {

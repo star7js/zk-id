@@ -168,3 +168,23 @@ export interface RevocationStore {
   /** Get the count of revoked credentials */
   getRevokedCount(): Promise<number>;
 }
+
+export interface RevocationWitness {
+  /** Merkle root at the time of issuance */
+  root: string;
+  /** 0 = left, 1 = right per level */
+  pathIndices: number[];
+  /** Sibling hashes for each level */
+  siblings: string[];
+}
+
+export interface RevocationAccumulator {
+  /** Current Merkle root */
+  getRoot(): Promise<string>;
+  /** Check if a credential commitment is revoked */
+  isRevoked(commitment: string): Promise<boolean>;
+  /** Add a revoked commitment */
+  revoke(commitment: string): Promise<void>;
+  /** Generate Merkle witness for a revoked commitment */
+  getWitness(commitment: string): Promise<RevocationWitness | null>;
+}

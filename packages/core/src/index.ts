@@ -11,4 +11,5 @@ export * from './prover';
 export * from './verifier';
 export * from './poseidon';
 export * from './revocation';
+export * from './revocation-accumulator';
 export * from './signature';
