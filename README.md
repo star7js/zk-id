@@ -265,7 +265,7 @@ Note: These circuits use BabyJub EdDSA signatures (circomlib), not Ed25519.
 - [x] **Batch verification** (efficient multi-proof verification)
 - [x] **Web integration example** (Express + HTML demo)
 - [x] **In-circuit revocation proofs** (Merkle inclusion for valid-set)
-- [ ] TypeScript SDK integration for revocable credentials
+- [x] **TypeScript SDK integration for revocable credentials**
 - [ ] Browser wallet implementation
 - [ ] Mobile wallet (iOS/Android)
 - [ ] Sparse Merkle tree for revocation-list (scalability improvement)

@@ -14,6 +14,7 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - ✅ Revocation store (commitment-based)
 - ✅ Merkle revocation accumulator scaffold (in-memory demo)
 - ✅ **Revocation proofs in circuit** (Merkle inclusion for valid-set)
+- ✅ **Revocation SDK integration** (TypeScript prover/verifier for revocable credentials)
 - ✅ Batch verification
 - ✅ Telemetry hooks
 - ✅ Demo web app with signed and unsigned flows
@@ -38,10 +39,9 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 
 ## Near Term (Q2 2026)
 
-1. **Revocation SDK Integration**
-   - TypeScript prover integration for revocable credentials.
-   - Verifier SDK support for checking Merkle root validity.
+1. **Production Storage for Revocation**
    - Production storage for Merkle tree state and witness generation.
+   - Distributed tree state management and root synchronization.
 
 2. **Wallet Integration**
    - Define client-side wallet flow.
@@ -92,11 +92,12 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 ## Version Targets (Tentative)
 
 - **v0.2.x**: Challenge flow + issuer registry + signed circuits (done)
-- **v0.3.0**: Revocation proofs in circuit (Merkle inclusion) ← **Current**
-- **v0.4.0**: Revocation SDK integration + wallet prototype
-- **v0.5.0**: KMS/HSM integration examples + issuer policy tooling
+- **v0.3.0**: Revocation proofs in circuit (Merkle inclusion) (done)
+- **v0.4.0**: Revocation SDK integration ← **Current**
+- **v0.5.0**: Wallet prototype + production storage
+- **v0.6.0**: KMS/HSM integration examples + issuer policy tooling
 - **v1.0.0**: Audit-ready release
 
 ---
 
-Last updated: 2026-02-07
+Last updated: 2026-02-08
