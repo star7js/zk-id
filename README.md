@@ -215,6 +215,11 @@ zk-id/
 - Protocol details: `docs/PROTOCOL.md`
 - Project roadmap: `docs/ROADMAP.md`
 
+## Security Notes
+
+- Threat model: `docs/THREAT-MODEL.md`
+- Known limitations: `docs/KNOWN-LIMITATIONS.md`
+
 ## Comparison to Existing Solutions
 
 | Solution | Privacy | Speed | Integration | Decentralized |
