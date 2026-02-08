@@ -1,7 +1,7 @@
 import express from 'express';
 import { join } from 'path';
 import { CredentialIssuer } from '@zk-id/issuer';
-import { ZkIdServer, InMemoryNonceStore } from '@zk-id/sdk';
+import { ZkIdServer, InMemoryNonceStore, InMemoryIssuerRegistry } from '@zk-id/sdk';
 import { ProofResponse, InMemoryRevocationStore, generateAgeProof, generateNationalityProof } from '@zk-id/core';
 import { randomBytes } from 'crypto';
 
@@ -25,15 +25,22 @@ const issuer = CredentialIssuer.createTestIssuer(issuerName);
 const revocationStore = new InMemoryRevocationStore();
 issuer.setRevocationStore(revocationStore);
 
+// Setup issuer registry (demo; production should be backed by DB/KMS/HSM)
+const issuerRegistry = new InMemoryIssuerRegistry([
+  {
+    issuer: issuerName,
+    publicKey: issuer.getPublicKey(),
+    status: 'active',
+  },
+]);
+
 // Setup ZK-ID server for verification
 const zkIdServer = new ZkIdServer({
   verificationKeyPath: join(__dirname, '../../../packages/circuits/build/age-verify_verification_key.json'),
   nationalityVerificationKeyPath: join(__dirname, '../../../packages/circuits/build/nationality-verify_verification_key.json'),
   nonceStore: new InMemoryNonceStore(),
   revocationStore,
-  issuerPublicKeys: {
-    [issuerName]: issuer.getPublicKey(),
-  },
+  issuerRegistry,
 });
 
 // Setup telemetry

@@ -86,6 +86,25 @@ export interface IssuerRegistry {
   getIssuer(issuer: string): Promise<IssuerRecord | null>;
 }
 
+/**
+ * Simple in-memory issuer registry (demo)
+ */
+export class InMemoryIssuerRegistry implements IssuerRegistry {
+  private issuers: Map<string, IssuerRecord>;
+
+  constructor(records: IssuerRecord[] = []) {
+    this.issuers = new Map(records.map((r) => [r.issuer, r]));
+  }
+
+  async getIssuer(issuer: string): Promise<IssuerRecord | null> {
+    return this.issuers.get(issuer) || null;
+  }
+
+  upsert(record: IssuerRecord): void {
+    this.issuers.set(record.issuer, record);
+  }
+}
+
 export interface RequiredPolicy {
   minAge?: number;
   nationality?: number;

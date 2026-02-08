@@ -151,8 +151,14 @@ Runs on website's backend. Responsibilities:
 - Return verification results
 
 ```typescript
+const issuerPublicKey = loadIssuerPublicKeyFromKms();
+const issuerRegistry = new InMemoryIssuerRegistry([
+  { issuer: 'Example Issuer', publicKey: issuerPublicKey },
+]);
+
 const server = new ZkIdServer({
-  verificationKeyPath: './verification_key.json'
+  verificationKeyPath: './verification_key.json',
+  issuerRegistry,
 });
 
 const result = await server.verifyProof(proofResponse);

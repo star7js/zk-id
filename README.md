@@ -96,13 +96,19 @@ if (verified) {
 
 **Server side** (your backend):
 ```typescript
-import { ZkIdServer } from '@zk-id/sdk';
+import { ZkIdServer, InMemoryIssuerRegistry } from '@zk-id/sdk';
 import { InMemoryRevocationStore } from '@zk-id/core';
+
+const issuerPublicKey = loadIssuerPublicKeyFromKms();
+const issuerRegistry = new InMemoryIssuerRegistry([
+  { issuer: 'Your Identity Service', publicKey: issuerPublicKey },
+]);
 
 const server = new ZkIdServer({
   verificationKeyPath: './verification_key.json',
   revocationStore: new InMemoryRevocationStore(), // optional
   requiredPolicy: { minAge: 18 }, // optional server-enforced policy
+  issuerRegistry, // trusted issuer keys for signature checks
 });
 
 // Optional: Listen for verification events
