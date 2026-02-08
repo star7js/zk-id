@@ -863,6 +863,9 @@ components:
           type: string
           enum: [strict, warn, off]
           description: Protocol version enforcement policy (default: warn)
+        validCredentialTree:
+          type: object
+          description: Optional valid-credential tree implementation (e.g., PostgresValidCredentialTree)
     VerificationKeySet:
       type: object
       description: Collection of verification keys for different proof types

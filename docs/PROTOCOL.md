@@ -204,6 +204,8 @@ A website or service that requests and verifies proofs.
 
 **Root Distribution:** Verifiers should fetch the current valid-set Merkle root and version from the issuer or registry (e.g., `GET /api/revocation/root`). Clients may need to refresh witnesses when the root version advances.
 
+**Storage Implementations:** The SDK includes a Postgres-backed `ValidCredentialTree` implementation for production deployments.
+
 ### Proof Response
 
 ```typescript
