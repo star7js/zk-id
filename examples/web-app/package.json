@@ -1,6 +1,6 @@
 {
   "name": "@zk-id/example-web-app",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Web application example demonstrating zk-id integration",
   "private": true,
   "scripts": {

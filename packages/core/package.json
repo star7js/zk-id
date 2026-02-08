@@ -1,6 +1,6 @@
 {
   "name": "@zk-id/core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Core library for zk-id zero-knowledge identity verification",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -15,6 +15,7 @@
   ],
   "exports": {
     ".": {
+      "import": "./dist/index.js",
       "require": "./dist/index.js",
       "types": "./dist/index.d.ts"
     }
