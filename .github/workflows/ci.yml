@@ -27,7 +27,7 @@ jobs:
 
       - name: Cache circom binary
         id: cache-circom
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cargo/bin/circom
           key: circom-${{ runner.os }}-v2.1.8
@@ -45,7 +45,7 @@ jobs:
 
       - name: Cache circuit build artifacts
         id: cache-circuits
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: packages/circuits/build
           key: circuits-${{ runner.os }}-${{ hashFiles('packages/circuits/src/**/*.circom', 'packages/circuits/scripts/*.sh') }}
