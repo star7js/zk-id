@@ -431,7 +431,7 @@ export class ZkIdServer extends EventEmitter {
 
     // Optional strict payload validation
     if (this.config.validatePayloads) {
-      const payloadErrors = validateProofResponsePayload(proofResponse);
+      const payloadErrors = validateProofResponsePayload(proofResponse, requireSigned);
       if (payloadErrors.length > 0) {
         const msg = payloadErrors.map((e) => `${e.field}: ${e.message}`).join('; ');
         const result: VerificationResult = { verified: false, error: `Invalid payload: ${msg}` };
@@ -1187,18 +1187,22 @@ export class ZkIdServer extends EventEmitter {
     };
     this.emit('verification', event);
 
-    // Structured audit log entry
-    this.auditLogger.log({
-      timestamp,
-      action: 'verify',
-      actor: clientIdentifier ?? 'unknown',
-      target: claimType,
-      success: result.verified,
-      metadata: {
-        verificationTimeMs: event.verificationTimeMs,
-        ...(result.error ? { error: result.error } : {}),
-      },
-    });
+    // Structured audit log entry (best-effort)
+    try {
+      this.auditLogger.log({
+        timestamp,
+        action: 'verify',
+        actor: clientIdentifier ?? 'unknown',
+        target: claimType,
+        success: result.verified,
+        metadata: {
+          verificationTimeMs: event.verificationTimeMs,
+          ...(result.error ? { error: result.error } : {}),
+        },
+      });
+    } catch {
+      // Avoid turning telemetry failures into verification failures.
+    }
   }
 
   /**
@@ -1402,7 +1406,10 @@ export interface PayloadValidationError {
  * Validate a ProofResponse payload structure before cryptographic verification.
  * Returns an empty array when the payload is well-formed.
  */
-export function validateProofResponsePayload(body: unknown): PayloadValidationError[] {
+export function validateProofResponsePayload(
+  body: unknown,
+  requireSignedCredential: boolean = true
+): PayloadValidationError[] {
   const errors: PayloadValidationError[] = [];
   if (!body || typeof body !== 'object') {
     return [{ field: '(root)', message: 'Body must be a non-null object' }];
@@ -1429,8 +1436,10 @@ export function validateProofResponsePayload(body: unknown): PayloadValidationEr
       errors.push({ field: 'proof.publicSignals', message: 'Must be a non-null object' });
     }
   }
-  if (!obj.signedCredential || typeof obj.signedCredential !== 'object') {
-    errors.push({ field: 'signedCredential', message: 'Must be a non-null object' });
+  if (requireSignedCredential) {
+    if (!obj.signedCredential || typeof obj.signedCredential !== 'object') {
+      errors.push({ field: 'signedCredential', message: 'Must be a non-null object' });
+    }
   }
   return errors;
 }

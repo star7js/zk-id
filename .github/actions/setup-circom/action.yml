@@ -5,6 +5,14 @@ inputs:
     description: "Circom version to install"
     required: false
     default: "v2.1.8"
+  sha256:
+    description: "Expected SHA-256 checksum for circom-linux-amd64"
+    required: false
+    default: ""
+  checksum_url:
+    description: "URL to a SHA-256 checksum file for circom-linux-amd64"
+    required: false
+    default: ""
 runs:
   using: "composite"
   steps:
@@ -20,8 +28,54 @@ runs:
       shell: bash
       run: |
         curl -L https://github.com/iden3/circom/releases/download/${{ inputs.version }}/circom-linux-amd64 -o /tmp/circom
-        chmod +x /tmp/circom
-        sudo mv /tmp/circom /usr/local/bin/circom
+
+    - name: Verify Circom checksum
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        BIN_PATH="/usr/local/bin/circom"
+        if [ -f /tmp/circom ]; then
+          BIN_PATH="/tmp/circom"
+        fi
+
+        if [ ! -f "$BIN_PATH" ]; then
+          echo "Circom binary not found at $BIN_PATH" >&2
+          exit 1
+        fi
+
+        EXPECTED_HASH=""
+        if [ -n "${{ inputs.sha256 }}" ]; then
+          EXPECTED_HASH="${{ inputs.sha256 }}"
+        else
+          CHECKSUM_URLS=()
+          if [ -n "${{ inputs.checksum_url }}" ]; then
+            CHECKSUM_URLS+=("${{ inputs.checksum_url }}")
+          else
+            CHECKSUM_URLS+=("https://github.com/iden3/circom/releases/download/${{ inputs.version }}/circom-linux-amd64.sha256")
+            CHECKSUM_URLS+=("https://github.com/iden3/circom/releases/download/${{ inputs.version }}/circom-linux-amd64.sha256sum")
+          fi
+
+          for url in "${CHECKSUM_URLS[@]}"; do
+            if curl -fsL "$url" -o /tmp/circom.sha256; then
+              EXPECTED_HASH="$(awk '{print $1}' /tmp/circom.sha256 | tr -d '\r\n')"
+              break
+            fi
+          done
+        fi
+
+        if [ -z "$EXPECTED_HASH" ]; then
+          echo "Unable to resolve Circom checksum." >&2
+          echo "Provide inputs.sha256 or inputs.checksum_url for verification." >&2
+          exit 1
+        fi
+
+        echo "${EXPECTED_HASH}  $BIN_PATH" | sha256sum -c -
+
+        if [ "$BIN_PATH" = "/tmp/circom" ]; then
+          chmod +x /tmp/circom
+          sudo mv /tmp/circom /usr/local/bin/circom
+        fi
 
     - name: Verify Circom installation
       shell: bash

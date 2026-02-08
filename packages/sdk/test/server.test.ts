@@ -918,6 +918,19 @@ describe('validateProofResponsePayload', () => {
     expect(errors.some((e: { field: string }) => e.field === 'signedCredential')).to.equal(true);
   });
 
+  it('allows missing signedCredential when requireSignedCredential is false', () => {
+    const errors = validateProofResponsePayload(
+      {
+        claimType: 'age',
+        nonce: 'n',
+        requestTimestamp: '2026-01-01T00:00:00Z',
+        proof: { proof: {}, publicSignals: {} },
+      },
+      false
+    );
+    expect(errors.some((e: { field: string }) => e.field === 'signedCredential')).to.equal(false);
+  });
+
   it('rejects missing nested proof.proof', () => {
     const errors = validateProofResponsePayload({
       claimType: 'age',
