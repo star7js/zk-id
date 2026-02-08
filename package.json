@@ -12,12 +12,21 @@
     "test": "npm run test --workspaces",
     "compile:circuits": "npm run compile --workspace=@zk-id/circuits"
   },
-  "keywords": ["zero-knowledge", "zkp", "identity", "privacy", "age-verification"],
+  "keywords": [
+    "zero-knowledge",
+    "zkp",
+    "identity",
+    "privacy",
+    "age-verification"
+  ],
   "author": "star7js",
   "license": "Apache-2.0",
   "devDependencies": {
     "typescript": "^5.3.3",
     "express": "^5.2.1",
     "@types/express": "^5.0.6"
+  },
+  "overrides": {
+    "elliptic": "github:drzippie/elliptic#99a867d"
   }
 }
