@@ -6,5 +6,7 @@
  */
 
 export * from './issuer';
+export * from './key-management';
+export * from './managed-issuer';
 export * from './format';
 export * from './circuit-issuer';

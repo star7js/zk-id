@@ -115,6 +115,13 @@ const server = new ZkIdServer({
 // Optional: issue a nonce+timestamp challenge for clients before proof generation
 const challenge = await server.createChallenge();
 
+// Optional: load verification keys from KMS/HSM
+// const provider = new StaticVerificationKeyProvider({ age: verificationKey });
+// const server = await ZkIdServer.createWithKeyProvider({
+//   verificationKeyProvider: provider,
+//   requireSignedCredentials: false,
+// });
+
 // Optional: Listen for verification events
 server.onVerification((event) => {
   console.log('Verification:', event.verified, 'Time:', event.verificationTimeMs);
@@ -148,6 +155,14 @@ const credential = await issuer.issueCredential(
 
 // Revoke a credential if needed (by commitment)
 await issuer.revokeCredential(credential.credential.commitment);
+```
+
+For KMS/HSM-backed signing:
+```typescript
+import { ManagedCredentialIssuer, InMemoryIssuerKeyManager } from '@zk-id/issuer';
+
+const keyManager = new InMemoryIssuerKeyManager('Your Identity Service', privateKey, publicKey);
+const issuer = new ManagedCredentialIssuer(keyManager);
 ```
 
 ## Repository Structure

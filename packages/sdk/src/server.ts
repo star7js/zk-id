@@ -31,7 +31,9 @@ import { KeyObject, randomBytes, verify as cryptoVerify } from 'crypto';
 
 export interface ZkIdServerConfig {
   /** Path to the age verification key file */
-  verificationKeyPath: string;
+  verificationKeyPath?: string;
+  /** Optional in-memory verification keys (for KMS/HSM integrations) */
+  verificationKeys?: VerificationKeySet;
   /** Optional path to nationality verification key file */
   nationalityVerificationKeyPath?: string;
   /** Optional path to signed age verification key file */
@@ -64,6 +66,17 @@ export interface ZkIdServerConfig {
   requiredPolicy?: RequiredPolicy;
   /** Maximum allowed clock skew for request timestamps (ms) */
   maxRequestAgeMs?: number;
+}
+
+export interface VerificationKeySet {
+  age: VerificationKey;
+  nationality?: VerificationKey;
+  signedAge?: VerificationKey;
+  signedNationality?: VerificationKey;
+}
+
+export interface VerificationKeyProvider {
+  getVerificationKeys(): Promise<VerificationKeySet>;
 }
 
 export interface NonceStore {
@@ -164,18 +177,33 @@ export class ZkIdServer extends EventEmitter {
   constructor(config: ZkIdServerConfig) {
     super();
     this.config = config;
-    this.verificationKey = this.loadVerificationKey(config.verificationKeyPath);
-    if (config.nationalityVerificationKeyPath) {
+    if (config.verificationKeys?.age) {
+      this.verificationKey = config.verificationKeys.age;
+    } else if (config.verificationKeyPath) {
+      this.verificationKey = this.loadVerificationKey(config.verificationKeyPath);
+    } else {
+      throw new Error('verificationKeyPath or verificationKeys.age is required');
+    }
+
+    if (config.verificationKeys?.nationality) {
+      this.nationalityVerificationKey = config.verificationKeys.nationality;
+    } else if (config.nationalityVerificationKeyPath) {
       this.nationalityVerificationKey = this.loadVerificationKey(
         config.nationalityVerificationKeyPath
       );
     }
-    if (config.signedVerificationKeyPath) {
+
+    if (config.verificationKeys?.signedAge) {
+      this.signedVerificationKey = config.verificationKeys.signedAge;
+    } else if (config.signedVerificationKeyPath) {
       this.signedVerificationKey = this.loadVerificationKey(
         config.signedVerificationKeyPath
       );
     }
-    if (config.signedNationalityVerificationKeyPath) {
+
+    if (config.verificationKeys?.signedNationality) {
+      this.signedNationalityVerificationKey = config.verificationKeys.signedNationality;
+    } else if (config.signedNationalityVerificationKeyPath) {
       this.signedNationalityVerificationKey = this.loadVerificationKey(
         config.signedNationalityVerificationKeyPath
       );
@@ -196,6 +224,19 @@ export class ZkIdServer extends EventEmitter {
     }
 
     return { nonce, requestTimestamp };
+  }
+
+  /**
+   * Create a server instance using a verification key provider (KMS/HSM friendly).
+   */
+  static async createWithKeyProvider(
+    config: Omit<ZkIdServerConfig, 'verificationKeys'> & {
+      verificationKeyProvider: VerificationKeyProvider;
+    }
+  ): Promise<ZkIdServer> {
+    const { verificationKeyProvider, ...rest } = config;
+    const verificationKeys = await verificationKeyProvider.getVerificationKeys();
+    return new ZkIdServer({ ...rest, verificationKeys });
   }
 
   /**
@@ -880,6 +921,18 @@ export class InMemoryChallengeStore implements ChallengeStore {
 
     this.challenges.delete(nonce);
     return entry.requestTimestampMs;
+  }
+}
+
+export class StaticVerificationKeyProvider implements VerificationKeyProvider {
+  private keys: VerificationKeySet;
+
+  constructor(keys: VerificationKeySet) {
+    this.keys = keys;
+  }
+
+  async getVerificationKeys(): Promise<VerificationKeySet> {
+    return this.keys;
   }
 }
 

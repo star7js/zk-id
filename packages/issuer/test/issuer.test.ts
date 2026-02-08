@@ -1,5 +1,7 @@
 import { expect } from 'chai';
+import { generateKeyPairSync } from 'crypto';
 import { CredentialIssuer } from '../src/issuer';
+import { InMemoryIssuerKeyManager, ManagedCredentialIssuer } from '../src/index';
 import { SignedCredential } from '@zk-id/core';
 import { InMemoryRevocationStore } from '@zk-id/core';
 
@@ -156,6 +158,19 @@ describe('CredentialIssuer Tests', () => {
       expect(signed.issuer).to.equal('Test Authority');
       expect(signed.credential.birthYear).to.equal(1995);
       expect(signed.credential.nationality).to.equal(840);
+    });
+  });
+
+  describe('ManagedCredentialIssuer', () => {
+    it('should issue a credential using a key manager', async () => {
+      const { privateKey, publicKey } = generateKeyPairSync('ed25519');
+      const keyManager = new InMemoryIssuerKeyManager('Managed Authority', privateKey, publicKey);
+      const managedIssuer = new ManagedCredentialIssuer(keyManager);
+
+      const signed = await managedIssuer.issueCredential(1991, 840);
+
+      expect(signed.issuer).to.equal('Managed Authority');
+      expect(CredentialIssuer.verifySignature(signed, publicKey)).to.be.true;
     });
   });
 
