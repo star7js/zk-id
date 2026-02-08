@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: zk-id Demo API
-  version: 0.4.1
+  version: 0.4.2
   description: |
     Demo REST API for zk-id verification flows.
 
@@ -164,6 +164,11 @@ paths:
   /api/verify-age:
     post:
       summary: Verify an age proof
+      description: |
+        Accepts a ProofResponse with claimType `age` or `age-revocable`.
+        When claimType is `age-revocable`, the server also validates the Merkle root
+        against the valid-credential tree and optional staleness policy.
+        See `docs/schemas/proof-response.json` for the JSON schema.
       parameters:
         - $ref: '#/components/parameters/ProtocolVersionHeader'
       requestBody:
@@ -184,6 +189,12 @@ paths:
               $ref: '#/components/headers/ProtocolVersion'
         '400':
           description: Bad request (including incompatible protocol version)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
           content:
             application/json:
               schema:
@@ -197,6 +208,9 @@ paths:
   /api/verify-nationality:
     post:
       summary: Verify a nationality proof
+      description: |
+        Accepts a ProofResponse with claimType `nationality`.
+        See `docs/schemas/proof-response.json` for the JSON schema.
       parameters:
         - $ref: '#/components/parameters/ProtocolVersionHeader'
       requestBody:
@@ -217,6 +231,55 @@ paths:
               $ref: '#/components/headers/ProtocolVersion'
         '400':
           description: Bad request (including incompatible protocol version)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/verify-signed:
+    post:
+      summary: Verify a signed proof (in-circuit issuer signature)
+      description: |
+        Verifies a proof that includes in-circuit BabyJub EdDSA issuer signature
+        verification. The issuer must be registered in the server's issuer registry.
+        See `docs/schemas/signed-proof-request.json` for the JSON schema.
+      parameters:
+        - $ref: '#/components/parameters/ProtocolVersionHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignedProofRequest'
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationResult'
+          headers:
+            X-ZkId-Protocol-Version:
+              $ref: '#/components/headers/ProtocolVersion'
+        '400':
+          description: Bad request (including incompatible protocol version)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
           content:
             application/json:
               schema:
@@ -915,6 +978,9 @@ components:
           type: string
           enum: [strict, warn, off]
           description: Protocol version enforcement policy (default: warn)
+        validatePayloads:
+          type: boolean
+          description: Enable strict payload validation before cryptographic verification (default false)
         validCredentialTree:
           type: object
           description: Optional valid-credential tree implementation (e.g., PostgresValidCredentialTree)
@@ -975,17 +1041,67 @@ components:
         requestTimestamp:
           type: string
           format: date-time
+    ProofRequest:
+      type: object
+      description: |
+        Request sent to a wallet/prover to generate a zero-knowledge proof.
+        See `docs/schemas/proof-request.json` for the standalone JSON schema.
+      required: [claimType, nonce, timestamp]
+      properties:
+        claimType:
+          type: string
+          enum: [age, nationality, age-revocable]
+          description: Type of claim being requested
+        minAge:
+          type: integer
+          minimum: 0
+          description: Minimum age threshold (required when claimType is 'age' or 'age-revocable')
+        targetNationality:
+          type: integer
+          description: ISO 3166-1 numeric nationality code (required when claimType is 'nationality')
+        nonce:
+          type: string
+          minLength: 1
+          description: Server-issued nonce for replay protection
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 request timestamp
     BatchVerificationResult:
       type: object
       description: Result of batch proof verification
+      required: [results, allVerified, verifiedCount, totalCount]
       properties:
-        verified:
-          type: boolean
         results:
           type: array
           items:
-            $ref: '#/components/schemas/VerificationResult'
-        errors:
-          type: array
-          items:
-            type: string
+            type: object
+            required: [index, verified]
+            properties:
+              index:
+                type: integer
+                description: Index of the proof in the batch
+              verified:
+                type: boolean
+              error:
+                type: string
+        allVerified:
+          type: boolean
+          description: True if every proof in the batch verified successfully
+        verifiedCount:
+          type: integer
+          description: Number of successfully verified proofs
+        totalCount:
+          type: integer
+          description: Total number of proofs in the batch
+    PayloadValidationError:
+      type: object
+      description: Validation error from strict payload checking (when validatePayloads is enabled)
+      required: [field, message]
+      properties:
+        field:
+          type: string
+          description: Dot-separated path to the invalid field
+        message:
+          type: string
+          description: Human-readable error description

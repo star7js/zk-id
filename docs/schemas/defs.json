@@ -1,0 +1,181 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://zk-id.dev/schemas/defs.json",
+  "title": "zk-id Shared Definitions",
+  "description": "Common types referenced by ProofRequest, ProofResponse, SignedProofRequest, and VerificationResult schemas.",
+  "definitions": {
+    "Proof": {
+      "type": "object",
+      "description": "Groth16 zero-knowledge proof (BN128 curve)",
+      "required": ["pi_a", "pi_b", "pi_c", "protocol", "curve"],
+      "properties": {
+        "pi_a": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Proof element A (G1 point as decimal strings)"
+        },
+        "pi_b": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "description": "Proof element B (G2 point as nested decimal strings)"
+        },
+        "pi_c": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Proof element C (G1 point as decimal strings)"
+        },
+        "protocol": {
+          "type": "string",
+          "const": "groth16"
+        },
+        "curve": {
+          "type": "string",
+          "const": "bn128"
+        }
+      },
+      "additionalProperties": false
+    },
+    "AgePublicSignals": {
+      "type": "object",
+      "description": "Public signals for an age proof",
+      "required": ["currentYear", "minAge", "credentialHash", "nonce", "requestTimestamp"],
+      "properties": {
+        "currentYear": { "type": "integer", "description": "Current year used in age calculation" },
+        "minAge": { "type": "integer", "minimum": 0, "description": "Minimum age threshold" },
+        "credentialHash": { "type": "string", "description": "Poseidon hash commitment to credential" },
+        "nonce": { "type": "string", "description": "Anti-replay nonce" },
+        "requestTimestamp": { "type": "integer", "description": "Request timestamp (epoch ms)" }
+      },
+      "additionalProperties": false
+    },
+    "NationalityPublicSignals": {
+      "type": "object",
+      "description": "Public signals for a nationality proof",
+      "required": ["targetNationality", "credentialHash", "nonce", "requestTimestamp"],
+      "properties": {
+        "targetNationality": { "type": "integer", "description": "ISO 3166-1 numeric nationality code" },
+        "credentialHash": { "type": "string", "description": "Poseidon hash commitment to credential" },
+        "nonce": { "type": "string", "description": "Anti-replay nonce" },
+        "requestTimestamp": { "type": "integer", "description": "Request timestamp (epoch ms)" }
+      },
+      "additionalProperties": false
+    },
+    "AgeProofRevocablePublicSignals": {
+      "type": "object",
+      "description": "Public signals for a revocable age proof (includes Merkle root)",
+      "required": ["currentYear", "minAge", "credentialHash", "merkleRoot", "nonce", "requestTimestamp"],
+      "properties": {
+        "currentYear": { "type": "integer", "description": "Current year used in age calculation" },
+        "minAge": { "type": "integer", "minimum": 0, "description": "Minimum age threshold" },
+        "credentialHash": { "type": "string", "description": "Poseidon hash commitment to credential" },
+        "merkleRoot": { "type": "string", "description": "Merkle root of the valid-credential tree" },
+        "nonce": { "type": "string", "description": "Anti-replay nonce" },
+        "requestTimestamp": { "type": "integer", "description": "Request timestamp (epoch ms)" }
+      },
+      "additionalProperties": false
+    },
+    "AgeProofSignedPublicSignals": {
+      "type": "object",
+      "description": "Public signals for a signed age proof (includes issuer public key)",
+      "required": ["currentYear", "minAge", "credentialHash", "nonce", "requestTimestamp", "issuerPublicKey"],
+      "properties": {
+        "currentYear": { "type": "integer" },
+        "minAge": { "type": "integer", "minimum": 0 },
+        "credentialHash": { "type": "string" },
+        "nonce": { "type": "string" },
+        "requestTimestamp": { "type": "integer" },
+        "issuerPublicKey": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "BabyJub issuer public key coordinates"
+        }
+      },
+      "additionalProperties": false
+    },
+    "NationalityProofSignedPublicSignals": {
+      "type": "object",
+      "description": "Public signals for a signed nationality proof (includes issuer public key)",
+      "required": ["targetNationality", "credentialHash", "nonce", "requestTimestamp", "issuerPublicKey"],
+      "properties": {
+        "targetNationality": { "type": "integer" },
+        "credentialHash": { "type": "string" },
+        "nonce": { "type": "string" },
+        "requestTimestamp": { "type": "integer" },
+        "issuerPublicKey": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "BabyJub issuer public key coordinates"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Credential": {
+      "type": "object",
+      "description": "Base credential (private to holder)",
+      "required": ["id", "birthYear", "nationality", "salt", "commitment", "createdAt"],
+      "properties": {
+        "id": { "type": "string", "description": "Unique credential identifier" },
+        "birthYear": { "type": "integer", "description": "Birth year of the holder" },
+        "nationality": { "type": "integer", "description": "ISO 3166-1 numeric nationality code" },
+        "salt": { "type": "string", "description": "Random salt for commitment privacy" },
+        "commitment": { "type": "string", "description": "Poseidon hash commitment" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "ISO 8601 creation timestamp" }
+      },
+      "additionalProperties": false
+    },
+    "SignedCredential": {
+      "type": "object",
+      "description": "Ed25519-signed credential from an issuer",
+      "required": ["credential", "issuer", "signature", "issuedAt"],
+      "properties": {
+        "credential": { "$ref": "#/definitions/Credential" },
+        "issuer": { "type": "string", "description": "Issuer name or DID" },
+        "signature": { "type": "string", "description": "Base64-encoded Ed25519 signature" },
+        "issuedAt": { "type": "string", "format": "date-time", "description": "ISO 8601 issuance timestamp" }
+      },
+      "additionalProperties": false
+    },
+    "CircuitSignedCredential": {
+      "type": "object",
+      "description": "BabyJub EdDSA-signed credential for in-circuit verification",
+      "required": ["credential", "issuer", "issuerPublicKey", "signature", "issuedAt"],
+      "properties": {
+        "credential": { "$ref": "#/definitions/Credential" },
+        "issuer": { "type": "string" },
+        "issuerPublicKey": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "BabyJub public key coordinates"
+        },
+        "signature": {
+          "type": "object",
+          "required": ["R8", "S"],
+          "properties": {
+            "R8": { "type": "array", "items": { "type": "string" } },
+            "S": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": false
+        },
+        "issuedAt": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+    "RevocationRootInfo": {
+      "type": "object",
+      "description": "Revocation root metadata with versioning and TTL",
+      "required": ["root", "version", "updatedAt"],
+      "properties": {
+        "root": { "type": "string", "description": "Current Merkle root (decimal string)" },
+        "version": { "type": "integer", "minimum": 0, "description": "Monotonic root version" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "ISO 8601 last mutation timestamp" },
+        "expiresAt": { "type": "string", "format": "date-time", "description": "ISO 8601 expiry for caching" },
+        "ttlSeconds": { "type": "integer", "minimum": 0, "description": "Recommended cache TTL in seconds" },
+        "source": { "type": "string", "description": "Identifier for the root source" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

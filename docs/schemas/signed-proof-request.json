@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://zk-id.dev/schemas/signed-proof-request.json",
+  "title": "SignedProofRequest",
+  "description": "Request body for verifying a proof that includes in-circuit issuer signature verification (BabyJub EdDSA). Used with the SDK verifySignedProof() method.",
+  "type": "object",
+  "required": ["claimType", "issuer", "nonce", "requestTimestamp", "proof"],
+  "properties": {
+    "claimType": {
+      "type": "string",
+      "enum": ["age", "nationality"],
+      "description": "Type of signed claim being proven"
+    },
+    "issuer": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Issuer identifier (must match a registered issuer)"
+    },
+    "nonce": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Server-issued nonce for replay protection"
+    },
+    "requestTimestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 request timestamp"
+    },
+    "proof": {
+      "type": "object",
+      "description": "The zero-knowledge proof with public signals (includes issuer public key)",
+      "required": ["proof", "publicSignals"],
+      "properties": {
+        "proof": { "$ref": "defs.json#/definitions/Proof" },
+        "publicSignals": {
+          "oneOf": [
+            { "$ref": "defs.json#/definitions/AgeProofSignedPublicSignals" },
+            { "$ref": "defs.json#/definitions/NationalityProofSignedPublicSignals" }
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

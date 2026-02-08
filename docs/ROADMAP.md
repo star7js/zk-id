@@ -26,6 +26,7 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - ✅ v0.4.1 patch: stable valid-credential tree indexing, merkle-root freshness guard, added regression tests
 - ✅ Revocation root distribution MVP (TTL policy, freshness guards, witness refresh rules, endpoint caching guidance)
 - ✅ Issuer trust & key lifecycle (registry metadata, key rotation, suspension/deactivation workflows)
+- ✅ API & protocol clarity (JSON schemas for SDK inputs, OpenAPI completion, payload validation)
 
 ## Now (Next 2–6 Weeks)
 
@@ -46,8 +47,8 @@ This roadmap focuses on security, interoperability, and production readiness. Da
    - ✅ Document issuer onboarding and deactivation workflow.
 
 4. **API & Protocol Clarity**
-   - Finalize REST contracts for verification flows.
-   - Add JSON schema or OpenAPI for SDK inputs.
+   - ✅ Finalize REST contracts for verification flows.
+   - ✅ Add JSON schema or OpenAPI for SDK inputs.
    - ✅ Add versioned protocol identifiers and compatibility notes.
 
 ## Near Term (Q2 2026)

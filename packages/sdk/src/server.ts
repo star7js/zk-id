@@ -87,6 +87,8 @@ export interface ZkIdServerConfig {
   revocationRootSource?: string;
   /** Maximum acceptable root age in ms. If set, verifyProof rejects revocable proofs when the root is stale. */
   maxRevocationRootAgeMs?: number;
+  /** Enable strict payload validation before verification (default: false). Checks required fields and types. */
+  validatePayloads?: boolean;
 }
 
 export interface VerificationKeySet {
@@ -398,6 +400,17 @@ export class ZkIdServer extends EventEmitter {
     const startTime = Date.now();
     const requireSigned = this.config.requireSignedCredentials !== false;
 
+    // Optional strict payload validation
+    if (this.config.validatePayloads) {
+      const payloadErrors = validateProofResponsePayload(proofResponse);
+      if (payloadErrors.length > 0) {
+        const msg = payloadErrors.map((e) => `${e.field}: ${e.message}`).join('; ');
+        const result: VerificationResult = { verified: false, error: `Invalid payload: ${msg}` };
+        this.emitVerificationEvent(proofResponse?.claimType ?? 'unknown', result, startTime, clientIdentifier);
+        return result;
+      }
+    }
+
     // Rate limiting
     if (this.config.rateLimiter && clientIdentifier) {
       const allowed = await this.config.rateLimiter.allowRequest(clientIdentifier);
@@ -605,6 +618,17 @@ export class ZkIdServer extends EventEmitter {
     clientProtocolVersion?: string
   ): Promise<VerificationResult> {
     const startTime = Date.now();
+
+    // Optional strict payload validation
+    if (this.config.validatePayloads) {
+      const payloadErrors = validateSignedProofRequestPayload(request);
+      if (payloadErrors.length > 0) {
+        const msg = payloadErrors.map((e) => `${e.field}: ${e.message}`).join('; ');
+        const result: VerificationResult = { verified: false, error: `Invalid payload: ${msg}` };
+        this.emitVerificationEvent(request?.claimType ?? 'unknown', result, startTime, clientIdentifier);
+        return result;
+      }
+    }
 
     // Rate limiting
     if (this.config.rateLimiter && clientIdentifier) {
@@ -1320,4 +1344,87 @@ export class SimpleRateLimiter implements RateLimiter {
 
     return true;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Payload validation helpers (T-007)
+// ---------------------------------------------------------------------------
+
+export interface PayloadValidationError {
+  field: string;
+  message: string;
+}
+
+/**
+ * Validate a ProofResponse payload structure before cryptographic verification.
+ * Returns an empty array when the payload is well-formed.
+ */
+export function validateProofResponsePayload(body: unknown): PayloadValidationError[] {
+  const errors: PayloadValidationError[] = [];
+  if (!body || typeof body !== 'object') {
+    return [{ field: '(root)', message: 'Body must be a non-null object' }];
+  }
+  const obj = body as Record<string, unknown>;
+
+  if (typeof obj.claimType !== 'string' || !['age', 'nationality', 'age-revocable'].includes(obj.claimType)) {
+    errors.push({ field: 'claimType', message: "Must be 'age', 'nationality', or 'age-revocable'" });
+  }
+  if (typeof obj.nonce !== 'string' || obj.nonce.length === 0) {
+    errors.push({ field: 'nonce', message: 'Must be a non-empty string' });
+  }
+  if (typeof obj.requestTimestamp !== 'string') {
+    errors.push({ field: 'requestTimestamp', message: 'Must be a string (ISO 8601)' });
+  }
+  if (!obj.proof || typeof obj.proof !== 'object') {
+    errors.push({ field: 'proof', message: 'Must be a non-null object' });
+  } else {
+    const proof = obj.proof as Record<string, unknown>;
+    if (!proof.proof || typeof proof.proof !== 'object') {
+      errors.push({ field: 'proof.proof', message: 'Must be a non-null object' });
+    }
+    if (!proof.publicSignals || typeof proof.publicSignals !== 'object') {
+      errors.push({ field: 'proof.publicSignals', message: 'Must be a non-null object' });
+    }
+  }
+  if (!obj.signedCredential || typeof obj.signedCredential !== 'object') {
+    errors.push({ field: 'signedCredential', message: 'Must be a non-null object' });
+  }
+  return errors;
+}
+
+/**
+ * Validate a SignedProofRequest payload structure.
+ * Returns an empty array when the payload is well-formed.
+ */
+export function validateSignedProofRequestPayload(body: unknown): PayloadValidationError[] {
+  const errors: PayloadValidationError[] = [];
+  if (!body || typeof body !== 'object') {
+    return [{ field: '(root)', message: 'Body must be a non-null object' }];
+  }
+  const obj = body as Record<string, unknown>;
+
+  if (typeof obj.claimType !== 'string' || !['age', 'nationality'].includes(obj.claimType)) {
+    errors.push({ field: 'claimType', message: "Must be 'age' or 'nationality'" });
+  }
+  if (typeof obj.issuer !== 'string' || obj.issuer.length === 0) {
+    errors.push({ field: 'issuer', message: 'Must be a non-empty string' });
+  }
+  if (typeof obj.nonce !== 'string' || obj.nonce.length === 0) {
+    errors.push({ field: 'nonce', message: 'Must be a non-empty string' });
+  }
+  if (typeof obj.requestTimestamp !== 'string') {
+    errors.push({ field: 'requestTimestamp', message: 'Must be a string (ISO 8601)' });
+  }
+  if (!obj.proof || typeof obj.proof !== 'object') {
+    errors.push({ field: 'proof', message: 'Must be a non-null object' });
+  } else {
+    const proof = obj.proof as Record<string, unknown>;
+    if (!proof.proof || typeof proof.proof !== 'object') {
+      errors.push({ field: 'proof.proof', message: 'Must be a non-null object' });
+    }
+    if (!proof.publicSignals || typeof proof.publicSignals !== 'object') {
+      errors.push({ field: 'proof.publicSignals', message: 'Must be a non-null object' });
+    }
+  }
+  return errors;
 }
