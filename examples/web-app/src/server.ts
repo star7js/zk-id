@@ -1,4 +1,5 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import { join } from 'path';
 import { CredentialIssuer, CircuitCredentialIssuer } from '@zk-id/issuer';
 import {
@@ -62,45 +63,20 @@ app.use((req, res, next) => {
 const getClientProtocolVersion = (req: express.Request): string | undefined =>
   req.get('X-ZkId-Protocol-Version') ?? undefined;
 
-type RateLimiterOptions = {
-  windowMs: number;
-  limit: number;
-  message: { error: string };
-};
-
-const createRateLimiter = (options: RateLimiterOptions) => {
-  const hits = new Map<string, { count: number; resetAt: number }>();
-  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    const now = Date.now();
-    const key = req.ip || req.socket.remoteAddress || 'unknown';
-    const entry = hits.get(key);
-
-    if (!entry || entry.resetAt <= now) {
-      hits.set(key, { count: 1, resetAt: now + options.windowMs });
-      return next();
-    }
-
-    entry.count += 1;
-    if (entry.count > options.limit) {
-      const retryAfterSeconds = Math.max(1, Math.ceil((entry.resetAt - now) / 1000));
-      res.setHeader('Retry-After', String(retryAfterSeconds));
-      return res.status(429).json(options.message);
-    }
-
-    return next();
-  };
-};
-
 // Basic rate limiting for demo endpoints (tune via env for real deployments)
-const apiLimiter = createRateLimiter({
+const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
   limit: Number(process.env.API_RATE_LIMIT || 60),
+  standardHeaders: true,
+  legacyHeaders: false,
   message: { error: 'Too many requests, please try again later.' },
 });
 
-const demoProofLimiter = createRateLimiter({
+const demoProofLimiter = rateLimit({
   windowMs: 60 * 1000,
   limit: Number(process.env.DEMO_PROOF_RATE_LIMIT || 10),
+  standardHeaders: true,
+  legacyHeaders: false,
   message: { error: 'Too many demo proof requests, please try again later.' },
 });
 
