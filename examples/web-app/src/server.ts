@@ -203,6 +203,12 @@ app.post('/api/verify-age', async (req, res) => {
   try {
     const proofResponse: ProofResponse = req.body;
     const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+    if (!proofResponse.nonce || !proofResponse.requestTimestamp) {
+      return res.status(400).json({
+        verified: false,
+        error: 'Missing nonce or requestTimestamp. Fetch /api/challenge before generating a proof.',
+      });
+    }
 
     // Verify the proof
     const result = await zkIdServer.verifyProof(proofResponse, clientIp);
@@ -238,6 +244,12 @@ app.post('/api/verify-nationality', async (req, res) => {
   try {
     const proofResponse: ProofResponse = req.body;
     const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+    if (!proofResponse.nonce || !proofResponse.requestTimestamp) {
+      return res.status(400).json({
+        verified: false,
+        error: 'Missing nonce or requestTimestamp. Fetch /api/challenge before generating a proof.',
+      });
+    }
 
     // Verify the proof
     const result = await zkIdServer.verifyProof(proofResponse, clientIp);
