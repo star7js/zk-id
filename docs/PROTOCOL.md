@@ -6,7 +6,7 @@ This document specifies the zk-id protocol for privacy-preserving identity verif
 
 **Protocol Version**: 0.1.0
 **Status**: Draft / Experimental
-**Last Updated**: 2024
+**Last Updated**: 2026
 
 ## Goals
 
@@ -26,10 +26,10 @@ A trusted entity that verifies user identities and issues credentials.
 
 **Responsibilities:**
 - Verify user identity through KYC/ID documents
-- Issue signed credentials containing verified attributes
+- Issue signed credentials containing verified attributes with Ed25519 signatures
 - Manage signing keys securely
 - Maintain audit logs
-- Handle credential revocation
+- Handle credential revocation through revocation store
 
 ### User (Prover)
 
