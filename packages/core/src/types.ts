@@ -198,6 +198,15 @@ export interface RevocationWitness {
   siblings: string[];
 }
 
+export interface RevocationRootInfo {
+  /** Current Merkle root */
+  root: string;
+  /** Monotonic root version */
+  version: number;
+  /** ISO 8601 timestamp of last update */
+  updatedAt: string;
+}
+
 export interface RevocationAccumulator {
   /** Current Merkle root */
   getRoot(): Promise<string>;
@@ -218,6 +227,8 @@ export interface ValidCredentialTree {
   contains(commitment: string): Promise<boolean>;
   /** Get the current Merkle root */
   getRoot(): Promise<string>;
+  /** Get current Merkle root with version metadata (if supported) */
+  getRootInfo?(): Promise<RevocationRootInfo>;
   /** Generate Merkle witness for a credential */
   getWitness(commitment: string): Promise<RevocationWitness | null>;
   /** Get the number of credentials in the tree */

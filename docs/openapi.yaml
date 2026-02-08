@@ -470,6 +470,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/revocation/root:
+    get:
+      summary: Get current revocation root and version
+      parameters:
+        - $ref: '#/components/parameters/ProtocolVersionHeader'
+      responses:
+        '200':
+          description: Current revocation root info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevocationRootInfo'
+          headers:
+            X-ZkId-Protocol-Version:
+              $ref: '#/components/headers/ProtocolVersion'
+        '400':
+          description: Bad request (including incompatible protocol version)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   parameters:
     ProtocolVersionHeader:
@@ -506,6 +533,17 @@ components:
         nonce:
           type: string
         requestTimestamp:
+          type: string
+          format: date-time
+    RevocationRootInfo:
+      type: object
+      required: [root, version, updatedAt]
+      properties:
+        root:
+          type: string
+        version:
+          type: integer
+        updatedAt:
           type: string
           format: date-time
     Credential:

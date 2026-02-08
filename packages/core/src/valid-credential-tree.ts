@@ -15,6 +15,8 @@ export class InMemoryValidCredentialTree implements ValidCredentialTree {
   private indexByCommitment = new Map<string, number>();
   private freeIndices: number[] = [];
   private depth: number;
+  private rootVersion = 0;
+  private updatedAt = new Date().toISOString();
 
   constructor(depth: number = DEFAULT_TREE_DEPTH) {
     if (depth < 1 || depth > MAX_TREE_DEPTH) {
@@ -43,6 +45,7 @@ export class InMemoryValidCredentialTree implements ValidCredentialTree {
       this.leaves[index] = leaf;
     }
     this.indexByCommitment.set(normalized, index);
+    this.bumpVersion();
   }
 
   async remove(commitment: string): Promise<void> {
@@ -55,6 +58,7 @@ export class InMemoryValidCredentialTree implements ValidCredentialTree {
     this.leaves[index] = 0n;
     this.indexByCommitment.delete(normalized);
     this.freeIndices.push(index);
+    this.bumpVersion();
   }
 
   async contains(commitment: string): Promise<boolean> {
@@ -65,6 +69,15 @@ export class InMemoryValidCredentialTree implements ValidCredentialTree {
   async getRoot(): Promise<string> {
     const layers = await this.buildLayers();
     return layers[layers.length - 1][0].toString();
+  }
+
+  async getRootInfo(): Promise<{ root: string; version: number; updatedAt: string }> {
+    const root = await this.getRoot();
+    return {
+      root,
+      version: this.rootVersion,
+      updatedAt: this.updatedAt,
+    };
   }
 
   async getWitness(commitment: string): Promise<RevocationWitness | null> {
@@ -123,5 +136,10 @@ export class InMemoryValidCredentialTree implements ValidCredentialTree {
     } catch (error) {
       throw new Error('Invalid commitment format');
     }
+  }
+
+  private bumpVersion(): void {
+    this.rootVersion += 1;
+    this.updatedAt = new Date().toISOString();
   }
 }

@@ -202,6 +202,8 @@ A website or service that requests and verifies proofs.
 
 **Revocation Support:** The `merkleRoot` public signal binds the proof to a specific state of the valid credentials tree, enabling privacy-preserving revocation checks.
 
+**Root Distribution:** Verifiers should fetch the current valid-set Merkle root and version from the issuer or registry (e.g., `GET /api/revocation/root`). Clients may need to refresh witnesses when the root version advances.
+
 ### Proof Response
 
 ```typescript

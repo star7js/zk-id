@@ -105,6 +105,26 @@ describe('InMemoryValidCredentialTree', () => {
     expect(await tree.contains('0x10')).to.equal(false);
   });
 
+  it('tracks root version on mutations', async () => {
+    const tree = new InMemoryValidCredentialTree(3);
+    const commitment = '123456789';
+
+    const info0 = await tree.getRootInfo();
+    expect(info0.version).to.equal(0);
+
+    await tree.add(commitment);
+    const info1 = await tree.getRootInfo();
+    expect(info1.version).to.equal(1);
+
+    await tree.add(commitment); // idempotent
+    const info2 = await tree.getRootInfo();
+    expect(info2.version).to.equal(1);
+
+    await tree.remove(commitment);
+    const info3 = await tree.getRootInfo();
+    expect(info3.version).to.equal(2);
+  });
+
   it('throws when tree capacity overflows', async () => {
     const tree = new InMemoryValidCredentialTree(2); // max 4 leaves
     await tree.add('1');

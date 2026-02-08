@@ -937,6 +937,22 @@ app.post('/api/revoke-credential', async (req, res) => {
 });
 
 /**
+ * Revocation root endpoint (root + version metadata)
+ */
+app.get('/api/revocation/root', async (_req, res) => {
+  try {
+    const info = await validCredentialTree.getRootInfo();
+    res.json(info);
+  } catch (error) {
+    console.error('Error fetching revocation root:', error);
+    res.status(500).json({
+      error: 'Failed to fetch revocation root',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
  * Health check endpoint
  */
 app.get('/api/health', (req, res) => {
@@ -968,6 +984,7 @@ app.get('/api/health', (req, res) => {
     console.log(`  POST /api/demo/verify-age-signed`);
     console.log(`  POST /api/demo/verify-nationality-signed`);
     console.log(`  POST /api/revoke-credential`);
+    console.log(`  GET  /api/revocation/root`);
     console.log(`  GET  /api/health\n`);
   });
 }
