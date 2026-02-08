@@ -108,16 +108,16 @@ Service for credential issuance. In production, this would:
 - Handle credential revocation
 
 **Current Implementation:**
-- Simple HMAC-based signing (demo)
-- In-memory key storage (demo)
+- Ed25519 (EdDSA) signatures for production-grade credential signing
+- In-memory key storage (demo - use HSM/KMS in production)
 - Console audit logging (demo)
+- InMemoryRevocationStore for credential revocation
 
 **Production Requirements:**
-- Use proper digital signatures (ECDSA, EdDSA)
-- Store keys in HSM or cloud KMS
+- Store keys in HSM or cloud KMS (currently in-memory for demo)
 - Implement comprehensive audit logging
 - Add rate limiting and abuse prevention
-- Build revocation infrastructure
+- Use persistent revocation store (database-backed)
 
 ### 4. SDK Package (`packages/sdk/`)
 
@@ -354,12 +354,14 @@ Each attribute can be selectively disclosed using separate ZK proof circuits.
 
 ### Revocation
 
-Two approaches:
+**Current Implementation**: `InMemoryRevocationStore`
+- Tracks revoked credential commitments in memory
+- Verifiers check revocation status during proof verification
+- Issuers can revoke credentials by commitment hash
 
-1. **Accumulator-based**: Include credential in a cryptographic accumulator, prove membership
-2. **Revocation list**: Issuer publishes revoked credential IDs, verifiers check list
-
-Both can be added without changing core protocol.
+**Future Approaches:**
+1. **Accumulator-based**: Include credential in a cryptographic accumulator for improved privacy
+2. **Persistent store**: Database-backed revocation store for production deployments
 
 ## Production Deployment Checklist
 
@@ -384,12 +386,21 @@ Both can be added without changing core protocol.
 ### SDK/Website Integration
 
 - [ ] Use HTTPS everywhere
-- [ ] Implement nonce-based replay protection
+- [x] Implement nonce-based replay protection
 - [ ] Add rate limiting to verification endpoints
-- [ ] Log verification events for analytics
+- [x] Log verification events for analytics (telemetry)
 - [ ] Monitor for abuse patterns
 - [ ] Implement graceful fallback if ZK verification fails
 - [ ] Add user-facing explanation of privacy properties
+
+## Current Features
+
+- **Ed25519 Signatures**: Production-grade asymmetric signatures for credential authentication
+- **Credential Revocation**: InMemoryRevocationStore with verifier integration
+- **W3C Verifiable Credentials**: Format conversion support (toVerifiableCredential/fromVerifiableCredential)
+- **Telemetry**: Verification event tracking and monitoring
+- **Batch Verification**: Efficient verification of multiple proofs in parallel
+- **Replay Protection**: Nonce-based replay attack prevention
 
 ## Future Directions
 
@@ -398,3 +409,4 @@ Both can be added without changing core protocol.
 - **DID integration**: Use DIDs for issuer identification
 - **Cross-chain**: Support multiple blockchains for on-chain verification
 - **Biometric binding**: Link credentials to device biometrics for security
+- **Accumulator-based revocation**: More privacy-preserving revocation mechanism

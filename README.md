@@ -242,11 +242,11 @@ See `docs/SIGNED-CIRCUITS.md` for how to use circuits that verify issuer signatu
 - [ ] Use production Powers of Tau ceremony (not test ceremony)
 - [ ] Implement proper key management (HSM/KMS for issuer keys)
 - [ ] Add rate limiting to verification endpoints
-- [ ] Implement nonce-based replay protection
+- [x] Implement nonce-based replay protection
 - [ ] Use HTTPS for all communications
 - [ ] Audit circuits before production use
-- [ ] Implement credential revocation mechanism
-- [ ] Add monitoring and alerting for abuse
+- [x] Implement credential revocation mechanism
+- [x] Add monitoring and alerting for abuse (telemetry)
 
 ## Contributing
 

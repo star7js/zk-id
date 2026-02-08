@@ -78,10 +78,12 @@ A website or service that requests and verifies proofs.
 {
   credential: Credential;
   issuer: string;          // Issuer identifier (name or DID)
-  signature: string;       // Issuer's signature over commitment
+  signature: string;       // Issuer's Ed25519 signature over commitment
   issuedAt: string;        // ISO 8601 timestamp
 }
 ```
+
+**Signature**: Ed25519 (EdDSA) signatures provide production-grade asymmetric cryptography for credential authentication.
 
 ### Proof Request
 
@@ -333,6 +335,52 @@ zk-id uses Groth16, which requires a trusted setup ceremony.
 - Use existing Powers of Tau ceremonies (Hermez, Perpetual Powers of Tau)
 - For production, participate in multi-party ceremony
 
+### Ed25519 Signatures
+
+Used for credential authentication by issuers.
+
+**Properties:**
+- Asymmetric cryptography (public/private key pairs)
+- Fast signature generation and verification
+- Small signatures (64 bytes)
+- Widely used and battle-tested (OpenSSH, Signal, etc.)
+
+**Implementation**: Node.js crypto module or tweetnacl
+
+### Credential Revocation
+
+Implemented via revocation stores that track revoked credential commitments.
+
+**Implementation:**
+- `InMemoryRevocationStore`: In-memory store for demo/testing
+- Verifiers check credential commitment against revocation store during verification
+- Issuer can revoke credentials by commitment hash
+
+**Revocation Check:**
+```typescript
+if (await revocationStore.isRevoked(credentialCommitment)) {
+  return { verified: false, error: 'Credential has been revoked' };
+}
+```
+
+### W3C Verifiable Credentials
+
+The system includes W3C VC format support for interoperability.
+
+**Conversion:**
+```typescript
+// Convert to W3C VC format
+const vc = toVerifiableCredential(signedCredential);
+
+// Parse from W3C VC format
+const signedCredential = fromVerifiableCredential(vc);
+```
+
+**Properties:**
+- Standard JSON-LD format
+- Includes @context, type, credentialSubject, proof
+- Compatible with existing VC tooling and wallets
+
 ## Security Analysis
 
 ### Threat Model
@@ -443,8 +491,12 @@ class CredentialIssuer {
   // Issue a credential after identity verification
   async issueCredential(
     birthYear: number,
+    nationality: number,
     userId?: string
   ): Promise<SignedCredential>;
+
+  // Revoke a credential by commitment
+  async revokeCredential(commitment: string): Promise<void>;
 }
 ```
 
@@ -465,20 +517,6 @@ The protocol can be extended with new circuits for:
 - **Attribute claims**: Prove possession of attribute without revealing value
 - **Range proofs**: Prove value is in range without revealing exact value
 - **Set membership**: Prove element is in set without revealing which one
-
-### Credential Revocation
-
-Two approaches can be added:
-
-1. **Accumulator-based**:
-   - Credentials included in cryptographic accumulator
-   - Proof includes accumulator membership proof
-   - Issuer can remove credentials from accumulator
-
-2. **Revocation list**:
-   - Issuer publishes list of revoked credential IDs
-   - Verifiers check ID against list
-   - Simpler but less private (credential ID revealed)
 
 ### Multi-Issuer Credentials
 
@@ -527,8 +565,9 @@ Useful for:
 
 - Standardize JSON schemas for interoperability
 - Define DID method for issuers (`did:zkid:...`)
-- Add support for credential revocation
 - Implement mobile wallet specification
+- Add accumulator-based revocation for improved privacy
+- Browser extension implementation
 
 ## Optional Signed Circuits
 
