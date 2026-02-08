@@ -27,21 +27,26 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 
 ## Now (Next 2–6 Weeks)
 
-1. **API & Protocol Clarity**
-   - Finalize REST contracts for verification flows.
-   - Add JSON schema or OpenAPI for SDK inputs.
-   - ✅ Add versioned protocol identifiers and compatibility notes.
+1. **Revocation Root Distribution (MVP)**
+   - Define root versioning + TTL policy.
+   - Document witness refresh rules for clients/verifiers.
+   - Standardize a public root info endpoint and caching guidance.
 
-2. **Issuer Trust & Key Lifecycle**
-   - Formalize issuer registry spec (rotation, validity windows, suspension).
-   - Add issuer metadata (jurisdiction, attestation policy, audit references).
-   - Document issuer onboarding and deactivation workflow.
-
-3. **Security Readiness**
+2. **Security Readiness**
    - Maintain security policy and disclosure process.
    - Expand threat model and limitations with concrete mitigations.
    - Add circuit artifact hashes and integrity checks.
    - Reproducible circuit builds and verification-key provenance (signing + CI checks).
+
+3. **Issuer Trust & Key Lifecycle**
+   - Formalize issuer registry spec (rotation, validity windows, suspension).
+   - Add issuer metadata (jurisdiction, attestation policy, audit references).
+   - Document issuer onboarding and deactivation workflow.
+
+4. **API & Protocol Clarity**
+   - Finalize REST contracts for verification flows.
+   - Add JSON schema or OpenAPI for SDK inputs.
+   - ✅ Add versioned protocol identifiers and compatibility notes.
 
 ## Near Term (Q2 2026)
 
