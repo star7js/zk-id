@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://zk-id.dev/schemas/verification-result.json",
+  "title": "VerificationResult",
+  "description": "Result returned by the SDK verifyProof() and verifySignedProof() methods. Also the response body for POST /api/verify-age and POST /api/verify-nationality.",
+  "type": "object",
+  "required": ["verified"],
+  "properties": {
+    "verified": {
+      "type": "boolean",
+      "description": "Whether the proof was successfully verified"
+    },
+    "claimType": {
+      "type": "string",
+      "enum": ["age", "nationality", "age-revocable"],
+      "description": "Type of claim that was verified"
+    },
+    "minAge": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Minimum age threshold (present for age claims)"
+    },
+    "targetNationality": {
+      "type": "integer",
+      "description": "Nationality code (present for nationality claims)"
+    },
+    "error": {
+      "type": "string",
+      "description": "Error message when verified is false"
+    },
+    "protocolVersion": {
+      "type": "string",
+      "description": "Protocol version used (e.g., 'zk-id/1.0-draft')"
+    }
+  },
+  "additionalProperties": false
+}

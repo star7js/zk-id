@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://zk-id.dev/schemas/proof-request.json",
+  "title": "ProofRequest",
+  "description": "Request sent to a wallet/prover to generate a zero-knowledge proof. The wallet uses this to determine which circuit to invoke and what public signals to bind.",
+  "type": "object",
+  "required": ["claimType", "nonce", "timestamp"],
+  "properties": {
+    "claimType": {
+      "type": "string",
+      "enum": ["age", "nationality", "age-revocable"],
+      "description": "Type of claim being requested"
+    },
+    "minAge": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Minimum age threshold (required when claimType is 'age' or 'age-revocable')"
+    },
+    "targetNationality": {
+      "type": "integer",
+      "description": "ISO 3166-1 numeric nationality code (required when claimType is 'nationality')"
+    },
+    "nonce": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Server-issued nonce for replay protection"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 request timestamp"
+    }
+  },
+  "additionalProperties": false,
+  "if": { "properties": { "claimType": { "const": "nationality" } } },
+  "then": { "required": ["claimType", "nonce", "timestamp", "targetNationality"] },
+  "else": {
+    "if": { "properties": { "claimType": { "enum": ["age", "age-revocable"] } } },
+    "then": { "required": ["claimType", "nonce", "timestamp", "minAge"] }
+  }
+}
