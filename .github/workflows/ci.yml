@@ -6,9 +6,17 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -19,29 +27,8 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Setup Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain: stable
-          rustflags: ""
-
-      - name: Cache circom binary
-        id: cache-circom
-        uses: actions/cache@v5
-        with:
-          path: ~/.cargo/bin/circom
-          key: circom-${{ runner.os }}-v2.1.8
-
-      - name: Install circom
-        if: steps.cache-circom.outputs.cache-hit != 'true'
-        run: |
-          git clone https://github.com/iden3/circom.git
-          cd circom
-          git checkout v2.1.8
-          cargo build --release
-          cargo install --path circom
-          cd ..
-          rm -rf circom
+      - name: Setup Circom
+        uses: ./.github/actions/setup-circom
 
       - name: Cache circuit build artifacts
         id: cache-circuits

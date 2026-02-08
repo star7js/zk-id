@@ -16,6 +16,13 @@ on:
     - cron: '0 6 * * 1'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-circuits-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   verify-reproducibility:
     runs-on: ubuntu-latest
@@ -23,19 +30,16 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install Circom
-        run: |
-          curl -L https://github.com/iden3/circom/releases/download/v2.1.8/circom-linux-amd64 -o /usr/local/bin/circom
-          chmod +x /usr/local/bin/circom
-          circom --version
+      - name: Setup Circom
+        uses: ./.github/actions/setup-circom
 
       - name: Install dependencies
         run: npm ci

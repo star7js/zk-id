@@ -1,0 +1,28 @@
+name: "Setup Circom"
+description: "Install and cache Circom compiler"
+inputs:
+  version:
+    description: "Circom version to install"
+    required: false
+    default: "v2.1.8"
+runs:
+  using: "composite"
+  steps:
+    - name: Cache Circom
+      id: cache-circom
+      uses: actions/cache@v5
+      with:
+        path: /usr/local/bin/circom
+        key: circom-${{ runner.os }}-${{ inputs.version }}
+
+    - name: Install Circom
+      if: steps.cache-circom.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        curl -L https://github.com/iden3/circom/releases/download/${{ inputs.version }}/circom-linux-amd64 -o /tmp/circom
+        chmod +x /tmp/circom
+        sudo mv /tmp/circom /usr/local/bin/circom
+
+    - name: Verify Circom installation
+      shell: bash
+      run: circom --version
