@@ -23,6 +23,9 @@ The zk-id protocol uses semantic versioning for wire-format compatibility, decou
 - Implementations with the same major version MUST be compatible
 - Minor version differences SHOULD be handled gracefully
 - Clients and servers communicate protocol version via the `X-ZkId-Protocol-Version` HTTP header
+- Browser clients should note that this custom header may trigger CORS preflight requests.
+  - The SDK defaults to sending the header only for same-origin endpoints.
+  - For cross-origin verification endpoints, either allow the header in CORS or set `protocolVersionHeader: "always"` in the SDK config.
 
 **Compatibility Checking:**
 ```typescript
