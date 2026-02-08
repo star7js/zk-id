@@ -27,6 +27,9 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - ✅ Revocation root distribution MVP (TTL policy, freshness guards, witness refresh rules, endpoint caching guidance)
 - ✅ Issuer trust & key lifecycle (registry metadata, key rotation, suspension/deactivation workflows)
 - ✅ API & protocol clarity (JSON schemas for SDK inputs, OpenAPI completion, payload validation)
+- ✅ Security policy hardening (expanded threat model with mitigations, hardening checklist)
+- ✅ Audit log adapter interface (`AuditLogger`, `InMemoryAuditLogger`, wired into issuer + SDK server)
+- ✅ JSON schema interop tests (ajv-based validation of TS objects against published schemas)
 
 ## Now (Next 2–6 Weeks)
 
@@ -36,8 +39,8 @@ This roadmap focuses on security, interoperability, and production readiness. Da
    - ✅ Standardize a public root info endpoint and caching guidance.
 
 2. **Security Readiness**
-   - Maintain security policy and disclosure process.
-   - Expand threat model and limitations with concrete mitigations.
+   - ✅ Maintain security policy and disclosure process.
+   - ✅ Expand threat model and limitations with concrete mitigations.
    - Add circuit artifact hashes and integrity checks.
    - Reproducible circuit builds and verification-key provenance (signing + CI checks).
 
@@ -63,7 +66,7 @@ This roadmap focuses on security, interoperability, and production readiness. Da
    - ✅ Reference implementation for Postgres valid-credential tree.
    - Reference implementation for Redis store.
    - ✅ Rate limiting + abuse prevention modules (demo server).
-   - Audit log adapter interface.
+   - ✅ Audit log adapter interface.
 
 3. **Wallet Integration**
    - Define client-side wallet flow.
@@ -73,7 +76,7 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 4. **Performance & Compatibility**
    - Proof generation/verification benchmarks with targets.
    - Protocol versioning and deprecation policy.
-   - Interop tests for SDK input schemas.
+   - ✅ Interop tests for SDK input schemas.
 
 ## Mid Term (Q3 2026)
 

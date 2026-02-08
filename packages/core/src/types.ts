@@ -224,6 +224,70 @@ export interface RevocationAccumulator {
   getWitness(commitment: string): Promise<RevocationWitness | null>;
 }
 
+// ---------------------------------------------------------------------------
+// Audit Logging
+// ---------------------------------------------------------------------------
+
+/**
+ * Structured audit log entry produced by issuers and verifiers.
+ */
+export interface AuditEntry {
+  /** ISO 8601 timestamp */
+  timestamp: string;
+  /** Action that occurred */
+  action: 'issue' | 'revoke' | 'verify' | 'suspend' | 'reactivate' | 'deactivate';
+  /** Actor (issuer name, verifier identifier) */
+  actor: string;
+  /** Target identifier (credential ID, commitment, issuer name) */
+  target?: string;
+  /** Whether the action succeeded */
+  success: boolean;
+  /** Additional structured metadata */
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Pluggable audit logger interface.
+ *
+ * Production implementations should write to tamper-evident storage
+ * (append-only database, SIEM, cloud audit trail). The default
+ * `ConsoleAuditLogger` writes JSON to stdout and is suitable only for
+ * development and testing.
+ */
+export interface AuditLogger {
+  /** Record an audit entry */
+  log(entry: AuditEntry): void;
+}
+
+/**
+ * Console-based audit logger (development/testing only).
+ */
+export class ConsoleAuditLogger implements AuditLogger {
+  log(entry: AuditEntry): void {
+    console.log('[AUDIT]', JSON.stringify(entry));
+  }
+}
+
+/**
+ * In-memory audit logger that stores entries for inspection (testing).
+ */
+export class InMemoryAuditLogger implements AuditLogger {
+  readonly entries: AuditEntry[] = [];
+
+  log(entry: AuditEntry): void {
+    this.entries.push(entry);
+  }
+
+  /** Return entries filtered by action */
+  filter(action: AuditEntry['action']): AuditEntry[] {
+    return this.entries.filter((e) => e.action === action);
+  }
+
+  clear(): void {
+    this.entries.length = 0;
+  }
+}
+
 export interface ValidCredentialTree {
   /** Add a valid credential commitment to the tree */
   add(commitment: string): Promise<void>;

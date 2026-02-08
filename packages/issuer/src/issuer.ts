@@ -1,4 +1,4 @@
-import { createCredential, Credential, RevocationStore, SignedCredential, credentialSignaturePayload } from '@zk-id/core';
+import { createCredential, Credential, RevocationStore, SignedCredential, credentialSignaturePayload, AuditLogger, ConsoleAuditLogger } from '@zk-id/core';
 import { generateKeyPairSync, sign, verify, KeyObject } from 'crypto';
 
 /**
@@ -11,6 +11,8 @@ export interface IssuerConfig {
   signingKey: KeyObject;
   /** Ed25519 public verification key */
   publicKey: KeyObject;
+  /** Optional audit logger (defaults to ConsoleAuditLogger) */
+  auditLogger?: AuditLogger;
 }
 
 /**
@@ -26,9 +28,11 @@ export interface IssuerConfig {
 export class CredentialIssuer {
   private config: IssuerConfig;
   private revocationStore?: RevocationStore;
+  private auditLogger: AuditLogger;
 
   constructor(config: IssuerConfig) {
     this.config = config;
+    this.auditLogger = config.auditLogger ?? new ConsoleAuditLogger();
   }
 
   /**
@@ -96,17 +100,14 @@ export class CredentialIssuer {
    * Audit logging for credential issuance
    */
   private logIssuance(signedCredential: SignedCredential, userId?: string): void {
-    // In production, this would write to a secure audit log
-    const logEntry = {
+    this.auditLogger.log({
       timestamp: new Date().toISOString(),
-      issuer: this.config.name,
-      credentialId: signedCredential.credential.id,
-      userId: userId || 'anonymous',
       action: 'issue',
-    };
-
-    // For now, just log to console (production would use proper logging service)
-    console.log('[ISSUER AUDIT]', JSON.stringify(logEntry));
+      actor: this.config.name,
+      target: signedCredential.credential.id,
+      success: true,
+      metadata: { userId: userId || 'anonymous' },
+    });
   }
 
   /**
@@ -126,15 +127,13 @@ export class CredentialIssuer {
 
     await this.revocationStore.revoke(commitment);
 
-    // Log revocation event
-    const logEntry = {
+    this.auditLogger.log({
       timestamp: new Date().toISOString(),
-      issuer: this.config.name,
-      commitment,
       action: 'revoke',
-    };
-
-    console.log('[ISSUER AUDIT]', JSON.stringify(logEntry));
+      actor: this.config.name,
+      target: commitment,
+      success: true,
+    });
   }
 
   /**
