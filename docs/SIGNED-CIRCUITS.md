@@ -27,6 +27,10 @@ These circuits verify:
 3. Generate a signed proof using the `generate*Signed` functions.
 4. Verify using `verify*Signed` and the signed verification keys.
 
+If you use the server SDK, call `verifySignedProof` and configure:
+- `signedVerificationKeyPath` / `signedNationalityVerificationKeyPath`
+- `issuerPublicKeyBits` (trusted BabyJub public key bits per issuer)
+
 ## Code Sketch
 
 ```ts

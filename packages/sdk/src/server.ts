@@ -16,6 +16,10 @@ import {
   RevocationStore,
   SignedCredential,
   credentialSignaturePayload,
+  AgeProofSigned,
+  NationalityProofSigned,
+  verifyAgeProofSignedWithIssuer,
+  verifyNationalityProofSignedWithIssuer,
   verifyAgeProof,
   verifyNationalityProof,
   validateProofConstraints,
@@ -30,6 +34,10 @@ export interface ZkIdServerConfig {
   verificationKeyPath: string;
   /** Optional path to nationality verification key file */
   nationalityVerificationKeyPath?: string;
+  /** Optional path to signed age verification key file */
+  signedVerificationKeyPath?: string;
+  /** Optional path to signed nationality verification key file */
+  signedNationalityVerificationKeyPath?: string;
   /** Optional nonce storage for replay protection */
   nonceStore?: NonceStore;
   /** Optional rate limiter */
@@ -38,6 +46,8 @@ export interface ZkIdServerConfig {
   revocationStore?: RevocationStore;
   /** Map of trusted issuer names to their public keys */
   issuerPublicKeys?: Record<string, KeyObject>;
+  /** Map of trusted issuer names to BabyJub public key bits (for signed circuits) */
+  issuerPublicKeyBits?: Record<string, string[]>;
   /** Optional issuer registry for key rotation and status checks */
   issuerRegistry?: IssuerRegistry;
   /** Require signed credentials (default: true) */
@@ -96,6 +106,14 @@ export interface VerificationEvent {
   error?: string;
 }
 
+export interface SignedProofRequest {
+  claimType: 'age' | 'nationality';
+  issuer: string;
+  nonce: string;
+  requestTimestamp: string;
+  proof: AgeProofSigned | NationalityProofSigned;
+}
+
 /**
  * Server SDK for verifying zk-id proofs
  */
@@ -103,6 +121,8 @@ export class ZkIdServer extends EventEmitter {
   private config: ZkIdServerConfig;
   private verificationKey: VerificationKey;
   private nationalityVerificationKey?: VerificationKey;
+  private signedVerificationKey?: VerificationKey;
+  private signedNationalityVerificationKey?: VerificationKey;
 
   constructor(config: ZkIdServerConfig) {
     super();
@@ -111,6 +131,16 @@ export class ZkIdServer extends EventEmitter {
     if (config.nationalityVerificationKeyPath) {
       this.nationalityVerificationKey = this.loadVerificationKey(
         config.nationalityVerificationKeyPath
+      );
+    }
+    if (config.signedVerificationKeyPath) {
+      this.signedVerificationKey = this.loadVerificationKey(
+        config.signedVerificationKeyPath
+      );
+    }
+    if (config.signedNationalityVerificationKeyPath) {
+      this.signedNationalityVerificationKey = this.loadVerificationKey(
+        config.signedNationalityVerificationKeyPath
       );
     }
   }
@@ -290,6 +320,173 @@ export class ZkIdServer extends EventEmitter {
     }
 
     this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
+    return result;
+  }
+
+  /**
+   * Verify a signed proof submission (issuer signature checked in-circuit)
+   */
+  async verifySignedProof(
+    request: SignedProofRequest,
+    clientIdentifier?: string
+  ): Promise<VerificationResult> {
+    const startTime = Date.now();
+
+    // Rate limiting
+    if (this.config.rateLimiter && clientIdentifier) {
+      const allowed = await this.config.rateLimiter.allowRequest(clientIdentifier);
+      if (!allowed) {
+        const result = { verified: false, error: 'Rate limit exceeded' };
+        this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier);
+        return result;
+      }
+    }
+
+    // Validate timestamp and nonce binding
+    const requestMs = Date.parse(request.requestTimestamp);
+    if (Number.isNaN(requestMs)) {
+      const result = { verified: false, error: 'Invalid request timestamp' };
+      this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier);
+      return result;
+    }
+
+    if (this.config.maxRequestAgeMs !== undefined) {
+      const ageMs = Math.abs(Date.now() - requestMs);
+      if (ageMs > this.config.maxRequestAgeMs) {
+        const result = { verified: false, error: 'Request timestamp outside allowed window' };
+        this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier);
+        return result;
+      }
+    }
+
+    // Replay protection
+    if (this.config.nonceStore) {
+      const nonceUsed = await this.config.nonceStore.has(request.nonce);
+      if (nonceUsed) {
+        const result = {
+          verified: false,
+          error: 'Nonce already used (replay attack detected)',
+        };
+        this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier);
+        return result;
+      }
+    }
+
+    const trustedBits = this.config.issuerPublicKeyBits?.[request.issuer];
+    if (!trustedBits) {
+      const result = { verified: false, error: 'Unknown or untrusted issuer' };
+      this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier);
+      return result;
+    }
+
+    // Bind nonce and timestamp to proof public signals
+    const proofNonce = this.getSignedProofNonce(request.proof, request.claimType);
+    if (proofNonce !== request.nonce) {
+      const result = { verified: false, error: 'Proof nonce does not match request nonce' };
+      this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier);
+      return result;
+    }
+    const proofTimestamp = this.getSignedProofTimestamp(request.proof, request.claimType);
+    if (proofTimestamp !== requestMs) {
+      const result = {
+        verified: false,
+        error: 'Proof timestamp does not match request timestamp',
+      };
+      this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier);
+      return result;
+    }
+
+    // Policy enforcement
+    const requiredPolicy = this.config.requiredPolicy;
+    if (request.claimType === 'age') {
+      const requiredMinAge = requiredPolicy?.minAge ?? this.config.requiredMinAge;
+      if (requiredMinAge !== undefined) {
+        const proof = request.proof as AgeProofSigned;
+        if (proof.publicSignals.minAge !== requiredMinAge) {
+          const result = {
+            verified: false,
+            error: 'Proof does not satisfy required minimum age',
+          };
+          this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier);
+          return result;
+        }
+      }
+    }
+    if (request.claimType === 'nationality') {
+      const requiredNationality =
+        requiredPolicy?.nationality ?? this.config.requiredNationality;
+      if (requiredNationality !== undefined) {
+        const proof = request.proof as NationalityProofSigned;
+        if (proof.publicSignals.targetNationality !== requiredNationality) {
+          const result = {
+            verified: false,
+            error: 'Proof does not satisfy required nationality',
+          };
+          this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier);
+          return result;
+        }
+      }
+    }
+
+    // Revocation check using commitment in proof
+    if (this.config.revocationStore) {
+      const commitment = this.getSignedProofCommitment(request.proof, request.claimType);
+      const isRevoked = await this.config.revocationStore.isRevoked(commitment);
+      if (isRevoked) {
+        const result = {
+          verified: false,
+          error: 'Credential has been revoked',
+        };
+        this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier);
+        return result;
+      }
+    }
+
+    let verified = false;
+    try {
+      if (request.claimType === 'age') {
+        if (!this.signedVerificationKey) {
+          return { verified: false, error: 'Signed age verification key not configured' };
+        }
+        verified = await verifyAgeProofSignedWithIssuer(
+          request.proof as AgeProofSigned,
+          this.signedVerificationKey,
+          trustedBits
+        );
+      } else {
+        if (!this.signedNationalityVerificationKey) {
+          return { verified: false, error: 'Signed nationality verification key not configured' };
+        }
+        verified = await verifyNationalityProofSignedWithIssuer(
+          request.proof as NationalityProofSigned,
+          this.signedNationalityVerificationKey,
+          trustedBits
+        );
+      }
+    } catch (error) {
+      return { verified: false, error: `Verification error: ${error}` };
+    }
+
+    if (verified && this.config.nonceStore) {
+      await this.config.nonceStore.add(request.nonce);
+    }
+
+    const result = verified
+      ? {
+          verified: true,
+          claimType: request.claimType,
+          minAge:
+            request.claimType === 'age'
+              ? (request.proof as AgeProofSigned).publicSignals.minAge
+              : undefined,
+          targetNationality:
+            request.claimType === 'nationality'
+              ? (request.proof as NationalityProofSigned).publicSignals.targetNationality
+              : undefined,
+        }
+      : { verified: false, error: 'Proof verification failed' };
+
+    this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier);
     return result;
   }
 
@@ -475,6 +672,36 @@ export class ZkIdServer extends EventEmitter {
       return (proof as NationalityProof).publicSignals.requestTimestamp;
     }
     return 0;
+  }
+
+  private getSignedProofNonce(
+    proof: AgeProofSigned | NationalityProofSigned,
+    claimType: 'age' | 'nationality'
+  ): string {
+    if (claimType === 'age') {
+      return (proof as AgeProofSigned).publicSignals.nonce;
+    }
+    return (proof as NationalityProofSigned).publicSignals.nonce;
+  }
+
+  private getSignedProofTimestamp(
+    proof: AgeProofSigned | NationalityProofSigned,
+    claimType: 'age' | 'nationality'
+  ): number {
+    if (claimType === 'age') {
+      return (proof as AgeProofSigned).publicSignals.requestTimestamp;
+    }
+    return (proof as NationalityProofSigned).publicSignals.requestTimestamp;
+  }
+
+  private getSignedProofCommitment(
+    proof: AgeProofSigned | NationalityProofSigned,
+    claimType: 'age' | 'nationality'
+  ): string {
+    if (claimType === 'age') {
+      return (proof as AgeProofSigned).publicSignals.credentialHash;
+    }
+    return (proof as NationalityProofSigned).publicSignals.credentialHash;
   }
 
   private async getIssuerRecord(issuer: string): Promise<IssuerRecord | null> {
