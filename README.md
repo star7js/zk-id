@@ -51,6 +51,7 @@ Current age verification systems force users to expose sensitive information:
 - ✅ **Telemetry**: Built-in verification event monitoring
 - ✅ **Batch Verification**: Efficient verification of multiple proofs
 - ✅ **Developer-Friendly**: Simple SDK for easy website integration
+- ✅ **Protocol Versioning**: Explicit wire-format compatibility via headers
 
 ## Quick Start
 
@@ -92,6 +93,15 @@ const verified = await client.verifyAge(18);
 if (verified) {
   // User is 18+, grant access
 }
+```
+
+**Protocol version header (CORS note):**
+The SDK sends `X-ZkId-Protocol-Version` by default only for same-origin endpoints in browsers to avoid CORS preflight issues. For cross-origin verification endpoints, either allow this header in CORS or set:
+```typescript
+const client = new ZkIdClient({
+  verificationEndpoint: 'https://api.example.com/verify',
+  protocolVersionHeader: 'always',
+});
 ```
 
 **Server side** (your backend):
@@ -204,10 +214,10 @@ zk-id/
 
 - **Proof System**: Groth16 (efficient ZK-SNARKs)
 - **Hash Function**: Poseidon (ZK-friendly)
-- **Circuit Language**: Circom 2.0
+- **Circuit Language**: Circom 2.1.x
 - **Libraries**: snarkjs, circomlibjs
-- **Proof Size**: ~200 bytes
-- **Verification Time**: <100ms
+- **Proof Size**: ~200 bytes (Groth16, typical encoding)
+- **Verification Time**: typically <100ms in demos; depends on hardware and load
 
 ## Specs & Roadmap
 
@@ -231,6 +241,7 @@ zk-id/
 | Worldcoin | ✅ Full | ✅ Fast | ⚠️ Complex | ✅ Yes |
 
 ## Roadmap
+See `docs/ROADMAP.md` for current priorities and version targets.
 
 ## Threat Model
 
