@@ -8,7 +8,7 @@ inputs:
   sha256:
     description: "Expected SHA-256 checksum for circom-linux-amd64"
     required: false
-    default: ""
+    default: "7a812278477b98cbe69812c382a8921289a2590e0cdfcfe321306445b4593c12"
   checksum_url:
     description: "URL to a SHA-256 checksum file for circom-linux-amd64"
     required: false
