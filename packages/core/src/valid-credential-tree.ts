@@ -1,5 +1,5 @@
 import { poseidonHash } from './poseidon';
-import { ValidCredentialTree, RevocationWitness } from './types';
+import { ValidCredentialTree, RevocationWitness, RevocationRootInfo } from './types';
 
 const DEFAULT_TREE_DEPTH = 10;
 const MAX_TREE_DEPTH = 20;
@@ -71,7 +71,7 @@ export class InMemoryValidCredentialTree implements ValidCredentialTree {
     return layers[layers.length - 1][0].toString();
   }
 
-  async getRootInfo(): Promise<{ root: string; version: number; updatedAt: string }> {
+  async getRootInfo(): Promise<RevocationRootInfo> {
     const root = await this.getRoot();
     return {
       root,

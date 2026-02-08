@@ -1,9 +1,10 @@
 import { expect } from 'chai';
 import path from 'path';
 import { generateKeyPairSync, sign } from 'crypto';
-import { ZkIdServer, IssuerRegistry } from '../src/server';
+import { ZkIdServer, IssuerRegistry, InMemoryIssuerRegistry } from '../src/server';
 import {
   AgeProof,
+  AgeProofRevocable,
   ProofResponse,
   SignedCredential,
   credentialSignaturePayload,
@@ -30,6 +31,35 @@ function makeAgeProof(
       currentYear: new Date().getFullYear(),
       minAge,
       credentialHash,
+      nonce,
+      requestTimestamp,
+    },
+  };
+}
+
+function makeAgeProofRevocable(
+  credentialHash: string,
+  merkleRoot: string,
+  minAge: number,
+  nonce: string,
+  requestTimestamp: number
+): AgeProofRevocable {
+  return {
+    proof: {
+      pi_a: ['1', '2'],
+      pi_b: [
+        ['3', '4'],
+        ['5', '6'],
+      ],
+      pi_c: ['7', '8'],
+      protocol: 'groth16',
+      curve: 'bn128',
+    },
+    publicSignals: {
+      currentYear: new Date().getFullYear(),
+      minAge,
+      credentialHash,
+      merkleRoot,
       nonce,
       requestTimestamp,
     },
@@ -404,7 +434,7 @@ describe('ZkIdServer - revocation root info', () => {
     };
 
     const server = new ZkIdServer({
-      verificationKeyPath: getVerificationKeyPath(),
+      verificationKeys: { age: {} as any },
       requireSignedCredentials: false,
       validCredentialTree: tree as any,
     });
@@ -413,5 +443,402 @@ describe('ZkIdServer - revocation root info', () => {
     expect(info.root).to.be.a('string');
     expect(info.version).to.equal(1);
     expect(info.updatedAt).to.be.a('string');
+  });
+
+  it('includes ttlSeconds and expiresAt with default TTL', async () => {
+    const now = new Date().toISOString();
+    const tree = {
+      add: async () => undefined,
+      remove: async () => undefined,
+      contains: async () => true,
+      getRoot: async () => '456',
+      getRootInfo: async () => ({
+        root: '456',
+        version: 3,
+        updatedAt: now,
+      }),
+      getWitness: async () => null,
+      size: async () => 2,
+    };
+
+    const server = new ZkIdServer({
+      verificationKeys: { age: {} as any },
+      requireSignedCredentials: false,
+      validCredentialTree: tree as any,
+    });
+
+    const info = await server.getRevocationRootInfo();
+    expect(info.ttlSeconds).to.equal(300);
+    expect(info.expiresAt).to.be.a('string');
+    const expiresMs = Date.parse(info.expiresAt!);
+    const updatedMs = Date.parse(now);
+    expect(expiresMs - updatedMs).to.equal(300 * 1000);
+  });
+
+  it('uses custom TTL and source from config', async () => {
+    const now = new Date().toISOString();
+    const tree = {
+      add: async () => undefined,
+      remove: async () => undefined,
+      contains: async () => true,
+      getRoot: async () => '789',
+      getRootInfo: async () => ({
+        root: '789',
+        version: 5,
+        updatedAt: now,
+      }),
+      getWitness: async () => null,
+      size: async () => 1,
+    };
+
+    const server = new ZkIdServer({
+      verificationKeys: { age: {} as any },
+      requireSignedCredentials: false,
+      validCredentialTree: tree as any,
+      revocationRootTtlSeconds: 60,
+      revocationRootSource: 'test-issuer',
+    });
+
+    const info = await server.getRevocationRootInfo();
+    expect(info.ttlSeconds).to.equal(60);
+    expect(info.source).to.equal('test-issuer');
+    const expiresMs = Date.parse(info.expiresAt!);
+    const updatedMs = Date.parse(now);
+    expect(expiresMs - updatedMs).to.equal(60 * 1000);
+  });
+
+  it('populates TTL fields even when tree lacks getRootInfo', async () => {
+    const tree = {
+      add: async () => undefined,
+      remove: async () => undefined,
+      contains: async () => true,
+      getRoot: async () => '111',
+      getWitness: async () => null,
+      size: async () => 0,
+    };
+
+    const server = new ZkIdServer({
+      verificationKeys: { age: {} as any },
+      requireSignedCredentials: false,
+      validCredentialTree: tree as any,
+    });
+
+    const info = await server.getRevocationRootInfo();
+    expect(info.root).to.equal('111');
+    expect(info.version).to.equal(0);
+    expect(info.ttlSeconds).to.equal(300);
+    expect(info.expiresAt).to.be.a('string');
+  });
+});
+
+describe('ZkIdServer - revocation root staleness', () => {
+  it('rejects revocable proof when root is stale', async () => {
+    const staleDate = new Date(Date.now() - 120_000).toISOString(); // 2 min ago
+    const tree = {
+      add: async () => undefined,
+      remove: async () => undefined,
+      contains: async () => false,
+      getRoot: async () => '0',
+      getRootInfo: async () => ({
+        root: '0',
+        version: 1,
+        updatedAt: staleDate,
+      }),
+      getWitness: async () => null,
+      size: async () => 0,
+    };
+
+    const server = new ZkIdServer({
+      requireSignedCredentials: false,
+      verificationKeys: {
+        age: {} as any,
+        ageRevocable: {} as any,
+      },
+      validCredentialTree: tree as any,
+      maxRevocationRootAgeMs: 60_000, // 1 min max
+    });
+
+    const timestamp = Date.now();
+    const proofResponse: ProofResponse = {
+      credentialId: 'cred-1',
+      claimType: 'age-revocable',
+      proof: makeAgeProofRevocable('123', '0', 18, 'nonce-stale', timestamp),
+      nonce: 'nonce-stale',
+      requestTimestamp: new Date(timestamp).toISOString(),
+    } as ProofResponse;
+
+    const result = await server.verifyProof(proofResponse);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.equal('Revocation root is stale');
+  });
+
+  it('allows revocable proof when root is fresh', async () => {
+    const freshDate = new Date().toISOString();
+    const tree = {
+      add: async () => undefined,
+      remove: async () => undefined,
+      contains: async () => false,
+      getRoot: async () => '0',
+      getRootInfo: async () => ({
+        root: '0',
+        version: 1,
+        updatedAt: freshDate,
+      }),
+      getWitness: async () => null,
+      size: async () => 0,
+    };
+
+    const server = new ZkIdServer({
+      requireSignedCredentials: false,
+      verificationKeys: {
+        age: {} as any,
+        ageRevocable: {} as any,
+      },
+      validCredentialTree: tree as any,
+      maxRevocationRootAgeMs: 60_000, // 1 min max
+    });
+
+    const timestamp = Date.now();
+    const proofResponse: ProofResponse = {
+      credentialId: 'cred-1',
+      claimType: 'age-revocable',
+      proof: makeAgeProofRevocable('123', '0', 18, 'nonce-fresh', timestamp),
+      nonce: 'nonce-fresh',
+      requestTimestamp: new Date(timestamp).toISOString(),
+    } as ProofResponse;
+
+    const result = await server.verifyProof(proofResponse);
+    // Should get past staleness check — will fail at proof verification (expected)
+    expect(result.error).to.not.equal('Revocation root is stale');
+  });
+});
+
+describe('InMemoryIssuerRegistry', () => {
+  function makeKeyPair() {
+    return generateKeyPairSync('ed25519');
+  }
+
+  describe('metadata fields', () => {
+    it('stores and returns jurisdiction, policyUrl, auditUrl', async () => {
+      const { publicKey } = makeKeyPair();
+      const registry = new InMemoryIssuerRegistry([
+        {
+          issuer: 'gov-issuer',
+          publicKey,
+          status: 'active',
+          jurisdiction: 'US',
+          policyUrl: 'https://issuer.example.gov/policy',
+          auditUrl: 'https://audit.example.com/report/123',
+        },
+      ]);
+
+      const record = await registry.getIssuer('gov-issuer');
+      expect(record).to.not.be.null;
+      expect(record!.jurisdiction).to.equal('US');
+      expect(record!.policyUrl).to.equal('https://issuer.example.gov/policy');
+      expect(record!.auditUrl).to.equal('https://audit.example.com/report/123');
+    });
+
+    it('returns null for unknown issuer', async () => {
+      const registry = new InMemoryIssuerRegistry();
+      const record = await registry.getIssuer('unknown');
+      expect(record).to.be.null;
+    });
+  });
+
+  describe('key rotation', () => {
+    it('returns the active record within its validity window', async () => {
+      const { publicKey: oldKey } = makeKeyPair();
+      const { publicKey: newKey } = makeKeyPair();
+      const now = new Date();
+      const past = new Date(now.getTime() - 86400_000); // 1 day ago
+      const future = new Date(now.getTime() + 86400_000); // 1 day from now
+
+      const registry = new InMemoryIssuerRegistry([
+        {
+          issuer: 'rotating',
+          publicKey: oldKey,
+          status: 'active',
+          validFrom: past.toISOString(),
+          validTo: new Date(now.getTime() - 1000).toISOString(), // expired 1s ago
+        },
+        {
+          issuer: 'rotating',
+          publicKey: newKey,
+          status: 'active',
+          validFrom: now.toISOString(),
+          validTo: future.toISOString(),
+        },
+      ]);
+
+      const record = await registry.getIssuer('rotating');
+      expect(record).to.not.be.null;
+      // Should return the new key (currently valid)
+      expect(record!.publicKey).to.equal(newKey);
+    });
+
+    it('supports overlapping validity windows during rotation', async () => {
+      const { publicKey: oldKey } = makeKeyPair();
+      const { publicKey: newKey } = makeKeyPair();
+      const now = new Date();
+      const past = new Date(now.getTime() - 86400_000);
+      const overlapEnd = new Date(now.getTime() + 3600_000); // overlap for 1 hour
+      const future = new Date(now.getTime() + 86400_000);
+
+      const registry = new InMemoryIssuerRegistry([
+        {
+          issuer: 'overlap',
+          publicKey: oldKey,
+          status: 'active',
+          validFrom: past.toISOString(),
+          validTo: overlapEnd.toISOString(),
+        },
+        {
+          issuer: 'overlap',
+          publicKey: newKey,
+          status: 'active',
+          validFrom: now.toISOString(),
+          validTo: future.toISOString(),
+        },
+      ]);
+
+      // Both are valid; getIssuer returns the first match (old key still valid)
+      const record = await registry.getIssuer('overlap');
+      expect(record).to.not.be.null;
+      expect(record!.publicKey).to.equal(oldKey);
+    });
+
+    it('upsert adds a new record for rotation', async () => {
+      const { publicKey: oldKey } = makeKeyPair();
+      const { publicKey: newKey } = makeKeyPair();
+
+      const registry = new InMemoryIssuerRegistry([
+        {
+          issuer: 'upsert-test',
+          publicKey: oldKey,
+          status: 'active',
+          validFrom: '2026-01-01T00:00:00Z',
+          validTo: '2026-06-01T00:00:00Z',
+        },
+      ]);
+
+      registry.upsert({
+        issuer: 'upsert-test',
+        publicKey: newKey,
+        status: 'active',
+        validFrom: '2026-03-01T00:00:00Z',
+        validTo: '2026-12-01T00:00:00Z',
+      });
+
+      const records = await registry.listRecords('upsert-test');
+      expect(records).to.have.length(2);
+    });
+
+    it('listRecords returns all records for an issuer', async () => {
+      const { publicKey: key1 } = makeKeyPair();
+      const { publicKey: key2 } = makeKeyPair();
+
+      const registry = new InMemoryIssuerRegistry([
+        { issuer: 'multi', publicKey: key1, status: 'active', validFrom: '2026-01-01T00:00:00Z' },
+        { issuer: 'multi', publicKey: key2, status: 'active', validFrom: '2026-06-01T00:00:00Z' },
+      ]);
+
+      const records = await registry.listRecords('multi');
+      expect(records).to.have.length(2);
+    });
+
+    it('listRecords returns empty array for unknown issuer', async () => {
+      const registry = new InMemoryIssuerRegistry();
+      const records = await registry.listRecords('nope');
+      expect(records).to.deep.equal([]);
+    });
+  });
+
+  describe('suspension and deactivation', () => {
+    it('suspend marks all records as suspended', async () => {
+      const { publicKey: key1 } = makeKeyPair();
+      const { publicKey: key2 } = makeKeyPair();
+
+      const registry = new InMemoryIssuerRegistry([
+        { issuer: 'sus-test', publicKey: key1, status: 'active' },
+        { issuer: 'sus-test', publicKey: key2, status: 'active' },
+      ]);
+
+      registry.suspend('sus-test');
+
+      const records = await registry.listRecords('sus-test');
+      expect(records.every((r) => r.status === 'suspended')).to.be.true;
+
+      // getIssuer should return first record (suspended) since no active match
+      const record = await registry.getIssuer('sus-test');
+      expect(record!.status).to.equal('suspended');
+    });
+
+    it('reactivate restores suspended records to active', async () => {
+      const { publicKey } = makeKeyPair();
+      const registry = new InMemoryIssuerRegistry([
+        { issuer: 'react-test', publicKey, status: 'active' },
+      ]);
+
+      registry.suspend('react-test');
+      expect((await registry.getIssuer('react-test'))!.status).to.equal('suspended');
+
+      registry.reactivate('react-test');
+      expect((await registry.getIssuer('react-test'))!.status).to.equal('active');
+    });
+
+    it('deactivate permanently revokes all records', async () => {
+      const { publicKey } = makeKeyPair();
+      const registry = new InMemoryIssuerRegistry([
+        { issuer: 'deact-test', publicKey, status: 'active' },
+      ]);
+
+      registry.deactivate('deact-test');
+
+      const record = await registry.getIssuer('deact-test');
+      expect(record!.status).to.equal('revoked');
+    });
+
+    it('suspended issuer is rejected during verification', async () => {
+      const { publicKey, privateKey } = makeKeyPair();
+      const registry = new InMemoryIssuerRegistry([
+        { issuer: 'SuspendedIssuer', publicKey, status: 'suspended' },
+      ]);
+
+      const server = new ZkIdServer({
+        verificationKeys: { age: {} as any },
+        requireSignedCredentials: true,
+        issuerRegistry: registry,
+      });
+
+      const commitment = '12345';
+      const signature = sign(null, Buffer.from(commitment), privateKey).toString('base64');
+      const timestamp = Date.now();
+
+      const proofResponse: ProofResponse = {
+        credentialId: 'cred-1',
+        claimType: 'age',
+        proof: makeAgeProof(commitment, 18, 'nonce-sus', timestamp),
+        signedCredential: {
+          credential: {
+            id: 'cred-1',
+            birthYear: 1990,
+            nationality: 840,
+            salt: '00',
+            commitment,
+            createdAt: new Date().toISOString(),
+          },
+          issuer: 'SuspendedIssuer',
+          signature,
+          issuedAt: new Date().toISOString(),
+        },
+        nonce: 'nonce-sus',
+        requestTimestamp: new Date(timestamp).toISOString(),
+      } as ProofResponse;
+
+      const result = await server.verifyProof(proofResponse);
+      expect(result.verified).to.equal(false);
+      expect(result.error).to.equal('Issuer is not active');
+    });
   });
 });
