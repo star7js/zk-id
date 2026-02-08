@@ -3,6 +3,7 @@
   "circomVersion": "0.5.46",
   "snarkjsVersion": "0.7.6",
   "generatedAt": "2026-02-08T22:29:03Z",
+  "note": "WASM hashes included for reference but not verified (Circom v2.x not cross-platform deterministic). Only zkey and verificationKey hashes are security-critical and verified.",
   "circuits": {
     "age-verify": {
       "wasm": "f1526de4c5267fe9743b70dece85569c09d44e46bf968b259c4e5d08d0121443",

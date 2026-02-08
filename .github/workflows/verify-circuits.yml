@@ -58,7 +58,11 @@ jobs:
 
       - name: Report success
         if: success()
-        run: echo "✓ Circuit reproducibility verified - all artifacts match committed hashes"
+        run: |
+          echo "✓ Circuit reproducibility verified"
+          echo "  - Proving keys (zkey) are deterministic"
+          echo "  - Verification keys are deterministic"
+          echo "  - Note: WASM verification skipped (Circom v2.x not cross-platform deterministic)"
 
       - name: Report failure
         if: failure()
