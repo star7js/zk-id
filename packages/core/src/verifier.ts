@@ -267,7 +267,7 @@ export async function verifyAgeProofRevocable(
   expectedMerkleRoot?: string
 ): Promise<boolean> {
   // Optional server-side freshness check
-  if (expectedMerkleRoot && proof.publicSignals.merkleRoot !== expectedMerkleRoot) {
+  if (expectedMerkleRoot != null && proof.publicSignals.merkleRoot !== expectedMerkleRoot) {
     return false;
   }
 

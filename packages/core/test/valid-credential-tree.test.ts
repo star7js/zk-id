@@ -94,6 +94,17 @@ describe('InMemoryValidCredentialTree', () => {
     expect(await tree.contains(commitment)).to.equal(false);
   });
 
+  it('normalizes commitment formats for lookups', async () => {
+    const tree = new InMemoryValidCredentialTree(3);
+    await tree.add('0x10');
+
+    expect(await tree.contains('16')).to.equal(true);
+    expect(await tree.contains('0x10')).to.equal(true);
+
+    await tree.remove('16');
+    expect(await tree.contains('0x10')).to.equal(false);
+  });
+
   it('throws when tree capacity overflows', async () => {
     const tree = new InMemoryValidCredentialTree(2); // max 4 leaves
     await tree.add('1');

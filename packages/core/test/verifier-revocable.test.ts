@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { validateAgeProofRevocableConstraints } from '../src/verifier';
-import { AgeProofRevocable } from '../src/types';
+import { validateAgeProofRevocableConstraints, verifyAgeProofRevocable } from '../src/verifier';
+import { AgeProofRevocable, VerificationKey } from '../src/types';
 
 describe('Revocable Verifier Tests', () => {
   describe('validateAgeProofRevocableConstraints', () => {
@@ -100,6 +100,46 @@ describe('Revocable Verifier Tests', () => {
       const result = validateAgeProofRevocableConstraints(proof);
       expect(result.valid).to.be.false;
       expect(result.errors.length).to.be.greaterThan(1);
+    });
+  });
+
+  describe('verifyAgeProofRevocable', () => {
+    const createMockProof = (overrides?: Partial<AgeProofRevocable>): AgeProofRevocable => {
+      const currentYear = new Date().getFullYear();
+      return {
+        proof: {
+          pi_a: ['1', '2'],
+          pi_b: [['3', '4'], ['5', '6']],
+          pi_c: ['7', '8'],
+          protocol: 'groth16',
+          curve: 'bn128',
+        },
+        publicSignals: {
+          currentYear,
+          minAge: 18,
+          credentialHash: '12345678901234567890',
+          merkleRoot: '1',
+          nonce: 'nonce-1',
+          requestTimestamp: Date.now(),
+        },
+        ...overrides,
+      };
+    };
+
+    it('rejects when expected merkle root mismatches even if expected root is "0"', async () => {
+      const proof = createMockProof({
+        publicSignals: {
+          currentYear: new Date().getFullYear(),
+          minAge: 18,
+          credentialHash: '12345678901234567890',
+          merkleRoot: '1',
+          nonce: 'nonce-1',
+          requestTimestamp: Date.now(),
+        },
+      });
+
+      const verified = await verifyAgeProofRevocable(proof, {} as VerificationKey, '0');
+      expect(verified).to.equal(false);
     });
   });
 });

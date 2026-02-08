@@ -13,6 +13,7 @@ const MAX_TREE_DEPTH = 20;
 export class InMemoryValidCredentialTree implements ValidCredentialTree {
   private leaves: bigint[] = [];
   private indexByCommitment = new Map<string, number>();
+  private freeIndices: number[] = [];
   private depth: number;
 
   constructor(depth: number = DEFAULT_TREE_DEPTH) {
@@ -23,39 +24,42 @@ export class InMemoryValidCredentialTree implements ValidCredentialTree {
   }
 
   async add(commitment: string): Promise<void> {
-    if (this.indexByCommitment.has(commitment)) {
+    const normalized = this.normalizeCommitment(commitment);
+    if (this.indexByCommitment.has(normalized)) {
       return;
     }
 
     const maxLeaves = 1 << this.depth;
-    if (this.leaves.length >= maxLeaves) {
+    if (this.leaves.length >= maxLeaves && this.freeIndices.length === 0) {
       throw new Error('Valid credential tree is full for configured depth.');
     }
 
-    const leaf = BigInt(commitment);
-    this.indexByCommitment.set(commitment, this.leaves.length);
-    this.leaves.push(leaf);
+    const leaf = BigInt(normalized);
+    const reuseIndex = this.freeIndices.pop();
+    const index = reuseIndex !== undefined ? reuseIndex : this.leaves.length;
+    if (index === this.leaves.length) {
+      this.leaves.push(leaf);
+    } else {
+      this.leaves[index] = leaf;
+    }
+    this.indexByCommitment.set(normalized, index);
   }
 
   async remove(commitment: string): Promise<void> {
-    const index = this.indexByCommitment.get(commitment);
+    const normalized = this.normalizeCommitment(commitment);
+    const index = this.indexByCommitment.get(normalized);
     if (index === undefined) {
       return;
     }
 
-    this.leaves.splice(index, 1);
-    this.indexByCommitment.delete(commitment);
-
-    // Rebuild index
-    this.indexByCommitment.clear();
-    for (let i = 0; i < this.leaves.length; i++) {
-      const leaf = this.leaves[i];
-      this.indexByCommitment.set(leaf.toString(), i);
-    }
+    this.leaves[index] = 0n;
+    this.indexByCommitment.delete(normalized);
+    this.freeIndices.push(index);
   }
 
   async contains(commitment: string): Promise<boolean> {
-    return this.indexByCommitment.has(commitment);
+    const normalized = this.normalizeCommitment(commitment);
+    return this.indexByCommitment.has(normalized);
   }
 
   async getRoot(): Promise<string> {
@@ -64,7 +68,8 @@ export class InMemoryValidCredentialTree implements ValidCredentialTree {
   }
 
   async getWitness(commitment: string): Promise<RevocationWitness | null> {
-    const index = this.indexByCommitment.get(commitment);
+    const normalized = this.normalizeCommitment(commitment);
+    const index = this.indexByCommitment.get(normalized);
     if (index === undefined) {
       return null;
     }
@@ -86,7 +91,7 @@ export class InMemoryValidCredentialTree implements ValidCredentialTree {
   }
 
   async size(): Promise<number> {
-    return this.leaves.length;
+    return this.indexByCommitment.size;
   }
 
   private async buildLayers(): Promise<bigint[][]> {
@@ -110,5 +115,13 @@ export class InMemoryValidCredentialTree implements ValidCredentialTree {
     }
 
     return layers;
+  }
+
+  private normalizeCommitment(commitment: string): string {
+    try {
+      return BigInt(commitment).toString();
+    } catch (error) {
+      throw new Error('Invalid commitment format');
+    }
   }
 }

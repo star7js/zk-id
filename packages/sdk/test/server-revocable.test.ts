@@ -98,4 +98,35 @@ describe('ZkIdServer - revocable proof support', () => {
     const result = await server.verifyProof(proofResponse);
     expect(result.error).to.equal('Revocable age verification key not configured');
   });
+
+  it('rejects revocable proof when merkle root does not match expected root', async () => {
+    const server = new ZkIdServer({
+      verificationKeyPath: getVerificationKeyPath(),
+      requireSignedCredentials: false,
+      verificationKeys: {
+        age: {} as any,
+        ageRevocable: {} as any,
+      },
+      validCredentialTree: {
+        add: async () => undefined,
+        remove: async () => undefined,
+        contains: async () => false,
+        getRoot: async () => '0',
+        getWitness: async () => null,
+        size: async () => 0,
+      },
+    });
+
+    const proofResponse: ProofResponse = {
+      credentialId: 'cred-1',
+      claimType: 'age-revocable',
+      proof: makeAgeProofRevocable('123', '1', 18, 'nonce-1', Date.now()),
+      nonce: 'nonce-1',
+      requestTimestamp: new Date().toISOString(),
+    } as ProofResponse;
+
+    const result = await server.verifyProof(proofResponse);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.equal('Proof verification failed');
+  });
 });
