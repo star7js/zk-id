@@ -1,6 +1,8 @@
 # Signed Circuits (Optional)
 
 This repo includes optional circuits that verify issuer signatures **inside** the proof.
+These circuits use **BabyJub EdDSA** (circomlib) signatures, which are different from
+the Ed25519 signatures used in the default issuer flow.
 Use these when you want the proof to be self‑contained (issuer trust bound in‑circuit),
 at the cost of larger public inputs and slower proving.
 

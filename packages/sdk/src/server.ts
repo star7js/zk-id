@@ -195,25 +195,25 @@ export class ZkIdServer extends EventEmitter {
     }
 
     // Request timestamp freshness check (optional)
+    const requestTimestamp = proofResponse.requestTimestamp;
+    if (!requestTimestamp) {
+      const result = {
+        verified: false,
+        error: 'Missing request timestamp',
+      };
+      this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
+      return result;
+    }
+    const requestMs = Date.parse(requestTimestamp);
+    if (Number.isNaN(requestMs)) {
+      const result = {
+        verified: false,
+        error: 'Invalid request timestamp',
+      };
+      this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
+      return result;
+    }
     if (this.config.maxRequestAgeMs !== undefined) {
-      const requestTimestamp = proofResponse.requestTimestamp;
-      if (!requestTimestamp) {
-        const result = {
-          verified: false,
-          error: 'Missing request timestamp',
-        };
-        this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
-        return result;
-      }
-      const requestMs = Date.parse(requestTimestamp);
-      if (Number.isNaN(requestMs)) {
-        const result = {
-          verified: false,
-          error: 'Invalid request timestamp',
-        };
-        this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
-        return result;
-      }
       const ageMs = Math.abs(Date.now() - requestMs);
       if (ageMs > this.config.maxRequestAgeMs) {
         const result = {
@@ -237,10 +237,9 @@ export class ZkIdServer extends EventEmitter {
     }
 
     // Timestamp binding: ensure proof public timestamp matches request timestamp
-    if (proofResponse.requestTimestamp) {
+    {
       const proofTimestamp = this.getProofTimestamp(proofResponse);
-      const requestMs = Date.parse(proofResponse.requestTimestamp);
-      if (Number.isNaN(requestMs) || proofTimestamp !== requestMs) {
+      if (proofTimestamp !== requestMs) {
         const result = {
           verified: false,
           error: 'Proof timestamp does not match request timestamp',

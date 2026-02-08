@@ -146,7 +146,7 @@ export interface ProofResponse {
   /** Nonce from the request (for replay protection) */
   nonce: string;
   /** Request timestamp (ISO 8601) */
-  requestTimestamp?: string;
+  requestTimestamp: string;
 }
 
 export interface BatchVerificationResult {

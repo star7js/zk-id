@@ -156,6 +156,23 @@ export async function verifyAgeProofSigned(
 }
 
 /**
+ * Verifies a signed age proof and checks the issuer public key matches the trusted key
+ */
+export async function verifyAgeProofSignedWithIssuer(
+  proof: AgeProofSigned,
+  verificationKey: VerificationKey,
+  trustedIssuerPublicKeyBits: string[]
+): Promise<boolean> {
+  if (
+    trustedIssuerPublicKeyBits.length !== proof.publicSignals.issuerPublicKey.length ||
+    trustedIssuerPublicKeyBits.some((bit, i) => bit !== proof.publicSignals.issuerPublicKey[i])
+  ) {
+    return false;
+  }
+  return verifyAgeProofSigned(proof, verificationKey);
+}
+
+/**
  * Verifies a signed nationality proof (includes issuer public key bits in public signals)
  */
 export async function verifyNationalityProofSigned(
@@ -185,6 +202,23 @@ export async function verifyNationalityProofSigned(
   );
 
   return isValid;
+}
+
+/**
+ * Verifies a signed nationality proof and checks the issuer public key matches the trusted key
+ */
+export async function verifyNationalityProofSignedWithIssuer(
+  proof: NationalityProofSigned,
+  verificationKey: VerificationKey,
+  trustedIssuerPublicKeyBits: string[]
+): Promise<boolean> {
+  if (
+    trustedIssuerPublicKeyBits.length !== proof.publicSignals.issuerPublicKey.length ||
+    trustedIssuerPublicKeyBits.some((bit, i) => bit !== proof.publicSignals.issuerPublicKey[i])
+  ) {
+    return false;
+  }
+  return verifyNationalityProofSigned(proof, verificationKey);
 }
 
 /**

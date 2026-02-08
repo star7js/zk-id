@@ -48,6 +48,7 @@ describe('SDK Client Tests', () => {
             proof: {} as any,
             signedCredential: mockSignedCredential,
             nonce: req.nonce,
+            requestTimestamp: req.timestamp,
           }),
         };
 
@@ -70,6 +71,7 @@ describe('SDK Client Tests', () => {
             proof: {} as any,
             signedCredential: mockSignedCredential,
             nonce: req.nonce,
+            requestTimestamp: req.timestamp,
           }),
         };
 
@@ -98,6 +100,7 @@ describe('SDK Client Tests', () => {
               proof: {} as any,
               signedCredential: mockSignedCredential,
               nonce: req.nonce,
+              requestTimestamp: req.timestamp,
             };
           },
         };
@@ -135,6 +138,7 @@ describe('SDK Client Tests', () => {
             proof: {} as any,
             signedCredential: mockSignedCredential,
             nonce: req.nonce,
+            requestTimestamp: req.timestamp,
           }),
         };
 
@@ -170,6 +174,7 @@ describe('SDK Client Tests', () => {
             proof: {} as any,
             signedCredential: mockSignedCredential,
             nonce: req.nonce,
+            requestTimestamp: req.timestamp,
           }),
         };
 
@@ -199,6 +204,7 @@ describe('SDK Client Tests', () => {
             proof: {} as any,
             signedCredential: mockSignedCredential,
             nonce: req.nonce,
+            requestTimestamp: req.timestamp,
           }),
         };
 

@@ -76,6 +76,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
       claimType: 'age',
       proof: makeAgeProof('123', 18, 'nonce-1', Date.now()),
       nonce: 'nonce-1',
+      requestTimestamp: new Date().toISOString(),
     } as ProofResponse;
 
     const result = await server.verifyProof(proofResponse);
@@ -98,6 +99,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
       proof: makeAgeProof('123', 18, 'nonce-2', Date.now()),
       signedCredential,
       nonce: 'nonce-2',
+      requestTimestamp: new Date().toISOString(),
     };
 
     const result = await server.verifyProof(proofResponse);
@@ -119,6 +121,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
       proof: makeAgeProof('123', 18, 'nonce-3', Date.now()),
       signedCredential,
       nonce: 'nonce-3',
+      requestTimestamp: new Date().toISOString(),
     };
 
     const result = await server.verifyProof(proofResponse);
@@ -141,6 +144,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
       proof: makeAgeProof('123', 18, 'nonce-4', Date.now()),
       signedCredential,
       nonce: 'nonce-4',
+      requestTimestamp: new Date().toISOString(),
     };
 
     const result = await server.verifyProof(proofResponse);
@@ -180,6 +184,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
       },
       signedCredential,
       nonce: 'nonce-nat',
+      requestTimestamp: new Date().toISOString(),
     };
 
     const result = await server.verifyProof(proofResponse);
@@ -201,6 +206,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
       proof: makeAgeProof('123', 18, 'proof-nonce', Date.now()),
       signedCredential,
       nonce: 'request-nonce',
+      requestTimestamp: new Date().toISOString(),
     };
 
     const result = await server.verifyProof(proofResponse);
@@ -233,6 +239,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
       proof: makeAgeProof('123', 18, 'nonce-5', Date.now()),
       signedCredential,
       nonce: 'nonce-5',
+      requestTimestamp: new Date().toISOString(),
     };
 
     const result = await server.verifyProof(proofResponse);
@@ -264,6 +271,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
       proof: makeAgeProof('123', 18, 'nonce-6', Date.now()),
       signedCredential,
       nonce: 'nonce-6',
+      requestTimestamp: new Date().toISOString(),
     };
 
     const result = await server.verifyProof(proofResponse);

@@ -211,6 +211,7 @@ See `docs/KNOWN-LIMITATIONS.md` for current limitations and non-goals.
 ## Signed Circuits (Optional)
 
 See `docs/SIGNED-CIRCUITS.md` for how to use circuits that verify issuer signatures inside the proof.
+Note: These circuits use BabyJub EdDSA signatures (circomlib), not Ed25519.
 
 - [x] Core cryptographic primitives
 - [x] Age verification circuit
