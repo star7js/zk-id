@@ -10,9 +10,9 @@
     "test": "echo 'No tests for examples'"
   },
   "dependencies": {
-    "@zk-id/core": "^0.2.0",
-    "@zk-id/issuer": "^0.2.0",
-    "@zk-id/sdk": "^0.2.0"
+    "@zk-id/core": "*",
+    "@zk-id/issuer": "*",
+    "@zk-id/sdk": "*"
   },
   "devDependencies": {
     "@types/node": "^20.10.6",

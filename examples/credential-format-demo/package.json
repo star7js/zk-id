@@ -9,7 +9,7 @@
     "test": "echo 'No tests for examples'"
   },
   "dependencies": {
-    "@zk-id/issuer": "^0.2.0"
+    "@zk-id/issuer": "*"
   },
   "devDependencies": {
     "@types/node": "^20.10.6",
