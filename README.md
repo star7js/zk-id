@@ -258,6 +258,10 @@ See `CONTRIBUTING.md` for development setup and guidelines.
 
 Apache-2.0 - see `LICENSE` file for details.
 
+## Notice
+
+See `NOTICE` for attribution details.
+
 ## Learn More
 
 - [Architecture Documentation](./docs/ARCHITECTURE.md)
