@@ -1,3 +1,4 @@
+# CI workflow for zk-id
 name: CI
 
 on:
