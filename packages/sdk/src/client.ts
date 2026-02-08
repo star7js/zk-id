@@ -16,6 +16,7 @@ import {
   generateAgeProof,
   generateNationalityProof,
   generateAgeProofRevocable,
+  RevocationRootInfo,
   PROTOCOL_VERSION,
   isProtocolCompatible,
 } from '@zk-id/core';
@@ -25,6 +26,8 @@ export interface ZkIdClientConfig {
   verificationEndpoint: string;
   /** Optional custom wallet connector */
   walletConnector?: WalletConnector;
+  /** Optional revocation root endpoint (e.g., /api/revocation/root) */
+  revocationRootEndpoint?: string;
   /**
    * Control when to send the protocol version header.
    * - "same-origin" (default): only send for same-origin endpoints in browsers
@@ -139,6 +142,27 @@ export class ZkIdClient {
   }
 
   /**
+   * Fetch current revocation root info from server (if configured).
+   */
+  async fetchRevocationRootInfo(): Promise<RevocationRootInfo> {
+    if (!this.config.revocationRootEndpoint) {
+      throw new Error('revocationRootEndpoint not configured');
+    }
+
+    const response = await fetch(this.config.revocationRootEndpoint, {
+      method: 'GET',
+      headers: this.buildHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch revocation root: ${response.statusText}`);
+    }
+
+    const info = await response.json();
+    return info as RevocationRootInfo;
+  }
+
+  /**
    * Request a proof from the user's wallet
    */
   private async requestProof(request: ProofRequest): Promise<ProofResponse> {
@@ -158,13 +182,8 @@ export class ZkIdClient {
    * Submit proof to backend for verification
    */
   private async submitProof(proofResponse: ProofResponse): Promise<boolean> {
-    const shouldSendProtocolHeader = this.shouldSendProtocolHeader();
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    if (shouldSendProtocolHeader) {
-      headers['X-ZkId-Protocol-Version'] = PROTOCOL_VERSION;
-    }
+    const headers = this.buildHeaders();
+    headers['Content-Type'] = 'application/json';
 
     const response = await fetch(this.config.verificationEndpoint, {
       method: 'POST',
@@ -231,6 +250,14 @@ export class ZkIdClient {
     } catch {
       return true;
     }
+  }
+
+  private buildHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {};
+    if (this.shouldSendProtocolHeader()) {
+      headers['X-ZkId-Protocol-Version'] = PROTOCOL_VERSION;
+    }
+    return headers;
   }
 }
 

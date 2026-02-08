@@ -527,6 +527,51 @@ describe('SDK Client Tests', () => {
       });
     });
 
+    describe('fetchRevocationRootInfo()', () => {
+      it('throws when revocationRootEndpoint is not configured', async () => {
+        const client = new ZkIdClient({
+          verificationEndpoint: 'http://localhost:3000/verify',
+        });
+
+        try {
+          await client.fetchRevocationRootInfo();
+          expect.fail('Should have thrown');
+        } catch (error: any) {
+          expect(error.message).to.include('revocationRootEndpoint');
+        }
+      });
+
+      it('fetches root info from configured endpoint', async () => {
+        const mockRoot = {
+          root: '123',
+          version: 2,
+          updatedAt: new Date().toISOString(),
+        };
+
+        (global as any).fetch = async (url: string, options: any) => {
+          expect(url).to.equal('http://localhost:3000/api/revocation/root');
+          expect(options.method).to.equal('GET');
+          return {
+            ok: true,
+            json: async () => mockRoot,
+            statusText: 'OK',
+            headers: {
+              get: () => null,
+            },
+          };
+        };
+
+        const client = new ZkIdClient({
+          verificationEndpoint: 'http://localhost:3000/verify',
+          revocationRootEndpoint: 'http://localhost:3000/api/revocation/root',
+        });
+
+        const info = await client.fetchRevocationRootInfo();
+        expect(info.root).to.equal('123');
+        expect(info.version).to.equal(2);
+      });
+    });
+
     describe('InMemoryWallet', () => {
       it('should report isAvailable() as true', async () => {
         const wallet = new InMemoryWallet({

@@ -167,6 +167,16 @@ const server = new ZkIdServer({
 const rootInfo = await server.getRevocationRootInfo();
 ```
 
+**Client helper for revocation root**:
+```typescript
+const client = new ZkIdClient({
+  verificationEndpoint: '/api/verify-age',
+  revocationRootEndpoint: '/api/revocation/root',
+});
+
+const rootInfo = await client.fetchRevocationRootInfo();
+```
+
 ### For Issuers
 
 ```typescript
