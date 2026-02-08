@@ -19,6 +19,10 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - ✅ Telemetry hooks
 - ✅ Demo web app with signed and unsigned flows
 - ✅ OpenAPI schema (`docs/openapi.yaml`)
+- ✅ Protocol versioning (core + SDK + demo)
+- ✅ Revocation root metadata helpers + demo endpoint
+- ✅ Postgres valid-credential tree (reference implementation)
+- ✅ Demo rate limiting for verification endpoints
 - ✅ v0.4.1 patch: stable valid-credential tree indexing, merkle-root freshness guard, added regression tests
 
 ## Now (Next 2–6 Weeks)
@@ -26,7 +30,7 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 1. **API & Protocol Clarity**
    - Finalize REST contracts for verification flows.
    - Add JSON schema or OpenAPI for SDK inputs.
-   - Add versioned protocol identifiers and compatibility notes.
+   - ✅ Add versioned protocol identifiers and compatibility notes.
 
 2. **Issuer Trust & Key Lifecycle**
    - Formalize issuer registry spec (rotation, validity windows, suspension).
@@ -48,8 +52,9 @@ This roadmap focuses on security, interoperability, and production readiness. Da
    - Distributed tree state management and root synchronization.
 
 2. **Production Storage & Reliability**
-   - Reference implementations for Redis/Postgres stores.
-   - Rate limiting + abuse prevention modules.
+   - ✅ Reference implementation for Postgres valid-credential tree.
+   - Reference implementation for Redis store.
+   - ✅ Rate limiting + abuse prevention modules (demo server).
    - Audit log adapter interface.
 
 3. **Wallet Integration**
@@ -104,6 +109,7 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - **v0.3.0**: Revocation proofs in circuit (Merkle inclusion) (done)
 - **v0.4.0**: Revocation SDK integration (done)
 - **v0.4.1**: Revocation-tree stability + Merkle root freshness guard (done)
+- **v0.4.2**: Protocol versioning, revocation root helpers, Postgres tree, demo rate limiting (done)
 - **v0.5.0**: Wallet prototype + production storage
 - **v0.6.0**: KMS/HSM integration examples + issuer policy tooling
 - **v1.0.0**: Audit-ready release
