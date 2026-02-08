@@ -246,7 +246,7 @@ See `docs/SIGNED-CIRCUITS.md` for how to use circuits that verify issuer signatu
 - [ ] Use HTTPS for all communications
 - [ ] Audit circuits before production use
 - [x] Implement credential revocation mechanism
-- [x] Add monitoring and alerting for abuse (telemetry)
+- [x] Add telemetry for verification events (alerting not implemented)
 
 ## Contributing
 

@@ -363,23 +363,22 @@ if (await revocationStore.isRevoked(credentialCommitment)) {
 }
 ```
 
-### W3C Verifiable Credentials
+### External Credential Formats
 
-The system includes W3C VC format support for interoperability.
+The system includes optional external format conversion utilities for interoperability.
 
 **Conversion:**
 ```typescript
-// Convert to W3C VC format
-const vc = toVerifiableCredential(signedCredential);
+// Convert to external credential format
+const external = toExternalCredentialFormat(signedCredential);
 
-// Parse from W3C VC format
-const signedCredential = fromVerifiableCredential(vc);
+// Parse from external credential format
+const signedCredential = fromExternalCredentialFormat(external);
 ```
 
 **Properties:**
-- Standard JSON-LD format
-- Includes @context, type, credentialSubject, proof
-- Compatible with existing VC tooling and wallets
+- JSON-based format with issuer, subject, and proof metadata
+- Intended for interoperability demos, not production use
 
 ## Security Analysis
 

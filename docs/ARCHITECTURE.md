@@ -397,7 +397,7 @@ Each attribute can be selectively disclosed using separate ZK proof circuits.
 
 - **Ed25519 Signatures**: Production-grade asymmetric signatures for credential authentication
 - **Credential Revocation**: InMemoryRevocationStore with verifier integration
-- **W3C Verifiable Credentials**: Format conversion support (toVerifiableCredential/fromVerifiableCredential)
+- **External Credential Formats**: Optional format conversion support (toExternalCredentialFormat/fromExternalCredentialFormat)
 - **Telemetry**: Verification event tracking and monitoring
 - **Batch Verification**: Efficient verification of multiple proofs in parallel
 - **Replay Protection**: Nonce-based replay attack prevention

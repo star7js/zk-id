@@ -188,7 +188,7 @@ app.post('/api/demo/verify-age', async (req, res) => {
     }
 
     // Validate minAge
-    if (typeof minAge !== 'number' || minAge < 0 || minAge > 150) {
+    if (!Number.isInteger(minAge) || minAge < 0 || minAge > 150) {
       return res.status(400).json({
         error: 'Invalid minAge: must be a number between 0 and 150',
       });
@@ -295,7 +295,7 @@ app.post('/api/demo/verify-nationality', async (req, res) => {
     }
 
     // Validate targetNationality
-    if (typeof targetNationality !== 'number' || targetNationality < 1 || targetNationality > 999) {
+    if (!Number.isInteger(targetNationality) || targetNationality < 1 || targetNationality > 999) {
       return res.status(400).json({
         error: 'Invalid targetNationality: must be a number between 1 and 999',
       });

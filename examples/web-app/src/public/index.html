@@ -497,7 +497,7 @@
             }
 
             // Validate input
-            if (isNaN(minAge)) {
+            if (isNaN(minAge) || !Number.isInteger(minAge)) {
                 resultDiv.className = 'result error';
                 resultDiv.textContent = '✗ Invalid minimum age';
                 resultDiv.style.display = 'block';
@@ -601,7 +601,7 @@
             }
 
             // Validate input
-            if (isNaN(targetNationality)) {
+            if (isNaN(targetNationality) || !Number.isInteger(targetNationality)) {
                 resultDiv.className = 'result error';
                 resultDiv.textContent = '✗ Invalid target nationality';
                 resultDiv.style.display = 'block';
