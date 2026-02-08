@@ -11,10 +11,12 @@ import {
 import {
   ProofResponse,
   InMemoryRevocationStore,
+  InMemoryValidCredentialTree,
   generateAgeProof,
   generateNationalityProof,
   generateAgeProofSigned,
   generateNationalityProofSigned,
+  generateAgeProofRevocable,
 } from '@zk-id/core';
 
 async function main() {
@@ -34,6 +36,8 @@ const NATIONALITY_SIGNED_WASM_PATH = join(
   'nationality-verify-signed_js/nationality-verify-signed.wasm'
 );
 const NATIONALITY_SIGNED_ZKEY_PATH = join(CIRCUITS_BASE, 'nationality-verify-signed.zkey');
+const AGE_REVOCABLE_WASM_PATH = join(CIRCUITS_BASE, 'age-verify-revocable_js/age-verify-revocable.wasm');
+const AGE_REVOCABLE_ZKEY_PATH = join(CIRCUITS_BASE, 'age-verify-revocable.zkey');
 
 // Middleware
 app.use(express.json({ limit: '100kb' }));
@@ -45,6 +49,7 @@ const issuer = CredentialIssuer.createTestIssuer(issuerName);
 const circuitIssuer = await CircuitCredentialIssuer.createTestIssuer(issuerName);
 const revocationStore = new InMemoryRevocationStore();
 issuer.setRevocationStore(revocationStore);
+const validCredentialTree = new InMemoryValidCredentialTree(10);
 
 // Setup issuer registry (demo; production should be backed by DB/KMS/HSM)
 const issuerRegistry = new InMemoryIssuerRegistry([
@@ -67,10 +72,15 @@ const zkIdServer = new ZkIdServer({
     __dirname,
     '../../../packages/circuits/build/nationality-verify-signed_verification_key.json'
   ),
+  revocableVerificationKeyPath: join(
+    __dirname,
+    '../../../packages/circuits/build/age-verify-revocable_verification_key.json'
+  ),
   nonceStore: new InMemoryNonceStore(),
   challengeStore: new InMemoryChallengeStore(),
   challengeTtlMs: 5 * 60 * 1000,
   revocationStore,
+  validCredentialTree,
   issuerRegistry,
   issuerPublicKeyBits: {
     [issuerName]: circuitIssuer.getIssuerPublicKeyBits(),
@@ -129,6 +139,9 @@ app.post('/api/issue-credential', async (req, res) => {
 
     // Store for demo purposes
     issuedCredentials.set(signedCredential.credential.id, signedCredential);
+
+    // Add to valid credential tree for revocable proofs
+    await validCredentialTree.add(signedCredential.credential.commitment);
 
     res.json({
       success: true,
@@ -602,6 +615,123 @@ app.post('/api/demo/verify-nationality', async (req, res) => {
 });
 
 /**
+ * Demo endpoint: Generate and verify revocable age proof
+ */
+app.post('/api/demo/verify-age-revocable', async (req, res) => {
+  try {
+    const { credentialId, minAge, nonce: providedNonce, requestTimestamp: providedTimestamp } = req.body;
+
+    if (!credentialId || minAge === undefined) {
+      return res.status(400).json({
+        error: 'Missing required fields: credentialId, minAge',
+      });
+    }
+
+    // Validate minAge
+    if (!Number.isInteger(minAge) || minAge < 0 || minAge > 150) {
+      return res.status(400).json({
+        error: 'Invalid minAge: must be a number between 0 and 150',
+      });
+    }
+
+    // Look up stored credential
+    const signedCredential = issuedCredentials.get(credentialId);
+    if (!signedCredential) {
+      return res.status(404).json({
+        error: 'Credential not found',
+      });
+    }
+
+    // Get Merkle witness from the valid credential tree
+    const witness = await validCredentialTree.getWitness(signedCredential.credential.commitment);
+    if (!witness) {
+      return res.status(400).json({
+        error: 'Credential not found in valid credential tree (possibly revoked)',
+      });
+    }
+
+    // Generate proof (this is the expensive operation)
+    const proofGenStart = Date.now();
+    const { nonce, requestTimestamp } =
+      providedNonce && providedTimestamp
+        ? { nonce: providedNonce, requestTimestamp: providedTimestamp }
+        : await zkIdServer.createChallenge();
+    const requestTimestampMs = Date.parse(requestTimestamp);
+    const proof = await generateAgeProofRevocable(
+      signedCredential.credential,
+      minAge,
+      nonce,
+      requestTimestampMs,
+      witness,
+      AGE_REVOCABLE_WASM_PATH,
+      AGE_REVOCABLE_ZKEY_PATH
+    );
+    const proofGenTime = Date.now() - proofGenStart;
+
+    // Wrap in ProofResponse with a fresh nonce
+    const proofResponse: ProofResponse = {
+      proof,
+      nonce,
+      claimType: 'age-revocable',
+      credentialId,
+      signedCredential,
+      requestTimestamp,
+    };
+
+    // Verify the proof
+    const verifyStart = Date.now();
+    const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+    const result = await zkIdServer.verifyProof(proofResponse, clientIp);
+    const verifyTime = Date.now() - verifyStart;
+    const totalTime = Date.now() - proofGenStart;
+
+    if (result.verified) {
+      res.json({
+        verified: true,
+        message: `Revocable age verification successful! User is at least ${minAge} years old and credential is valid (not revoked).`,
+        timing: {
+          proofGenerationMs: proofGenTime,
+          verificationMs: verifyTime,
+          totalMs: totalTime,
+        },
+        privacy: {
+          revealed: [`Age >= ${minAge}`, 'Credential is in valid set'],
+          hidden: ['Exact birth year', 'Nationality', 'Other attributes'],
+        },
+        proofDetails: {
+          system: 'Groth16',
+          curve: 'BN128',
+          proofSize: `${JSON.stringify(proof.proof).length} bytes`,
+          merkleRoot: proof.publicSignals.merkleRoot,
+        },
+      });
+    } else {
+      res.json({
+        verified: false,
+        message: result.error || 'Revocable age verification failed',
+        timing: {
+          proofGenerationMs: proofGenTime,
+          verificationMs: verifyTime,
+          totalMs: totalTime,
+        },
+      });
+    }
+  } catch (error) {
+    console.error('Error in demo revocable age verification:', error);
+    // Check if this is a circuit assertion failure (user too young)
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    const isAssertionFailure = errorMsg.includes('Assert Failed');
+
+    res.status(400).json({
+      verified: false,
+      message: isAssertionFailure
+        ? `Age verification failed: User is younger than ${req.body.minAge}`
+        : `Failed to generate or verify proof: ${errorMsg}`,
+    });
+  }
+});
+
+/**
  * Demo endpoint: Generate and verify signed nationality proof
  */
 app.post('/api/demo/verify-nationality-signed', async (req, res) => {
@@ -742,6 +872,9 @@ app.post('/api/revoke-credential', async (req, res) => {
     }
 
     await revocationStore.revoke(credential.commitment);
+
+    // Remove from valid credential tree for revocable proofs
+    await validCredentialTree.remove(credential.commitment);
 
     res.json({
       success: true,

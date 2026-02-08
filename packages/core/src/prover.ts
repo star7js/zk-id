@@ -5,7 +5,9 @@ import {
   NationalityProof,
   AgeProofSigned,
   NationalityProofSigned,
+  AgeProofRevocable,
   CircuitSignatureInputs,
+  RevocationWitness,
 } from './types';
 import { poseidonHash } from './poseidon';
 
@@ -355,6 +357,109 @@ export async function generateNationalityProofSignedAuto(
     nonce,
     requestTimestampMs,
     signatureInputs,
+    wasmPath,
+    zkeyPath
+  );
+}
+
+/**
+ * Generates a zero-knowledge proof that the credential holder is at least minAge years old
+ * AND that the credential is in the valid credential Merkle tree (not revoked)
+ *
+ * @param credential - The user's credential (private)
+ * @param minAge - The minimum age requirement (public)
+ * @param nonce - Nonce for replay protection (public)
+ * @param requestTimestampMs - Request timestamp in milliseconds (public)
+ * @param merkleWitness - Merkle witness from the valid credential tree
+ * @param wasmPath - Path to the compiled circuit WASM file
+ * @param zkeyPath - Path to the proving key
+ * @returns An AgeProofRevocable that can be verified without revealing the birth year
+ */
+export async function generateAgeProofRevocable(
+  credential: Credential,
+  minAge: number,
+  nonce: string,
+  requestTimestampMs: number,
+  merkleWitness: RevocationWitness,
+  wasmPath: string,
+  zkeyPath: string
+): Promise<AgeProofRevocable> {
+  const currentYear = new Date().getFullYear();
+
+  // Recompute the credential hash to use as a public signal
+  const credentialHash = await poseidonHash([
+    credential.birthYear,
+    credential.nationality,
+    BigInt('0x' + credential.salt),
+  ]);
+
+  // Prepare circuit inputs
+  const input = {
+    birthYear: credential.birthYear,
+    nationality: credential.nationality,
+    salt: BigInt('0x' + credential.salt).toString(),
+    currentYear: currentYear,
+    minAge: minAge,
+    credentialHash: credentialHash.toString(),
+    merkleRoot: merkleWitness.root,
+    pathIndices: merkleWitness.pathIndices,
+    siblings: merkleWitness.siblings,
+    nonce: nonce,
+    requestTimestamp: requestTimestampMs,
+  };
+
+  // Generate the proof using snarkjs
+  const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+    input,
+    wasmPath,
+    zkeyPath
+  );
+
+  // Format the proof
+  // Public signal index mapping: [0]=currentYear, [1]=minAge, [2]=credentialHash, [3]=merkleRoot, [4]=nonce, [5]=requestTimestamp
+  const formattedProof: AgeProofRevocable = {
+    proof: {
+      pi_a: proof.pi_a.slice(0, 2).map((x: any) => x.toString()),
+      pi_b: proof.pi_b.slice(0, 2).map((arr: any) =>
+        arr.map((x: any) => x.toString())
+      ),
+      pi_c: proof.pi_c.slice(0, 2).map((x: any) => x.toString()),
+      protocol: proof.protocol,
+      curve: proof.curve,
+    },
+    publicSignals: {
+      currentYear: parseInt(publicSignals[0]),
+      minAge: parseInt(publicSignals[1]),
+      credentialHash: publicSignals[2],
+      merkleRoot: publicSignals[3],
+      nonce: publicSignals[4],
+      requestTimestamp: parseInt(publicSignals[5]),
+    },
+  };
+
+  return formattedProof;
+}
+
+/**
+ * Generates revocable age proof with automatic path resolution
+ * (assumes standard build directory structure)
+ */
+export async function generateAgeProofRevocableAuto(
+  credential: Credential,
+  minAge: number,
+  nonce: string,
+  requestTimestampMs: number,
+  merkleWitness: RevocationWitness
+): Promise<AgeProofRevocable> {
+  const wasmPath = require.resolve('@zk-id/circuits/build/age-verify-revocable_js/age-verify-revocable.wasm');
+  const zkeyPath = require.resolve('@zk-id/circuits/build/age-verify-revocable.zkey');
+
+  return generateAgeProofRevocable(
+    credential,
+    minAge,
+    nonce,
+    requestTimestampMs,
+    merkleWitness,
     wasmPath,
     zkeyPath
   );

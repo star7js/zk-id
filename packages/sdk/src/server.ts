@@ -12,8 +12,10 @@ import {
   ProofResponse,
   AgeProof,
   NationalityProof,
+  AgeProofRevocable,
   VerificationKey,
   RevocationStore,
+  ValidCredentialTree,
   SignedCredential,
   credentialSignaturePayload,
   AgeProofSigned,
@@ -22,8 +24,10 @@ import {
   verifyNationalityProofSignedWithIssuer,
   verifyAgeProof,
   verifyNationalityProof,
+  verifyAgeProofRevocable,
   validateProofConstraints,
   validateNationalityProofConstraints,
+  validateAgeProofRevocableConstraints,
 } from '@zk-id/core';
 import { readFileSync } from 'fs';
 import { EventEmitter } from 'events';
@@ -40,12 +44,16 @@ export interface ZkIdServerConfig {
   signedVerificationKeyPath?: string;
   /** Optional path to signed nationality verification key file */
   signedNationalityVerificationKeyPath?: string;
+  /** Optional path to revocable age verification key file */
+  revocableVerificationKeyPath?: string;
   /** Optional nonce storage for replay protection */
   nonceStore?: NonceStore;
   /** Optional rate limiter */
   rateLimiter?: RateLimiter;
   /** Optional revocation store for checking revoked credentials */
   revocationStore?: RevocationStore;
+  /** Optional valid credential tree for revocable proofs */
+  validCredentialTree?: ValidCredentialTree;
   /** Optional challenge store for server-issued nonces */
   challengeStore?: ChallengeStore;
   /** Challenge TTL in ms (default: 5 minutes) */
@@ -73,6 +81,7 @@ export interface VerificationKeySet {
   nationality?: VerificationKey;
   signedAge?: VerificationKey;
   signedNationality?: VerificationKey;
+  ageRevocable?: VerificationKey;
 }
 
 export interface VerificationKeyProvider {
@@ -173,6 +182,7 @@ export class ZkIdServer extends EventEmitter {
   private nationalityVerificationKey?: VerificationKey;
   private signedVerificationKey?: VerificationKey;
   private signedNationalityVerificationKey?: VerificationKey;
+  private revocableVerificationKey?: VerificationKey;
 
   constructor(config: ZkIdServerConfig) {
     super();
@@ -206,6 +216,14 @@ export class ZkIdServer extends EventEmitter {
     } else if (config.signedNationalityVerificationKeyPath) {
       this.signedNationalityVerificationKey = this.loadVerificationKey(
         config.signedNationalityVerificationKeyPath
+      );
+    }
+
+    if (config.verificationKeys?.ageRevocable) {
+      this.revocableVerificationKey = config.verificationKeys.ageRevocable;
+    } else if (config.revocableVerificationKeyPath) {
+      this.revocableVerificationKey = this.loadVerificationKey(
+        config.revocableVerificationKeyPath
       );
     }
   }
@@ -292,6 +310,20 @@ export class ZkIdServer extends EventEmitter {
       const requiredMinAge = requiredPolicy?.minAge ?? this.config.requiredMinAge;
       if (requiredMinAge !== undefined) {
         const proof = proofResponse.proof as AgeProof;
+        if (proof.publicSignals.minAge !== requiredMinAge) {
+          const result = {
+            verified: false,
+            error: 'Proof does not satisfy required minimum age',
+          };
+          this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
+          return result;
+        }
+      }
+    }
+    if (proofResponse.claimType === 'age-revocable') {
+      const requiredMinAge = requiredPolicy?.minAge ?? this.config.requiredMinAge;
+      if (requiredMinAge !== undefined) {
+        const proof = proofResponse.proof as AgeProofRevocable;
         if (proof.publicSignals.minAge !== requiredMinAge) {
           const result = {
             verified: false,
@@ -413,6 +445,8 @@ export class ZkIdServer extends EventEmitter {
       result = await this.verifyAgeProofInternal(proofResponse);
     } else if (proofResponse.claimType === 'nationality') {
       result = await this.verifyNationalityProofInternal(proofResponse);
+    } else if (proofResponse.claimType === 'age-revocable') {
+      result = await this.verifyAgeProofRevocableInternal(proofResponse);
     } else {
       result = {
         verified: false,
@@ -698,6 +732,68 @@ export class ZkIdServer extends EventEmitter {
   }
 
   /**
+   * Internal revocable age proof verification
+   */
+  private async verifyAgeProofRevocableInternal(
+    proofResponse: ProofResponse
+  ): Promise<VerificationResult> {
+    const proof = proofResponse.proof as AgeProofRevocable;
+
+    if (!this.revocableVerificationKey) {
+      return {
+        verified: false,
+        error: 'Revocable age verification key not configured',
+      };
+    }
+
+    // Validate proof constraints
+    const constraintCheck = validateAgeProofRevocableConstraints(proof);
+    if (!constraintCheck.valid) {
+      return {
+        verified: false,
+        error: `Invalid proof constraints: ${constraintCheck.errors.join(', ')}`,
+      };
+    }
+
+    // Optional Merkle root freshness check
+    const expectedRoot = this.config.validCredentialTree
+      ? await this.config.validCredentialTree.getRoot()
+      : undefined;
+
+    // Cryptographically verify the proof
+    try {
+      const isValid = await verifyAgeProofRevocable(
+        proof,
+        this.revocableVerificationKey,
+        expectedRoot
+      );
+
+      if (isValid) {
+        // Mark nonce as used
+        if (this.config.nonceStore) {
+          await this.config.nonceStore.add(proofResponse.nonce);
+        }
+
+        return {
+          verified: true,
+          claimType: proofResponse.claimType,
+          minAge: proof.publicSignals.minAge,
+        };
+      } else {
+        return {
+          verified: false,
+          error: 'Proof verification failed',
+        };
+      }
+    } catch (error) {
+      return {
+        verified: false,
+        error: `Verification error: ${error}`,
+      };
+    }
+  }
+
+  /**
    * Load verification key from file
    */
   private loadVerificationKey(path: string): VerificationKey {
@@ -750,34 +846,43 @@ export class ZkIdServer extends EventEmitter {
   }
 
   private getCredentialCommitmentFromProof(proofResponse: ProofResponse): string {
-    const proof = proofResponse.proof as AgeProof | NationalityProof;
+    const proof = proofResponse.proof as AgeProof | NationalityProof | AgeProofRevocable;
     if (proofResponse.claimType === 'age') {
       return (proof as AgeProof).publicSignals.credentialHash;
     }
     if (proofResponse.claimType === 'nationality') {
       return (proof as NationalityProof).publicSignals.credentialHash;
     }
+    if (proofResponse.claimType === 'age-revocable') {
+      return (proof as AgeProofRevocable).publicSignals.credentialHash;
+    }
     return '';
   }
 
   private getProofNonce(proofResponse: ProofResponse): string {
-    const proof = proofResponse.proof as AgeProof | NationalityProof;
+    const proof = proofResponse.proof as AgeProof | NationalityProof | AgeProofRevocable;
     if (proofResponse.claimType === 'age') {
       return (proof as AgeProof).publicSignals.nonce;
     }
     if (proofResponse.claimType === 'nationality') {
       return (proof as NationalityProof).publicSignals.nonce;
     }
+    if (proofResponse.claimType === 'age-revocable') {
+      return (proof as AgeProofRevocable).publicSignals.nonce;
+    }
     return '';
   }
 
   private getProofTimestamp(proofResponse: ProofResponse): number {
-    const proof = proofResponse.proof as AgeProof | NationalityProof;
+    const proof = proofResponse.proof as AgeProof | NationalityProof | AgeProofRevocable;
     if (proofResponse.claimType === 'age') {
       return (proof as AgeProof).publicSignals.requestTimestamp;
     }
     if (proofResponse.claimType === 'nationality') {
       return (proof as NationalityProof).publicSignals.requestTimestamp;
+    }
+    if (proofResponse.claimType === 'age-revocable') {
+      return (proof as AgeProofRevocable).publicSignals.requestTimestamp;
     }
     return 0;
   }

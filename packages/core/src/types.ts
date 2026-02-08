@@ -65,6 +65,26 @@ export interface NationalityProof {
   };
 }
 
+export interface AgeProofRevocable {
+  /** The zero-knowledge proof data (Groth16 format) */
+  proof: {
+    pi_a: string[];
+    pi_b: string[][];
+    pi_c: string[];
+    protocol: string;
+    curve: string;
+  };
+  /** Public signals used in the proof */
+  publicSignals: {
+    currentYear: number;
+    minAge: number;
+    credentialHash: string;
+    merkleRoot: string;
+    nonce: string;
+    requestTimestamp: number;
+  };
+}
+
 export interface CircuitSignatureInputs {
   /** Issuer public key bits (packed point) */
   issuerPublicKey: string[];
@@ -123,7 +143,7 @@ export interface VerificationKey {
 
 export interface ProofRequest {
   /** Type of claim being proven */
-  claimType: 'age' | 'nationality';
+  claimType: 'age' | 'nationality' | 'age-revocable';
   /** Minimum age required (for age claims) */
   minAge?: number;
   /** Target nationality to verify (for nationality claims) */
@@ -140,7 +160,7 @@ export interface ProofResponse {
   /** The type of claim */
   claimType: string;
   /** The zero-knowledge proof */
-  proof: AgeProof | NationalityProof;
+  proof: AgeProof | NationalityProof | AgeProofRevocable;
   /** Signed credential (binds issuer and commitment) */
   signedCredential: SignedCredential;
   /** Nonce from the request (for replay protection) */
@@ -187,4 +207,19 @@ export interface RevocationAccumulator {
   revoke(commitment: string): Promise<void>;
   /** Generate Merkle witness for a revoked commitment */
   getWitness(commitment: string): Promise<RevocationWitness | null>;
+}
+
+export interface ValidCredentialTree {
+  /** Add a valid credential commitment to the tree */
+  add(commitment: string): Promise<void>;
+  /** Remove a credential commitment from the tree (on revocation) */
+  remove(commitment: string): Promise<void>;
+  /** Check if a commitment is in the tree */
+  contains(commitment: string): Promise<boolean>;
+  /** Get the current Merkle root */
+  getRoot(): Promise<string>;
+  /** Generate Merkle witness for a credential */
+  getWitness(commitment: string): Promise<RevocationWitness | null>;
+  /** Get the number of credentials in the tree */
+  size(): Promise<number>;
 }

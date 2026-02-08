@@ -4,6 +4,7 @@ import {
   NationalityProof,
   AgeProofSigned,
   NationalityProofSigned,
+  AgeProofRevocable,
   VerificationKey,
   BatchVerificationResult,
 } from './types';
@@ -253,6 +254,98 @@ export function validateNationalityProofConstraints(proof: NationalityProof): {
 }
 
 /**
+ * Verifies a revocable age proof using the verification key
+ *
+ * @param proof - The proof to verify
+ * @param verificationKey - The circuit's verification key (public)
+ * @param expectedMerkleRoot - Optional expected Merkle root for freshness check
+ * @returns true if the proof is valid, false otherwise
+ */
+export async function verifyAgeProofRevocable(
+  proof: AgeProofRevocable,
+  verificationKey: VerificationKey,
+  expectedMerkleRoot?: string
+): Promise<boolean> {
+  // Optional server-side freshness check
+  if (expectedMerkleRoot && proof.publicSignals.merkleRoot !== expectedMerkleRoot) {
+    return false;
+  }
+
+  // Convert proof to snarkjs format
+  const snarkProof = {
+    pi_a: proof.proof.pi_a,
+    pi_b: proof.proof.pi_b,
+    pi_c: proof.proof.pi_c,
+    protocol: proof.proof.protocol,
+    curve: proof.proof.curve,
+  };
+
+  // Convert public signals to array
+  // Index mapping: [0]=currentYear, [1]=minAge, [2]=credentialHash, [3]=merkleRoot, [4]=nonce, [5]=requestTimestamp
+  const publicSignals = [
+    proof.publicSignals.currentYear.toString(),
+    proof.publicSignals.minAge.toString(),
+    proof.publicSignals.credentialHash,
+    proof.publicSignals.merkleRoot,
+    proof.publicSignals.nonce,
+    proof.publicSignals.requestTimestamp.toString(),
+  ];
+
+  // Verify the proof
+  const isValid = await snarkjs.groth16.verify(
+    verificationKey,
+    publicSignals,
+    snarkProof
+  );
+
+  return isValid;
+}
+
+/**
+ * Additional validation checks for revocable age proofs
+ */
+export function validateAgeProofRevocableConstraints(proof: AgeProofRevocable): {
+  valid: boolean;
+  errors: string[];
+} {
+  const errors: string[] = [];
+
+  // Check that current year is reasonable
+  const now = new Date().getFullYear();
+  if (proof.publicSignals.currentYear < 2020 || proof.publicSignals.currentYear > now + 1) {
+    errors.push('Invalid current year in proof');
+  }
+
+  // Check that minAge is reasonable
+  if (proof.publicSignals.minAge < 0 || proof.publicSignals.minAge > 150) {
+    errors.push('Invalid minimum age requirement');
+  }
+
+  // Check that credential hash is present
+  if (!proof.publicSignals.credentialHash || proof.publicSignals.credentialHash === '0') {
+    errors.push('Missing or invalid credential hash');
+  }
+
+  // Check that merkle root is present
+  if (!proof.publicSignals.merkleRoot || proof.publicSignals.merkleRoot === '0') {
+    errors.push('Missing or invalid merkle root');
+  }
+
+  if (!proof.publicSignals.nonce || proof.publicSignals.nonce.length === 0) {
+    errors.push('Missing nonce');
+  }
+
+  if (!proof.publicSignals.requestTimestamp || proof.publicSignals.requestTimestamp <= 0) {
+    errors.push('Invalid request timestamp');
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
  * Load verification key from JSON file
  */
 export async function loadVerificationKey(path: string): Promise<VerificationKey> {
@@ -269,9 +362,9 @@ export async function loadVerificationKey(path: string): Promise<VerificationKey
  */
 export async function verifyBatch(
   proofs: Array<{
-    proof: AgeProof | NationalityProof;
+    proof: AgeProof | NationalityProof | AgeProofRevocable;
     verificationKey: VerificationKey;
-    type: 'age' | 'nationality';
+    type: 'age' | 'nationality' | 'age-revocable';
   }>
 ): Promise<BatchVerificationResult> {
   // Handle empty array
@@ -290,8 +383,12 @@ export async function verifyBatch(
       let verified: boolean;
       if (type === 'age') {
         verified = await verifyAgeProof(proof as AgeProof, verificationKey);
-      } else {
+      } else if (type === 'nationality') {
         verified = await verifyNationalityProof(proof as NationalityProof, verificationKey);
+      } else if (type === 'age-revocable') {
+        verified = await verifyAgeProofRevocable(proof as AgeProofRevocable, verificationKey);
+      } else {
+        throw new Error(`Unknown proof type: ${type}`);
       }
       return { index, verified, error: undefined };
     } catch (error) {

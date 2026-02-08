@@ -12,8 +12,10 @@ import {
   ProofResponse,
   Credential,
   SignedCredential,
+  ValidCredentialTree,
   generateAgeProof,
   generateNationalityProof,
+  generateAgeProofRevocable,
 } from '@zk-id/core';
 
 export interface ZkIdClientConfig {
@@ -99,6 +101,35 @@ export class ZkIdClient {
   }
 
   /**
+   * Request revocable age verification from the user
+   *
+   * @param minAge - Minimum age requirement (e.g., 18, 21)
+   * @returns true if verification succeeds, false otherwise
+   */
+  async verifyAgeRevocable(minAge: number): Promise<boolean> {
+    try {
+      // Create proof request
+      const request: ProofRequest = {
+        claimType: 'age-revocable',
+        minAge,
+        nonce: this.generateNonce(),
+        timestamp: new Date().toISOString(),
+      };
+
+      // Get proof from wallet (or generate locally)
+      const proofResponse = await this.requestProof(request);
+
+      // Submit proof to backend for verification
+      const isValid = await this.submitProof(proofResponse);
+
+      return isValid;
+    } catch (error) {
+      console.error('[zk-id] Revocable age verification failed:', error);
+      return false;
+    }
+  }
+
+  /**
    * Request a proof from the user's wallet
    */
   private async requestProof(request: ProofRequest): Promise<ProofResponse> {
@@ -160,7 +191,10 @@ export interface InMemoryWalletConfig {
     ageZkey: string;
     nationalityWasm?: string;
     nationalityZkey?: string;
+    ageRevocableWasm?: string;
+    ageRevocableZkey?: string;
   };
+  validCredentialTree?: ValidCredentialTree;
 }
 
 /**
@@ -237,6 +271,42 @@ export class InMemoryWallet implements WalletConnector {
       return {
         credentialId: credential.id,
         claimType: 'nationality',
+        proof,
+        signedCredential,
+        nonce: request.nonce,
+        requestTimestamp: request.timestamp,
+      };
+    } else if (request.claimType === 'age-revocable') {
+      if (!request.minAge) {
+        throw new Error('minAge is required for age-revocable proof');
+      }
+
+      if (!this.config.circuitPaths.ageRevocableWasm || !this.config.circuitPaths.ageRevocableZkey) {
+        throw new Error('Age-revocable circuit paths not configured');
+      }
+
+      if (!this.config.validCredentialTree) {
+        throw new Error('Valid credential tree not configured for revocable proofs');
+      }
+
+      const witness = await this.config.validCredentialTree.getWitness(credential.commitment);
+      if (!witness) {
+        throw new Error('Credential not found in valid credential tree');
+      }
+
+      const proof = await generateAgeProofRevocable(
+        credential,
+        request.minAge,
+        request.nonce,
+        Date.parse(request.timestamp),
+        witness,
+        this.config.circuitPaths.ageRevocableWasm,
+        this.config.circuitPaths.ageRevocableZkey
+      );
+
+      return {
+        credentialId: credential.id,
+        claimType: 'age-revocable',
         proof,
         signedCredential,
         nonce: request.nonce,
