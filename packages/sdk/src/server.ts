@@ -29,10 +29,13 @@ import {
   validateNationalityProofConstraints,
   validateAgeProofRevocableConstraints,
   PROTOCOL_VERSION,
+  isProtocolCompatible,
 } from '@zk-id/core';
 import { readFileSync } from 'fs';
 import { EventEmitter } from 'events';
 import { KeyObject, randomBytes, verify as cryptoVerify } from 'crypto';
+
+export type ProtocolVersionPolicy = 'strict' | 'warn' | 'off';
 
 export interface ZkIdServerConfig {
   /** Path to the age verification key file */
@@ -75,6 +78,8 @@ export interface ZkIdServerConfig {
   requiredPolicy?: RequiredPolicy;
   /** Maximum allowed clock skew for request timestamps (ms) */
   maxRequestAgeMs?: number;
+  /** Protocol version enforcement policy (default: warn) */
+  protocolVersionPolicy?: ProtocolVersionPolicy;
 }
 
 export interface VerificationKeySet {
@@ -274,7 +279,8 @@ export class ZkIdServer extends EventEmitter {
    */
   async verifyProof(
     proofResponse: ProofResponse,
-    clientIdentifier?: string
+    clientIdentifier?: string,
+    clientProtocolVersion?: string
   ): Promise<VerificationResult> {
     const startTime = Date.now();
     const requireSigned = this.config.requireSignedCredentials !== false;
@@ -290,6 +296,17 @@ export class ZkIdServer extends EventEmitter {
         this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
         return result;
       }
+    }
+
+    // Protocol version enforcement
+    const protocolResult = this.checkProtocolVersion(
+      clientProtocolVersion,
+      proofResponse.claimType,
+      startTime,
+      clientIdentifier
+    );
+    if (protocolResult) {
+      return protocolResult;
     }
 
     // Signed credential validation (issuer trust + binding)
@@ -471,7 +488,8 @@ export class ZkIdServer extends EventEmitter {
    */
   async verifySignedProof(
     request: SignedProofRequest,
-    clientIdentifier?: string
+    clientIdentifier?: string,
+    clientProtocolVersion?: string
   ): Promise<VerificationResult> {
     const startTime = Date.now();
 
@@ -483,6 +501,17 @@ export class ZkIdServer extends EventEmitter {
         this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier);
         return result;
       }
+    }
+
+    // Protocol version enforcement
+    const protocolResult = this.checkProtocolVersion(
+      clientProtocolVersion,
+      request.claimType,
+      startTime,
+      clientIdentifier
+    );
+    if (protocolResult) {
+      return protocolResult;
     }
 
     // Validate timestamp and nonce binding
@@ -984,6 +1013,53 @@ export class ZkIdServer extends EventEmitter {
    */
   onVerification(callback: (event: VerificationEvent) => void): void {
     this.on('verification', callback);
+  }
+
+  private checkProtocolVersion(
+    clientProtocolVersion: string | undefined,
+    claimType: string,
+    startTime: number,
+    clientIdentifier?: string
+  ): VerificationResult | null {
+    const policy: ProtocolVersionPolicy = this.config.protocolVersionPolicy ?? 'warn';
+    if (policy === 'off') {
+      return null;
+    }
+
+    if (!clientProtocolVersion) {
+      if (policy === 'strict') {
+        const result: VerificationResult = {
+          verified: false,
+          error: 'Missing protocol version',
+          protocolVersion: PROTOCOL_VERSION,
+        };
+        this.emitVerificationEvent(claimType, result, startTime, clientIdentifier);
+        return result;
+      }
+      console.warn(
+        `[zk-id] Protocol version header missing for claimType=${claimType}. ` +
+          `Server=${PROTOCOL_VERSION}`
+      );
+      return null;
+    }
+
+    if (!isProtocolCompatible(PROTOCOL_VERSION, clientProtocolVersion)) {
+      if (policy === 'strict') {
+        const result: VerificationResult = {
+          verified: false,
+          error: 'Incompatible protocol version',
+          protocolVersion: PROTOCOL_VERSION,
+        };
+        this.emitVerificationEvent(claimType, result, startTime, clientIdentifier);
+        return result;
+      }
+      console.warn(
+        `[zk-id] Protocol version mismatch for claimType=${claimType}. ` +
+          `Client=${clientProtocolVersion}, Server=${PROTOCOL_VERSION}`
+      );
+    }
+
+    return null;
   }
 }
 

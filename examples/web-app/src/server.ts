@@ -59,6 +59,9 @@ app.use((req, res, next) => {
   next();
 });
 
+const getClientProtocolVersion = (req: express.Request): string | undefined =>
+  req.get('X-ZkId-Protocol-Version') ?? undefined;
+
 // Create a test issuer (in production, this would use secure key management)
 const issuerName = 'Demo Government ID Authority';
 const issuer = CredentialIssuer.createTestIssuer(issuerName);
@@ -240,7 +243,11 @@ app.post('/api/verify-age', async (req, res) => {
     }
 
     // Verify the proof
-    const result = await zkIdServer.verifyProof(proofResponse, clientIp);
+    const result = await zkIdServer.verifyProof(
+      proofResponse,
+      clientIp,
+      getClientProtocolVersion(req)
+    );
 
     if (result.verified) {
       res.json({
@@ -281,7 +288,11 @@ app.post('/api/verify-nationality', async (req, res) => {
     }
 
     // Verify the proof
-    const result = await zkIdServer.verifyProof(proofResponse, clientIp);
+    const result = await zkIdServer.verifyProof(
+      proofResponse,
+      clientIp,
+      getClientProtocolVersion(req)
+    );
 
     if (result.verified) {
       res.json({
@@ -367,7 +378,11 @@ app.post('/api/demo/verify-age', async (req, res) => {
     // Verify the proof
     const verifyStart = Date.now();
     const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
-    const result = await zkIdServer.verifyProof(proofResponse, clientIp);
+    const result = await zkIdServer.verifyProof(
+      proofResponse,
+      clientIp,
+      getClientProtocolVersion(req)
+    );
     const verifyTime = Date.now() - verifyStart;
     const totalTime = Date.now() - proofGenStart;
 
@@ -471,7 +486,11 @@ app.post('/api/demo/verify-age-signed', async (req, res) => {
 
     const verifyStart = Date.now();
     const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
-    const result = await zkIdServer.verifySignedProof(signedRequest, clientIp);
+    const result = await zkIdServer.verifySignedProof(
+      signedRequest,
+      clientIp,
+      getClientProtocolVersion(req)
+    );
     const verifyTime = Date.now() - verifyStart;
     const totalTime = Date.now() - proofGenStart;
 
@@ -580,7 +599,11 @@ app.post('/api/demo/verify-nationality', async (req, res) => {
     // Verify the proof
     const verifyStart = Date.now();
     const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
-    const result = await zkIdServer.verifyProof(proofResponse, clientIp);
+    const result = await zkIdServer.verifyProof(
+      proofResponse,
+      clientIp,
+      getClientProtocolVersion(req)
+    );
     const verifyTime = Date.now() - verifyStart;
     const totalTime = Date.now() - proofGenStart;
 
@@ -697,7 +720,11 @@ app.post('/api/demo/verify-age-revocable', async (req, res) => {
     // Verify the proof
     const verifyStart = Date.now();
     const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
-    const result = await zkIdServer.verifyProof(proofResponse, clientIp);
+    const result = await zkIdServer.verifyProof(
+      proofResponse,
+      clientIp,
+      getClientProtocolVersion(req)
+    );
     const verifyTime = Date.now() - verifyStart;
     const totalTime = Date.now() - proofGenStart;
 
@@ -802,7 +829,11 @@ app.post('/api/demo/verify-nationality-signed', async (req, res) => {
 
     const verifyStart = Date.now();
     const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
-    const result = await zkIdServer.verifySignedProof(signedRequest, clientIp);
+    const result = await zkIdServer.verifySignedProof(
+      signedRequest,
+      clientIp,
+      getClientProtocolVersion(req)
+    );
     const verifyTime = Date.now() - verifyStart;
     const totalTime = Date.now() - proofGenStart;
 

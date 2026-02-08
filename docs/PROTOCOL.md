@@ -27,6 +27,7 @@ The zk-id protocol uses semantic versioning for wire-format compatibility, decou
   - The SDK defaults to sending the header only for same-origin endpoints.
   - For cross-origin verification endpoints, either allow the header in CORS or set `protocolVersionHeader: "always"` in the SDK config.
 - Servers may reject incompatible protocol versions with `400` (recommended for demo and strict deployments).
+- Server SDKs can enforce this with `protocolVersionPolicy: "strict" | "warn" | "off"`.
 
 **Compatibility Checking:**
 ```typescript

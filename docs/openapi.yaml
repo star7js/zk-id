@@ -821,6 +821,10 @@ components:
           $ref: '#/components/schemas/VerificationKeySet'
         requiredPolicy:
           $ref: '#/components/schemas/RequiredPolicy'
+        protocolVersionPolicy:
+          type: string
+          enum: [strict, warn, off]
+          description: Protocol version enforcement policy (default: warn)
     VerificationKeySet:
       type: object
       description: Collection of verification keys for different proof types

@@ -64,6 +64,89 @@ function getVerificationKeyPath(): string {
   return path.resolve(__dirname, '../../circuits/build/age-verify_verification_key.json');
 }
 
+describe('ZkIdServer - protocol enforcement', () => {
+  it('rejects when protocol version is missing in strict mode', async () => {
+    const server = new ZkIdServer({
+      verificationKeyPath: getVerificationKeyPath(),
+      requireSignedCredentials: false,
+      protocolVersionPolicy: 'strict',
+    });
+
+    const proofResponse: ProofResponse = {
+      credentialId: 'cred-1',
+      claimType: 'age',
+      proof: makeAgeProof('123', 18, 'nonce-1', Date.now()),
+      nonce: 'nonce-1',
+      requestTimestamp: new Date().toISOString(),
+    } as ProofResponse;
+
+    const result = await server.verifyProof(proofResponse);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.equal('Missing protocol version');
+  });
+
+  it('rejects when protocol version is incompatible in strict mode', async () => {
+    const server = new ZkIdServer({
+      verificationKeyPath: getVerificationKeyPath(),
+      requireSignedCredentials: false,
+      protocolVersionPolicy: 'strict',
+    });
+
+    const proofResponse: ProofResponse = {
+      credentialId: 'cred-1',
+      claimType: 'age',
+      proof: makeAgeProof('123', 18, 'nonce-1', Date.now()),
+      nonce: 'nonce-1',
+      requestTimestamp: new Date().toISOString(),
+    } as ProofResponse;
+
+    const result = await server.verifyProof(proofResponse, undefined, 'zk-id/2.0');
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.equal('Incompatible protocol version');
+  });
+
+  it('warn mode allows incompatible protocol versions to continue', async () => {
+    const server = new ZkIdServer({
+      verificationKeyPath: getVerificationKeyPath(),
+      requireSignedCredentials: false,
+      protocolVersionPolicy: 'warn',
+    });
+
+    const proofResponse: ProofResponse = {
+      credentialId: 'cred-1',
+      claimType: 'age',
+      proof: makeAgeProof('123', 18, 'nonce-1', Date.now()),
+      nonce: 'nonce-1',
+      requestTimestamp: new Date().toISOString(),
+    } as ProofResponse;
+
+    const result = await server.verifyProof(proofResponse, undefined, 'zk-id/2.0');
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.not.equal('Incompatible protocol version');
+    expect(result.error).to.not.equal('Missing protocol version');
+  });
+
+  it('rejects signed proof when protocol version is incompatible in strict mode', async () => {
+    const server = new ZkIdServer({
+      verificationKeyPath: getVerificationKeyPath(),
+      requireSignedCredentials: false,
+      protocolVersionPolicy: 'strict',
+    });
+
+    const signedRequest = {
+      claimType: 'age',
+      issuer: 'TestIssuer',
+      nonce: 'nonce-1',
+      requestTimestamp: new Date().toISOString(),
+      proof: {} as any,
+    };
+
+    const result = await server.verifySignedProof(signedRequest as any, undefined, 'zk-id/2.0');
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.equal('Incompatible protocol version');
+  });
+});
+
 describe('ZkIdServer - signature and policy enforcement', () => {
   it('rejects proof when signed credential is missing', async () => {
     const server = new ZkIdServer({
