@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "demo": "ts-node src/demo.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "test": "echo 'No tests for examples'"
   },
   "dependencies": {
     "@zk-id/issuer": "^0.2.0"

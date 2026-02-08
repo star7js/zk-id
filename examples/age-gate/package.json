@@ -6,7 +6,8 @@
   "scripts": {
     "demo": "ts-node src/demo.ts",
     "revocation-demo": "ts-node src/revocation-accumulator-demo.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "test": "echo 'No tests for examples'"
   },
   "dependencies": {
     "@zk-id/core": "^0.2.0",

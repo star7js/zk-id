@@ -8,7 +8,8 @@
     "start": "ts-node src/server.ts",
     "predev": "npm run build --workspace=@zk-id/sdk",
     "dev": "nodemon --exec ts-node src/server.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "test": "echo 'No tests for examples'"
   },
   "dependencies": {
     "@zk-id/core": "*",
