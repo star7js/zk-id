@@ -209,6 +209,12 @@ zk-id/
 - **Proof Size**: ~200 bytes
 - **Verification Time**: <100ms
 
+## Specs & Roadmap
+
+- OpenAPI schema: `docs/openapi.yaml`
+- Protocol details: `docs/PROTOCOL.md`
+- Project roadmap: `docs/ROADMAP.md`
+
 ## Comparison to Existing Solutions
 
 | Solution | Privacy | Speed | Integration | Decentralized |
