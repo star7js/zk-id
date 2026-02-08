@@ -1,0 +1,410 @@
+openapi: 3.0.3
+info:
+  title: zk-id Demo API
+  version: 0.1.0
+  description: |
+    Demo REST API for zk-id verification flows.
+    This is a reference schema and may evolve as the protocol matures.
+servers:
+  - url: http://localhost:3000
+paths:
+  /api/health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+                  issuer:
+                    type: string
+  /api/challenge:
+    get:
+      summary: Get server-issued nonce and timestamp
+      responses:
+        '200':
+          description: Challenge payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Challenge'
+  /api/issue-credential:
+    post:
+      summary: Issue a signed credential (Ed25519)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [birthYear, nationality]
+              properties:
+                birthYear:
+                  type: integer
+                nationality:
+                  type: integer
+                userId:
+                  type: string
+      responses:
+        '200':
+          description: Issued credential
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  credential:
+                    $ref: '#/components/schemas/SignedCredential'
+  /api/issue-credential-signed:
+    post:
+      summary: Issue a credential for signed circuits (BabyJub EdDSA)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [birthYear, nationality]
+              properties:
+                birthYear:
+                  type: integer
+                nationality:
+                  type: integer
+      responses:
+        '200':
+          description: Issued circuit credential
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  credential:
+                    $ref: '#/components/schemas/CircuitSignedCredential'
+  /api/verify-age:
+    post:
+      summary: Verify an age proof
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProofResponse'
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationResult'
+  /api/verify-nationality:
+    post:
+      summary: Verify a nationality proof
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProofResponse'
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationResult'
+  /api/demo/verify-age:
+    post:
+      summary: Demo - generate and verify age proof server-side
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DemoAgeRequest'
+      responses:
+        '200':
+          description: Demo response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DemoVerificationResponse'
+  /api/demo/verify-nationality:
+    post:
+      summary: Demo - generate and verify nationality proof server-side
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DemoNationalityRequest'
+      responses:
+        '200':
+          description: Demo response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DemoVerificationResponse'
+  /api/demo/verify-age-signed:
+    post:
+      summary: Demo - generate and verify signed age proof
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DemoAgeRequest'
+      responses:
+        '200':
+          description: Demo response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DemoVerificationResponse'
+  /api/demo/verify-nationality-signed:
+    post:
+      summary: Demo - generate and verify signed nationality proof
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DemoNationalityRequest'
+      responses:
+        '200':
+          description: Demo response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DemoVerificationResponse'
+  /api/revoke-credential:
+    post:
+      summary: Revoke a credential by ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [credentialId]
+              properties:
+                credentialId:
+                  type: string
+      responses:
+        '200':
+          description: Revocation result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+components:
+  schemas:
+    Challenge:
+      type: object
+      required: [nonce, requestTimestamp]
+      properties:
+        nonce:
+          type: string
+        requestTimestamp:
+          type: string
+          format: date-time
+    Credential:
+      type: object
+      properties:
+        id:
+          type: string
+        birthYear:
+          type: integer
+        nationality:
+          type: integer
+        salt:
+          type: string
+        commitment:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    SignedCredential:
+      type: object
+      properties:
+        credential:
+          $ref: '#/components/schemas/Credential'
+        issuer:
+          type: string
+        signature:
+          type: string
+        issuedAt:
+          type: string
+          format: date-time
+    CircuitSignedCredential:
+      type: object
+      properties:
+        credential:
+          $ref: '#/components/schemas/Credential'
+        issuer:
+          type: string
+        issuerPublicKey:
+          type: array
+          items:
+            type: string
+        signature:
+          type: object
+          properties:
+            R8:
+              type: array
+              items:
+                type: string
+            S:
+              type: array
+              items:
+                type: string
+        issuedAt:
+          type: string
+          format: date-time
+    Proof:
+      type: object
+      properties:
+        pi_a:
+          type: array
+          items:
+            type: string
+        pi_b:
+          type: array
+          items:
+            type: array
+            items:
+              type: string
+        pi_c:
+          type: array
+          items:
+            type: string
+        protocol:
+          type: string
+        curve:
+          type: string
+    AgePublicSignals:
+      type: object
+      properties:
+        currentYear:
+          type: integer
+        minAge:
+          type: integer
+        credentialHash:
+          type: string
+        nonce:
+          type: string
+        requestTimestamp:
+          type: integer
+    NationalityPublicSignals:
+      type: object
+      properties:
+        targetNationality:
+          type: integer
+        credentialHash:
+          type: string
+        nonce:
+          type: string
+        requestTimestamp:
+          type: integer
+    ProofResponse:
+      type: object
+      required: [claimType, proof, nonce, requestTimestamp]
+      properties:
+        credentialId:
+          type: string
+        claimType:
+          type: string
+          enum: [age, nationality]
+        proof:
+          type: object
+          properties:
+            proof:
+              $ref: '#/components/schemas/Proof'
+            publicSignals:
+              oneOf:
+                - $ref: '#/components/schemas/AgePublicSignals'
+                - $ref: '#/components/schemas/NationalityPublicSignals'
+        signedCredential:
+          $ref: '#/components/schemas/SignedCredential'
+        nonce:
+          type: string
+        requestTimestamp:
+          type: string
+          format: date-time
+    DemoAgeRequest:
+      type: object
+      required: [credentialId, minAge]
+      properties:
+        credentialId:
+          type: string
+        minAge:
+          type: integer
+        nonce:
+          type: string
+        requestTimestamp:
+          type: string
+          format: date-time
+    DemoNationalityRequest:
+      type: object
+      required: [credentialId, targetNationality]
+      properties:
+        credentialId:
+          type: string
+        targetNationality:
+          type: integer
+        nonce:
+          type: string
+        requestTimestamp:
+          type: string
+          format: date-time
+    VerificationResult:
+      type: object
+      properties:
+        verified:
+          type: boolean
+        claimType:
+          type: string
+        minAge:
+          type: integer
+        targetNationality:
+          type: integer
+        error:
+          type: string
+    DemoVerificationResponse:
+      type: object
+      properties:
+        verified:
+          type: boolean
+        message:
+          type: string
+        error:
+          type: string
+        timing:
+          type: object
+          properties:
+            proofGenerationMs:
+              type: integer
+            verificationMs:
+              type: integer
+            totalMs:
+              type: integer

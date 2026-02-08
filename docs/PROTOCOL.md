@@ -481,6 +481,10 @@ class ZkIdServer {
 **Timestamp binding**:
 - `requestTimestamp` is a public input in both circuits and must match `ProofResponse.requestTimestamp`.
 
+**Challenge flow (recommended)**:
+- Server issues `nonce` + `requestTimestamp` (see `/api/challenge`).
+- Clients must embed these values into the proof.
+
 ### Issuer API
 
 ```typescript
@@ -558,6 +562,10 @@ Useful for:
 **Differences:**
 - BBS+ uses signature schemes, not SNARKs
 - BBS+ doesn't natively support range proofs
+
+## OpenAPI
+
+See `docs/openapi.yaml` for the demo/server REST API schema.
 - Different trust models
 
 ## Future Work

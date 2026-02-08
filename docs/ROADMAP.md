@@ -1,172 +1,99 @@
 # ZK-ID Roadmap
 
-This document tracks the development progress and future plans for the zk-id project.
+This roadmap focuses on security, interoperability, and production readiness. Dates are estimates.
 
-## Completed Features
+## Current State (Completed)
 
-### Phase 1: Core Infrastructure (Completed)
-- ✅ Core cryptographic primitives (Poseidon hash)
-- ✅ Circom circuits for age verification
-- ✅ Circom circuits for credential hashing
-- ✅ TypeScript SDK with snarkjs integration
-- ✅ Circuit compilation and artifact generation
-- ✅ Comprehensive test suite (70+ tests)
+- ✅ Multi-attribute credentials (birthYear, nationality)
+- ✅ Groth16 circuits for age + nationality
+- ✅ Signed credentials (Ed25519) with issuer verification
+- ✅ Signed-circuit option (BabyJub EdDSA in-circuit)
+- ✅ Nonce + timestamp binding in circuits
+- ✅ Server-issued challenge flow (nonce + timestamp)
+- ✅ Issuer registry (trusted issuers, status, validity)
+- ✅ Revocation store (commitment-based)
+- ✅ Merkle revocation accumulator scaffold (in-memory demo)
+- ✅ Batch verification
+- ✅ Telemetry hooks
+- ✅ Demo web app with signed and unsigned flows
+- ✅ OpenAPI schema (`docs/openapi.yaml`)
 
-### Phase 2: Basic Functionality (Completed)
-- ✅ Credential creation and management
-- ✅ Zero-knowledge proof generation
-- ✅ Proof verification (age claims)
-- ✅ Working end-to-end CLI demo
-- ✅ Issuer implementation with HMAC signing
-- ✅ Age verification circuit with constraint validation
+## Now (Next 2–6 Weeks)
 
-### Phase 3: Security Hardening (Completed)
-- ✅ **Critical Security Fix**: Credential hash verification in circuit
-  - Ensures proofs are bound to specific credentials
-  - Prevents malicious actors from generating proofs with arbitrary birth years
-  - Verifies credentialHash = Poseidon(birthYear, salt)
+1. **API & Protocol Clarity**
+   - Finalize REST contracts for verification flows.
+   - Add JSON schema or OpenAPI for SDK inputs.
+   - Add versioned protocol identifiers and compatibility notes.
 
-### Phase 4: Multi-Attribute Credentials (Completed - Feb 2026)
-- ✅ Extended credential schema with nationality attribute
-- ✅ Nationality verification circuit
-- ✅ Selective disclosure support (prove one attribute without revealing others)
-- ✅ Enhanced credential commitment scheme
+2. **Issuer Trust & Key Lifecycle**
+   - Formalize issuer registry spec (rotation, validity windows, suspension).
+   - Add issuer metadata (jurisdiction, attestation policy, audit references).
+   - Document issuer onboarding and deactivation workflow.
 
-### Phase 5: Production Features (Completed - Feb 2026)
-- ✅ **Ed25519 Signatures**: Replaced HMAC with production-grade asymmetric signatures
-- ✅ **Credential Revocation**:
-  - RevocationStore interface in core package
-  - InMemoryRevocationStore implementation
-  - Issuer revocation methods (revokeCredential, isCredentialRevoked)
-  - SDK server revocation checking before proof verification
-- ✅ **Batch Verification**:
-  - verifyBatch() function for efficient multi-proof verification
-  - Promise.allSettled-based parallel verification
-  - Per-proof result tracking with error handling
-- ✅ **Telemetry & Monitoring**:
-  - EventEmitter-based verification event system
-  - VerificationEvent with timestamp, duration, and status
-  - onVerification() callback registration
-  - No external dependencies
-- ✅ **Integration Example**:
-  - Express server with RESTful API endpoints
-  - Static HTML demo page with credential issuance
-  - Real telemetry logging
-  - Revocation demonstration
+3. **Security Readiness**
+   - Publish security policy and disclosure process.
+   - Expand threat model and limitations with concrete mitigations.
+   - Add circuit artifact hashes and integrity checks.
 
-## In Progress
+## Near Term (Q2 2026)
 
-Nothing currently in progress - all planned features for Phase 5 completed!
+1. **Revocation Proofs in Circuit**
+   - Define revocation witness format (Merkle path or accumulator).
+   - Add circuit constraints for membership/exclusion proofs.
+   - Add proof generation + verification paths.
 
-## Planned Features
+2. **Wallet Integration**
+   - Define client-side wallet flow.
+   - Minimal browser wallet prototype for proof generation.
+   - Credential backup and recovery strategy.
 
-### Phase 6: Client Applications (Q2 2026)
-- [ ] **Browser Wallet Extension**
-  - Chrome/Firefox extension for credential storage
-  - Secure local key management
-  - One-click proof generation
-  - Multi-credential support
+3. **Production Storage**
+   - Reference implementations for Redis/Postgres stores.
+   - Rate limiting + abuse prevention modules.
+   - Audit log adapter interface.
 
-- [ ] **Mobile Wallets**
-  - iOS app (Swift/SwiftUI)
-  - Android app (Kotlin)
-  - Biometric authentication
-  - QR code scanning for credential issuance
+## Mid Term (Q3 2026)
 
-### Phase 7: Advanced Cryptography (Q3 2026)
-- [ ] **Credential Accumulators**
-  - On-chain revocation using cryptographic accumulators
-  - Merkle tree-based revocation proofs
-  - Gas-efficient blockchain integration
+1. **Standards Alignment**
+   - Optional mappings to ISO 18013-5/7 and related age-verification standards.
+   - Formalize external credential formats and conversions.
 
-- [ ] **Recursive Proof Composition**
-  - Prove multiple claims in a single proof
-  - Reduced verification cost
-  - Better privacy through proof aggregation
+2. **Cryptography Improvements**
+   - Recursive proofs or multi-claim proofs.
+   - Optional universal setup (PLONK).
 
-- [ ] **Alternative Proof Systems**
-  - PLONK circuit support (universal setup)
-  - STARKs for post-quantum security
-  - Bulletproofs for range proofs
+3. **Operational Tooling**
+   - Issuer dashboard prototype.
+   - Key rotation helpers and policy enforcement.
 
-### Phase 8: Enterprise Features (Q4 2026)
-- [ ] **Issuer Dashboard**
-  - Web interface for credential management
-  - Bulk issuance tools
-  - Revocation management
-  - Analytics and reporting
+## Long Term (Q4 2026+)
 
-- [ ] **Multi-Issuer Trust Framework**
-  - Issuer registry and discovery
-  - Trust scoring and reputation
-  - Issuer key rotation
+1. **Formal Verification + Audits**
+   - Third-party audit of circuits and SDK.
+   - Formal verification of core constraints.
 
-- [ ] **Advanced Attribute Types**
-  - Location verification (country, region)
-  - Time-bound credentials (expiration)
-  - Credential chains (derived credentials)
-  - Range proofs (income bracket, credit score range)
+2. **Multi-Issuer Trust Framework**
+   - Trust scoring, federation, and cross-jurisdiction policies.
+   - Multi-issuer credentials and threshold issuance.
 
-### Phase 9: Scalability & Performance (2027)
-- [ ] **Proof Caching**
-  - Server-side proof result caching
-  - Replay attack prevention with proof freshness
+3. **Enterprise Scale**
+   - SLA-grade monitoring, alerts, and compliance tooling.
+   - Hardware acceleration options.
 
-- [ ] **Hardware Acceleration**
-  - GPU-accelerated proof generation
-  - WASM optimization for browser
+## Open Questions
 
-- [ ] **Distributed Verification**
-  - Load balancing across verification nodes
-  - Horizontal scaling support
+- Should revocation be exclusion proof (non-membership) or inclusion proof of revoked list?
+- Should issuer identity be a DID or a more constrained identifier?
+- Which universal setup should be supported first (PLONK, Marlin, or Halo2)?
+- What privacy budget is acceptable for metadata leakage (issuer, issuance time)?
 
-### Phase 10: Standards & Compliance (2027)
-- [ ] **DID Integration**
-  - did:web method support
-  - did:key method support
-  - DID resolution
+## Version Targets (Tentative)
 
-- [ ] **Compliance Frameworks**
-  - GDPR compliance tools
-  - CCPA compliance support
-  - Age verification standards (COPPA, GDPR Article 8)
-
-- [ ] **Audit & Certification**
-  - Third-party security audit
-  - Formal verification of circuits
-  - Certification for production use
-
-## Future Research
-
-### Open Questions
-- How to handle credential expiration in ZK proofs?
-- Best practices for threshold issuance (multiple issuers for one credential)?
-- Privacy-preserving credential metadata (issuer hiding)?
-- Cross-chain interoperability?
-
-### Experimental Features
-- Anonymous credentials (BBS+ signatures)
-- Predicate proofs (arbitrary boolean expressions)
-- Conditional disclosure (reveal data only if proof verifies)
-- Zero-knowledge machine learning (prove model predictions)
-
-## Contributing
-
-Want to help? Check out the [Contributing Guide](../CONTRIBUTING.md) and pick an item from the "Planned Features" section.
-
-Priority areas:
-1. Browser wallet (high impact, good first project)
-2. Mobile wallets (iOS/Android)
-3. Performance optimization (proof generation speed)
-4. Documentation and examples
-
-## Version History
-
-- **v0.1.0** (Jan 2026): Initial release with basic age verification
-- **v0.2.0** (Feb 2026): Multi-attribute credentials, Ed25519, revocation, telemetry
-- **v0.3.0** (Planned Q2 2026): Browser wallet and mobile apps
-- **v1.0.0** (Planned Q4 2026): Production-ready with enterprise features
+- **v0.3.x**: Challenge flow + issuer registry + signed circuits (done)
+- **v0.4.0**: Revocation proofs in circuit + wallet prototype
+- **v0.5.0**: KMS/HSM integration examples + issuer policy tooling
+- **v1.0.0**: Audit-ready release
 
 ---
 
-Last updated: February 2026
+Last updated: 2026-02-08
