@@ -5,6 +5,7 @@ build/
 .env
 .DS_Store
 *.tsbuildinfo
+.claude/
 packages/*/test/**/*.d.ts
 
 # Circuit build artifacts - built in CI
