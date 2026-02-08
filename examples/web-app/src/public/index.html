@@ -951,6 +951,7 @@
                 if (data.success) {
                     state.isRevoked = true;
                     resultDiv.className = 'result success';
+                    resultDiv.style.display = 'block';
                     const modeLabel = state.lastIssuedMode === 'signed' ? 'signed-circuit' : 'standard';
                     resultDiv.innerHTML = `
                         <strong>✓ ${escapeHtml(data.message)}</strong>
@@ -961,6 +962,7 @@
                     `;
                 } else {
                     resultDiv.className = 'result error';
+                    resultDiv.style.display = 'block';
                     resultDiv.innerHTML = `✗ Error: ${escapeHtml(data.error)}`;
                 }
             } catch (error) {
