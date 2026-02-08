@@ -19,6 +19,7 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - ✅ Telemetry hooks
 - ✅ Demo web app with signed and unsigned flows
 - ✅ OpenAPI schema (`docs/openapi.yaml`)
+- ✅ v0.4.1 patch: stable valid-credential tree indexing, merkle-root freshness guard, added regression tests
 
 ## Now (Next 2–6 Weeks)
 
@@ -33,25 +34,33 @@ This roadmap focuses on security, interoperability, and production readiness. Da
    - Document issuer onboarding and deactivation workflow.
 
 3. **Security Readiness**
-   - Publish security policy and disclosure process.
+   - Maintain security policy and disclosure process.
    - Expand threat model and limitations with concrete mitigations.
    - Add circuit artifact hashes and integrity checks.
+   - Reproducible circuit builds and verification-key provenance (signing + CI checks).
 
 ## Near Term (Q2 2026)
 
-1. **Production Storage for Revocation**
+1. **Revocation Lifecycle & Root Distribution**
+   - Root versioning and witness refresh policy.
+   - Root dissemination channel and expiry strategy.
    - Production storage for Merkle tree state and witness generation.
    - Distributed tree state management and root synchronization.
 
-2. **Wallet Integration**
+2. **Production Storage & Reliability**
+   - Reference implementations for Redis/Postgres stores.
+   - Rate limiting + abuse prevention modules.
+   - Audit log adapter interface.
+
+3. **Wallet Integration**
    - Define client-side wallet flow.
    - Minimal browser wallet prototype for proof generation.
    - Credential backup and recovery strategy.
 
-3. **Production Storage**
-   - Reference implementations for Redis/Postgres stores.
-   - Rate limiting + abuse prevention modules.
-   - Audit log adapter interface.
+4. **Performance & Compatibility**
+   - Proof generation/verification benchmarks with targets.
+   - Protocol versioning and deprecation policy.
+   - Interop tests for SDK input schemas.
 
 ## Mid Term (Q3 2026)
 
@@ -93,7 +102,8 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 
 - **v0.2.x**: Challenge flow + issuer registry + signed circuits (done)
 - **v0.3.0**: Revocation proofs in circuit (Merkle inclusion) (done)
-- **v0.4.0**: Revocation SDK integration ← **Current**
+- **v0.4.0**: Revocation SDK integration (done)
+- **v0.4.1**: Revocation-tree stability + Merkle root freshness guard (done)
 - **v0.5.0**: Wallet prototype + production storage
 - **v0.6.0**: KMS/HSM integration examples + issuer policy tooling
 - **v1.0.0**: Audit-ready release
