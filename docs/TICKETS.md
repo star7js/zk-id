@@ -37,7 +37,7 @@ These are concrete tickets derived from the near-term roadmap. Use them as GitHu
 
 ## Security Readiness
 
-### T-003: Circuit Artifact Hash Manifest
+### T-003: Circuit Artifact Hash Manifest ✅
 **Goal:** Provide integrity checks for circuit artifacts.
 
 **Scope**
@@ -49,7 +49,7 @@ These are concrete tickets derived from the near-term roadmap. Use them as GitHu
 - Hash manifest exists and is kept up to date in CI.
 - CI fails if hashes drift without update.
 
-### T-004: Reproducible Circuit Build + Verification-Key Provenance
+### T-004: Reproducible Circuit Build + Verification-Key Provenance ✅
 **Goal:** Make circuit builds reproducible and verifiable.
 
 **Scope**

@@ -1,0 +1,38 @@
+{
+  "algorithm": "SHA-256",
+  "circomVersion": "0.5.46",
+  "snarkjsVersion": "0.7.6",
+  "generatedAt": "2026-02-08T21:22:24Z",
+  "circuits": {
+    "age-verify": {
+      "wasm": "f1526de4c5267fe9743b70dece85569c09d44e46bf968b259c4e5d08d0121443",
+      "zkey": "948b52ff43b8b625d73ae3198ae59d1d9c72ea8262dc0642b3cae044d02d946a",
+      "verificationKey": "df5809ee7688e44760d509430023d667291276d984592ddcdc850e8f273326cb"
+    },
+    "credential-hash": {
+      "wasm": "f003d83fc887b07144cc697096a9de5cad6c47ba60e26662424aac918bbc6a03",
+      "zkey": "f2451f8d07cb97d48fc422a01a3be00616277ae2a484bf9cc7d32ce5f73e1afa",
+      "verificationKey": "88d525acaa05985e7aab692a079de2ddbd7e6d751f7036c7079396d0b5a50287"
+    },
+    "nationality-verify": {
+      "wasm": "e9f60d0f5eca4ee86bb682490830235358cdcfddfee852951d5a697d81398016",
+      "zkey": "f26fa9eef4171d79b31ba2a7b0d720e3b60fa5da9c6c8bd67c0db3b710770f30",
+      "verificationKey": "1140ef59818d58836f778b446137abda6c4065d22e2f9690a4537c246c3106ad"
+    },
+    "age-verify-signed": {
+      "wasm": "0ef467afb6b2519514b90cbe9494943c5277611bbc6b7434cf5ec234fecb2bb5",
+      "zkey": "aa52f8b2a479c9c4afbe27711a0aede0c40e725644c11f1e15ffa6e4889c8f26",
+      "verificationKey": "212bd1354391d903636f383f1c20e971123f8f84f8cae96259a3f3b36babe364"
+    },
+    "nationality-verify-signed": {
+      "wasm": "1e4ff2418c4844736c7de27c1f73355a785362b20ad4eb47291fbd0db377a857",
+      "zkey": "ed6f32656a53acd0f53e6b23bb25045ab5755ad52e91b753edfeacc1bf2e4183",
+      "verificationKey": "3c2984af642356e97a56d10307b09b78e23dd757443de64eba41d84597e64565"
+    },
+    "age-verify-revocable": {
+      "wasm": "b086b3bdfa599975097ba93b7d37777a7f722680ddb3b4396f0043e7b02058c8",
+      "zkey": "59d44caea416e07ae58562d96c208a2634a3c05e56b93473e3df5dd09e26b027",
+      "verificationKey": "a20b697dd75723bf6a384888f373dff716633feb16e052b74fc26212aad36687"
+    }
+  }
+}

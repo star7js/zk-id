@@ -1,0 +1,68 @@
+name: Verify Circuit Reproducibility
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/circuits/src/**'
+      - 'packages/circuits/scripts/**'
+  pull_request:
+    paths:
+      - 'packages/circuits/src/**'
+      - 'packages/circuits/scripts/**'
+  schedule:
+    # Run every Monday at 6:00 AM UTC
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  verify-reproducibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Circom
+        run: |
+          curl -L https://github.com/iden3/circom/releases/download/v2.1.8/circom-linux-amd64 -o /usr/local/bin/circom
+          chmod +x /usr/local/bin/circom
+          circom --version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Clean build directory
+        run: rm -rf packages/circuits/build/*
+
+      - name: Compile circuits from scratch
+        run: npm run compile:circuits
+
+      - name: Perform trusted setup from scratch
+        run: npm run --workspace=@zk-id/circuits setup
+
+      - name: Verify circuit artifact hashes
+        run: npm run verify:hashes
+
+      - name: Report success
+        if: success()
+        run: echo "✓ Circuit reproducibility verified - all artifacts match committed hashes"
+
+      - name: Report failure
+        if: failure()
+        run: |
+          echo "✗ Circuit reproducibility check failed"
+          echo "This indicates that rebuilding the circuits from scratch produces different artifacts."
+          echo "Possible causes:"
+          echo "  - Non-deterministic build process"
+          echo "  - Circuit source changes not reflected in committed hashes"
+          echo "  - Toolchain version mismatch"
+          exit 1

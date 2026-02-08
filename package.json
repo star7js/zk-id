@@ -10,7 +10,8 @@
   "scripts": {
     "build": "npm run build --workspaces",
     "test": "npm run test --workspaces",
-    "compile:circuits": "npm run compile --workspace=@zk-id/circuits"
+    "compile:circuits": "npm run compile --workspace=@zk-id/circuits",
+    "verify:hashes": "npm run verify-hashes --workspace=@zk-id/circuits"
   },
   "keywords": [
     "zero-knowledge",

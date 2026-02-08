@@ -41,8 +41,8 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 2. **Security Readiness**
    - ✅ Maintain security policy and disclosure process.
    - ✅ Expand threat model and limitations with concrete mitigations.
-   - Add circuit artifact hashes and integrity checks.
-   - Reproducible circuit builds and verification-key provenance (signing + CI checks).
+   - ✅ Add circuit artifact hashes and integrity checks.
+   - ✅ Reproducible circuit builds and verification-key provenance (signing + CI checks).
 
 3. **Issuer Trust & Key Lifecycle**
    - ✅ Formalize issuer registry spec (rotation, validity windows, suspension).

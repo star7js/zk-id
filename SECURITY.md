@@ -89,5 +89,8 @@ following:
    preflight requests; configure `Access-Control-Allow-Headers` narrowly.
 9. **Payload validation** — Enable `validatePayloads: true` in server config
    to reject malformed requests before cryptographic verification.
-10. **Circuit artifact integrity** — When circuit build artifacts are available,
-    verify WASM and ZKEY hashes against a signed manifest before loading.
+10. **Circuit artifact integrity** — All circuit build artifacts (WASM, ZKEY,
+    verification keys) are tracked via SHA-256 hashes in `docs/circuit-hashes.json`.
+    Verify integrity with `npm run verify:hashes` before deployment. See
+    [docs/VERIFICATION_KEYS.md](docs/VERIFICATION_KEYS.md) for build reproducibility
+    and trusted setup details.
