@@ -4,6 +4,8 @@ import {
   RevocationStore,
   SignedCredential,
   credentialSignaturePayload,
+  AuditLogger,
+  ConsoleAuditLogger,
 } from '@zk-id/core';
 import { IssuerKeyManager } from './key-management';
 
@@ -13,9 +15,11 @@ import { IssuerKeyManager } from './key-management';
 export class ManagedCredentialIssuer {
   private keyManager: IssuerKeyManager;
   private revocationStore?: RevocationStore;
+  private auditLogger: AuditLogger;
 
-  constructor(keyManager: IssuerKeyManager) {
+  constructor(keyManager: IssuerKeyManager, auditLogger?: AuditLogger) {
     this.keyManager = keyManager;
+    this.auditLogger = auditLogger ?? new ConsoleAuditLogger();
   }
 
   async issueCredential(
@@ -53,13 +57,13 @@ export class ManagedCredentialIssuer {
     }
 
     await this.revocationStore.revoke(commitment);
-    const logEntry = {
+    this.auditLogger.log({
       timestamp: new Date().toISOString(),
-      issuer: this.keyManager.getIssuerName(),
-      commitment,
       action: 'revoke',
-    };
-    console.log('[ISSUER AUDIT]', JSON.stringify(logEntry));
+      actor: this.keyManager.getIssuerName(),
+      target: commitment,
+      success: true,
+    });
   }
 
   async isCredentialRevoked(commitment: string): Promise<boolean> {
@@ -79,14 +83,13 @@ export class ManagedCredentialIssuer {
   }
 
   private logIssuance(signedCredential: SignedCredential, userId?: string): void {
-    const logEntry = {
+    this.auditLogger.log({
       timestamp: new Date().toISOString(),
-      issuer: this.keyManager.getIssuerName(),
-      credentialId: signedCredential.credential.id,
-      userId: userId || 'anonymous',
       action: 'issue',
-    };
-
-    console.log('[ISSUER AUDIT]', JSON.stringify(logEntry));
+      actor: this.keyManager.getIssuerName(),
+      target: signedCredential.credential.id,
+      success: true,
+      metadata: { userId: userId || 'anonymous' },
+    });
   }
 }

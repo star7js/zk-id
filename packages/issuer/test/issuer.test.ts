@@ -2,8 +2,7 @@ import { expect } from 'chai';
 import { generateKeyPairSync } from 'crypto';
 import { CredentialIssuer } from '../src/issuer';
 import { InMemoryIssuerKeyManager, ManagedCredentialIssuer } from '../src/index';
-import { SignedCredential } from '@zk-id/core';
-import { InMemoryRevocationStore } from '@zk-id/core';
+import { SignedCredential, InMemoryAuditLogger, InMemoryRevocationStore } from '@zk-id/core';
 
 describe('CredentialIssuer Tests', () => {
   let issuer: CredentialIssuer;
@@ -254,6 +253,61 @@ describe('CredentialIssuer Tests', () => {
 
       // Audit logging is tested through console output
       expect(await store.isRevoked(signed.credential.commitment)).to.be.true;
+    });
+  });
+
+  describe('AuditLogger integration', () => {
+    it('logs issuance events to a custom audit logger', async () => {
+      const logger = new InMemoryAuditLogger();
+      const { privateKey, publicKey } = generateKeyPairSync('ed25519');
+      const customIssuer = new CredentialIssuer({
+        name: 'Audit-Test-Issuer',
+        signingKey: privateKey,
+        publicKey,
+        auditLogger: logger,
+      });
+
+      await customIssuer.issueCredential(1990, 840, 'user-abc');
+
+      expect(logger.entries).to.have.length(1);
+      expect(logger.entries[0].action).to.equal('issue');
+      expect(logger.entries[0].actor).to.equal('Audit-Test-Issuer');
+      expect(logger.entries[0].success).to.equal(true);
+      expect(logger.entries[0].metadata).to.deep.include({ userId: 'user-abc' });
+    });
+
+    it('logs revocation events to a custom audit logger', async () => {
+      const logger = new InMemoryAuditLogger();
+      const { privateKey, publicKey } = generateKeyPairSync('ed25519');
+      const customIssuer = new CredentialIssuer({
+        name: 'Revoke-Test-Issuer',
+        signingKey: privateKey,
+        publicKey,
+        auditLogger: logger,
+      });
+      const store = new InMemoryRevocationStore();
+      customIssuer.setRevocationStore(store);
+
+      const signed = await customIssuer.issueCredential(2000, 840);
+      await customIssuer.revokeCredential(signed.credential.commitment);
+
+      const revocations = logger.filter('revoke');
+      expect(revocations).to.have.length(1);
+      expect(revocations[0].actor).to.equal('Revoke-Test-Issuer');
+      expect(revocations[0].target).to.equal(signed.credential.commitment);
+    });
+
+    it('ManagedCredentialIssuer logs to a custom audit logger', async () => {
+      const logger = new InMemoryAuditLogger();
+      const { privateKey, publicKey } = generateKeyPairSync('ed25519');
+      const keyManager = new InMemoryIssuerKeyManager('Managed-Audit', privateKey, publicKey);
+      const managed = new ManagedCredentialIssuer(keyManager, logger);
+
+      await managed.issueCredential(1985, 124);
+
+      expect(logger.entries).to.have.length(1);
+      expect(logger.entries[0].action).to.equal('issue');
+      expect(logger.entries[0].actor).to.equal('Managed-Audit');
     });
   });
 });
