@@ -13,7 +13,7 @@
   },
   "devDependencies": {
     "snarkjs": "^0.7.6",
-    "circom_tester": "^0.0.19",
+    "circom_tester": "^0.0.24",
     "mocha": "^10.3.0",
     "chai": "^4.4.1"
   },
