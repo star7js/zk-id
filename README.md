@@ -256,7 +256,7 @@ See `CONTRIBUTING.md` for development setup and guidelines.
 
 ## License
 
-MIT License - see `LICENSE` file for details.
+Apache-2.0 - see `LICENSE` file for details.
 
 ## Learn More
 
