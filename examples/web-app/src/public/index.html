@@ -112,6 +112,10 @@
             opacity: 0.6;
         }
 
+        button + button {
+            margin-top: 10px;
+        }
+
         .result {
             margin-top: 20px;
             padding: 15px;
@@ -327,6 +331,8 @@
             </div>
             <button onclick="issueCredential()">Get Credential</button>
             <div id="issueResult" class="result"></div>
+            <button onclick="issueSignedCredential()" id="issueSignedBtn">Get Signed Credential (In-Circuit)</button>
+            <div id="issueSignedResult" class="result"></div>
         </div>
 
         <!-- Step 2: Verify Age -->
@@ -341,6 +347,8 @@
             </div>
             <button onclick="verifyAge()" id="verifyAgeBtn" disabled>Verify Age (Generates Real ZK Proof)</button>
             <div id="verifyResult" class="result"></div>
+            <button onclick="verifyAgeSigned()" id="verifyAgeSignedBtn" disabled>Verify Age (Signed Circuit)</button>
+            <div id="verifySignedResult" class="result"></div>
         </div>
 
         <!-- Step 3: Verify Nationality -->
@@ -362,6 +370,8 @@
             </div>
             <button onclick="verifyNationality()" id="verifyNationalityBtn" disabled>Verify Nationality (Generates Real ZK Proof)</button>
             <div id="verifyNationalityResult" class="result"></div>
+            <button onclick="verifyNationalitySigned()" id="verifyNationalitySignedBtn" disabled>Verify Nationality (Signed Circuit)</button>
+            <div id="verifyNationalitySignedResult" class="result"></div>
         </div>
 
         <!-- Step 4: Revoke Credential -->
@@ -407,6 +417,10 @@
         let state = {
             credential: null,
             credentialId: null,
+            circuitCredential: null,
+            circuitCredentialId: null,
+            lastIssuedCredentialId: null,
+            lastIssuedMode: null,
             isRevoked: false
         };
 
@@ -451,6 +465,8 @@
                 if (data.success) {
                     state.credential = data.credential;
                     state.credentialId = data.credential.credential.id;
+                    state.lastIssuedCredentialId = state.credentialId;
+                    state.lastIssuedMode = 'standard';
                     state.isRevoked = false;
 
                     resultDiv.className = 'result success';
@@ -484,12 +500,78 @@
             }
         }
 
+        async function issueSignedCredential() {
+            const birthYear = parseInt(document.getElementById('birthYear').value);
+            const nationality = parseInt(document.getElementById('nationality').value);
+            const resultDiv = document.getElementById('issueSignedResult');
+
+            if (isNaN(birthYear)) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '✗ Invalid birth year';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            if (isNaN(nationality)) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '✗ Invalid nationality';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            resultDiv.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/issue-credential-signed', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ birthYear, nationality })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    state.circuitCredential = data.credential;
+                    state.circuitCredentialId = data.credential.credential.id;
+                    state.lastIssuedCredentialId = state.circuitCredentialId;
+                    state.lastIssuedMode = 'signed';
+                    state.isRevoked = false;
+
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <strong>✓ Success!</strong> Signed-circuit credential issued.
+                        <div class="credential-info">
+                            <strong>Credential ID:</strong> ${escapeHtml(state.circuitCredentialId)}<br>
+                            <strong>Issuer:</strong> ${escapeHtml(data.credential.issuer)}<br>
+                            <strong>Commitment:</strong> ${escapeHtml(data.credential.credential.commitment.substring(0, 50))}...<br>
+                            <strong>Birth Year:</strong> ${birthYear}<br>
+                            <strong>Nationality:</strong> ${escapeHtml(getNationalityName(nationality))} (${nationality})
+                        </div>
+                    `;
+
+                    document.getElementById('verifyAgeSignedBtn').disabled = false;
+                    document.getElementById('verifyNationalitySignedBtn').disabled = false;
+                    document.getElementById('revokeBtn').disabled = false;
+
+                    document.getElementById('verifySignedResult').style.display = 'none';
+                    document.getElementById('verifyNationalitySignedResult').style.display = 'none';
+                    document.getElementById('revokeResult').style.display = 'none';
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `✗ Error: ${escapeHtml(data.error)}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `✗ Error: ${escapeHtml(error.message)}`;
+            }
+        }
+
         async function verifyAge() {
             const minAge = parseInt(document.getElementById('minAge').value);
             const resultDiv = document.getElementById('verifyResult');
             const verifyAgeBtn = document.getElementById('verifyAgeBtn');
 
-            if (!state.credentialId) {
+            if (!state.lastIssuedCredentialId) {
                 resultDiv.className = 'result error';
                 resultDiv.textContent = '✗ Please issue a credential first';
                 resultDiv.style.display = 'block';
@@ -584,6 +666,68 @@
                 resultDiv.innerHTML = `✗ Error: ${escapeHtml(error.message)}`;
             } finally {
                 // Re-enable button
+                verifyAgeBtn.disabled = false;
+            }
+        }
+
+        async function verifyAgeSigned() {
+            const minAge = parseInt(document.getElementById('minAge').value);
+            const resultDiv = document.getElementById('verifySignedResult');
+            const verifyAgeBtn = document.getElementById('verifyAgeSignedBtn');
+
+            if (!state.circuitCredentialId) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '✗ Please issue a signed credential first';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            if (isNaN(minAge) || !Number.isInteger(minAge)) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '✗ Invalid minimum age';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            verifyAgeBtn.disabled = true;
+
+            resultDiv.className = 'result loading';
+            resultDiv.innerHTML = '⏳ Generating signed zero-knowledge proof... (this takes 2-5 seconds)';
+            resultDiv.style.display = 'block';
+
+            try {
+                const response = await fetch('/api/demo/verify-age-signed', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        credentialId: state.circuitCredentialId,
+                        minAge
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.verified) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <strong>✓ Verified!</strong> ${escapeHtml(data.message)}
+                        ${data.timing ? `
+                        <div class="timing-section">
+                            <strong>Performance:</strong><br>
+                            Proof Generation: ${data.timing.proofGenerationMs}ms<br>
+                            Verification: ${data.timing.verificationMs}ms<br>
+                            Total: ${data.timing.totalMs}ms
+                        </div>
+                        ` : ''}
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `✗ Failed: ${escapeHtml(data.message || data.error)}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `✗ Error: ${escapeHtml(error.message)}`;
+            } finally {
                 verifyAgeBtn.disabled = false;
             }
         }
@@ -692,6 +836,68 @@
             }
         }
 
+        async function verifyNationalitySigned() {
+            const targetNationality = parseInt(document.getElementById('targetNationality').value);
+            const resultDiv = document.getElementById('verifyNationalitySignedResult');
+            const verifyNationalityBtn = document.getElementById('verifyNationalitySignedBtn');
+
+            if (!state.circuitCredentialId) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '✗ Please issue a signed credential first';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            if (isNaN(targetNationality) || !Number.isInteger(targetNationality)) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '✗ Invalid target nationality';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            verifyNationalityBtn.disabled = true;
+
+            resultDiv.className = 'result loading';
+            resultDiv.innerHTML = '⏳ Generating signed zero-knowledge proof... (this takes 2-5 seconds)';
+            resultDiv.style.display = 'block';
+
+            try {
+                const response = await fetch('/api/demo/verify-nationality-signed', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        credentialId: state.circuitCredentialId,
+                        targetNationality
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.verified) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <strong>✓ Verified!</strong> ${escapeHtml(data.message)}
+                        ${data.timing ? `
+                        <div class="timing-section">
+                            <strong>Performance:</strong><br>
+                            Proof Generation: ${data.timing.proofGenerationMs}ms<br>
+                            Verification: ${data.timing.verificationMs}ms<br>
+                            Total: ${data.timing.totalMs}ms
+                        </div>
+                        ` : ''}
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `✗ Failed: ${escapeHtml(data.message || data.error)}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `✗ Error: ${escapeHtml(error.message)}`;
+            } finally {
+                verifyNationalityBtn.disabled = false;
+            }
+        }
+
         async function revokeCredential() {
             const resultDiv = document.getElementById('revokeResult');
             const revokeBtn = document.getElementById('revokeBtn');
@@ -717,7 +923,7 @@
                 const response = await fetch('/api/revoke-credential', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ credentialId: state.credentialId })
+                    body: JSON.stringify({ credentialId: state.lastIssuedCredentialId })
                 });
 
                 const data = await response.json();
@@ -725,10 +931,11 @@
                 if (data.success) {
                     state.isRevoked = true;
                     resultDiv.className = 'result success';
+                    const modeLabel = state.lastIssuedMode === 'signed' ? 'signed-circuit' : 'standard';
                     resultDiv.innerHTML = `
                         <strong>✓ ${escapeHtml(data.message)}</strong>
                         <div style="margin-top: 10px;">
-                            Try clicking "Verify Age" or "Verify Nationality" again to see revocation in action.
+                            Try verifying again to see revocation in action (${modeLabel} credential).
                             The proof will be generated but verification will fail.
                         </div>
                     `;
