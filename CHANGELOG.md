@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] - 2026-02-08
+
+### Added
+- Protocol version parsing + compatibility helpers in core with SDK enforcement policies
+- Server-side protocol enforcement in SDK (strict/warn/off) and demo server header handling
+- Revocation root metadata helpers (`getRevocationRootInfo` / `fetchRevocationRootInfo`) and demo endpoint
+- Postgres-backed valid-credential tree implementation (`PostgresValidCredentialTree`)
+- Demo API rate limiting (express-rate-limit)
+- Issue templates, PR template, and CODEOWNERS
+
+### Security
+- Temporary mitigation for elliptic ECDSA issue via override to patched fork (pending upstream release)
+
+### Docs
+- Added protocol header CORS guidance and clarified supported vs. future use cases
+- Expanded revocation/production storage examples
+
 ## [0.4.1] - 2026-02-08
 
 ### Fixed
