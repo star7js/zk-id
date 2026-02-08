@@ -30,7 +30,7 @@
     "ffjavascript": "^0.2.63"
   },
   "devDependencies": {
-    "@types/node": "^20.10.6",
+    "@types/node": "^25.2.2",
     "typescript": "^5.3.3",
     "@types/chai": "^4.3.11",
     "@types/mocha": "^10.0.6",
