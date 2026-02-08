@@ -1,4 +1,4 @@
-import { poseidonHash, RevocationWitness, ValidCredentialTree } from '@zk-id/core';
+import { poseidonHash, RevocationWitness, RevocationRootInfo, ValidCredentialTree } from '@zk-id/core';
 
 export interface PostgresValidCredentialTreeOptions {
   /** Merkle tree depth (default: 10) */
@@ -211,7 +211,7 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
     return layers[layers.length - 1][0].toString();
   }
 
-  async getRootInfo(): Promise<{ root: string; version: number; updatedAt: string }> {
+  async getRootInfo(): Promise<RevocationRootInfo> {
     await this.ensureInit();
     const root = await this.getRoot();
     const { rows } = await this.client.query<{ version: string; updated_at: string }>(

@@ -24,13 +24,14 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - ✅ Postgres valid-credential tree (reference implementation)
 - ✅ Demo rate limiting for verification endpoints
 - ✅ v0.4.1 patch: stable valid-credential tree indexing, merkle-root freshness guard, added regression tests
+- ✅ Revocation root distribution MVP (TTL policy, freshness guards, witness refresh rules, endpoint caching guidance)
 
 ## Now (Next 2–6 Weeks)
 
 1. **Revocation Root Distribution (MVP)**
-   - Define root versioning + TTL policy.
-   - Document witness refresh rules for clients/verifiers.
-   - Standardize a public root info endpoint and caching guidance.
+   - ✅ Define root versioning + TTL policy.
+   - ✅ Document witness refresh rules for clients/verifiers.
+   - ✅ Standardize a public root info endpoint and caching guidance.
 
 2. **Security Readiness**
    - Maintain security policy and disclosure process.

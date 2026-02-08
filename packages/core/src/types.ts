@@ -205,6 +205,12 @@ export interface RevocationRootInfo {
   version: number;
   /** ISO 8601 timestamp of last update */
   updatedAt: string;
+  /** ISO 8601 timestamp when this root should be considered expired (optional) */
+  expiresAt?: string;
+  /** Recommended TTL in seconds for caching this root (optional) */
+  ttlSeconds?: number;
+  /** Identifier for the source/issuer of this root (optional) */
+  source?: string;
 }
 
 export interface RevocationAccumulator {
