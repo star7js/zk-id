@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-02-08
+
+### Fixed
+- Stabilized valid-credential tree indexing to avoid witness invalidation on removals
+- Normalized commitment keys in valid-credential tree lookups
+- Enforced Merkle root freshness checks for revocable proofs even when expected root is `'0'`
+
+### Tests
+- Added coverage for commitment normalization in valid-credential tree
+- Added revocable Merkle root mismatch coverage in core + SDK
+
 ## [0.4.0] - 2026-02-08
 
 ### Added
@@ -74,6 +85,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Full web application with issuer and verifier
 - Comprehensive documentation and README
 
+[0.4.1]: https://github.com/star7js/zk-id/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/star7js/zk-id/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/star7js/zk-id/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/star7js/zk-id/compare/v0.1.1...v0.2.0
