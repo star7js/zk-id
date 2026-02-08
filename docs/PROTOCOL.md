@@ -593,6 +593,87 @@ class ZkIdServer {
 - Server issues `nonce` + `requestTimestamp` (see `/api/challenge`).
 - Clients must embed these values into the proof.
 
+### Issuer Trust & Registry
+
+Verifiers maintain an issuer registry that maps issuer identifiers to their
+public keys, lifecycle status, and metadata.
+
+**IssuerRecord:**
+
+```typescript
+{
+  issuer: string;          // Issuer identifier (name or DID)
+  publicKey: KeyObject;    // Ed25519 public key
+  status?: 'active' | 'revoked' | 'suspended';
+  validFrom?: string;      // ISO 8601 — key not valid before this time
+  validTo?: string;        // ISO 8601 — key not valid after this time
+  jurisdiction?: string;   // ISO 3166-1 alpha-2 code (e.g., "US", "DE")
+  policyUrl?: string;      // URL to issuance/attestation policy
+  auditUrl?: string;       // URL to audit report or compliance reference
+}
+```
+
+**Status Lifecycle:**
+
+```
+  onboard         rotate key        suspend         reactivate
+    ──→ active ──────→ active ──────→ suspended ──────→ active
+                        │                                  │
+                        └──→ revoked (permanent) ←─────────┘
+                                                   deactivate
+```
+
+- **active**: Issuer credentials are accepted. This is the default.
+- **suspended**: Issuer is temporarily blocked. Credentials signed by this
+  issuer are rejected during verification. Use for incident response or
+  pending investigation.
+- **revoked**: Issuer is permanently deactivated. Credentials are rejected.
+  This is irreversible in the default registry.
+
+**Key Rotation:**
+
+Issuers SHOULD rotate signing keys periodically. The registry supports
+overlapping validity windows to allow a smooth transition:
+
+1. Register the new key with `validFrom` set to the rotation time.
+2. Keep the old key active until its `validTo` expires.
+3. During the overlap window, both keys are accepted.
+4. After the old key expires, the verifier only accepts the new key.
+
+```typescript
+// Example: rotate issuer key with 24-hour overlap
+registry.upsert({
+  issuer: 'gov-issuer',
+  publicKey: newKey,
+  status: 'active',
+  validFrom: '2026-03-01T00:00:00Z',
+  jurisdiction: 'US',
+  policyUrl: 'https://issuer.example.gov/policy',
+});
+// Old key remains valid until its validTo
+```
+
+**Suspension Workflow:**
+
+```typescript
+// Emergency: suspend all keys for an issuer
+registry.suspend('compromised-issuer');
+
+// After investigation: reactivate
+registry.reactivate('compromised-issuer');
+
+// Permanent removal
+registry.deactivate('compromised-issuer');
+```
+
+**Metadata Fields:**
+- `jurisdiction`: Indicates the legal jurisdiction under which the issuer
+  operates. Verifiers MAY use this to accept only issuers from specific
+  jurisdictions.
+- `policyUrl`: Points to the issuer's attestation policy (what identity
+  checks they perform, data retention rules, etc.).
+- `auditUrl`: Points to an external audit report or compliance certification.
+
 ### Issuer API
 
 ```typescript

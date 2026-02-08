@@ -25,6 +25,7 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - ✅ Demo rate limiting for verification endpoints
 - ✅ v0.4.1 patch: stable valid-credential tree indexing, merkle-root freshness guard, added regression tests
 - ✅ Revocation root distribution MVP (TTL policy, freshness guards, witness refresh rules, endpoint caching guidance)
+- ✅ Issuer trust & key lifecycle (registry metadata, key rotation, suspension/deactivation workflows)
 
 ## Now (Next 2–6 Weeks)
 
@@ -40,9 +41,9 @@ This roadmap focuses on security, interoperability, and production readiness. Da
    - Reproducible circuit builds and verification-key provenance (signing + CI checks).
 
 3. **Issuer Trust & Key Lifecycle**
-   - Formalize issuer registry spec (rotation, validity windows, suspension).
-   - Add issuer metadata (jurisdiction, attestation policy, audit references).
-   - Document issuer onboarding and deactivation workflow.
+   - ✅ Formalize issuer registry spec (rotation, validity windows, suspension).
+   - ✅ Add issuer metadata (jurisdiction, attestation policy, audit references).
+   - ✅ Document issuer onboarding and deactivation workflow.
 
 4. **API & Protocol Clarity**
    - Finalize REST contracts for verification flows.

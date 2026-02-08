@@ -869,6 +869,37 @@ components:
         verified:
           type: boolean
           description: Present in verification errors (always false)
+    IssuerRecord:
+      type: object
+      required: [issuer]
+      description: Registered issuer record with key, status, and metadata
+      properties:
+        issuer:
+          type: string
+          description: Issuer identifier (name or DID)
+        status:
+          type: string
+          enum: [active, revoked, suspended]
+          description: Lifecycle status of the issuer
+        validFrom:
+          type: string
+          format: date-time
+          description: Key is not valid before this time
+        validTo:
+          type: string
+          format: date-time
+          description: Key is not valid after this time
+        jurisdiction:
+          type: string
+          description: ISO 3166-1 alpha-2 jurisdiction code (e.g., "US", "DE")
+        policyUrl:
+          type: string
+          format: uri
+          description: URL to issuance/attestation policy document
+        auditUrl:
+          type: string
+          format: uri
+          description: URL to external audit report or compliance reference
     # SDK Configuration Schemas (Informational)
     ZkIdServerConfig:
       type: object

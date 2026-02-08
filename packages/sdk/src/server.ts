@@ -121,11 +121,22 @@ export interface RateLimiter {
 }
 
 export interface IssuerRecord {
+  /** Issuer identifier (name or DID) */
   issuer: string;
+  /** Ed25519 public verification key */
   publicKey: KeyObject;
+  /** Issuer status: active, revoked, or suspended */
   status?: 'active' | 'revoked' | 'suspended';
+  /** ISO 8601 timestamp — key is not valid before this time */
   validFrom?: string;
+  /** ISO 8601 timestamp — key is not valid after this time */
   validTo?: string;
+  /** Jurisdiction code (e.g., ISO 3166-1 alpha-2: "US", "DE", "GB") */
+  jurisdiction?: string;
+  /** URL to the issuer's attestation or issuance policy document */
+  policyUrl?: string;
+  /** URL to an external audit report or compliance reference */
+  auditUrl?: string;
 }
 
 export interface IssuerRegistry {
@@ -133,21 +144,115 @@ export interface IssuerRegistry {
 }
 
 /**
- * Simple in-memory issuer registry (demo)
+ * Simple in-memory issuer registry (demo).
+ *
+ * Supports key rotation via multiple records per issuer (current + previous keys).
+ * Records are stored as a list; `getIssuer()` returns the first active record whose
+ * validity window covers the current time.
  */
 export class InMemoryIssuerRegistry implements IssuerRegistry {
-  private issuers: Map<string, IssuerRecord>;
+  private issuers: Map<string, IssuerRecord[]>;
 
   constructor(records: IssuerRecord[] = []) {
-    this.issuers = new Map(records.map((r) => [r.issuer, r]));
+    this.issuers = new Map();
+    for (const r of records) {
+      this.addRecord(r);
+    }
   }
 
+  /**
+   * Return the best matching record for the given issuer:
+   * - Prefers active records within their validity window.
+   * - Falls back to the first record if none match (preserves existing behavior).
+   */
   async getIssuer(issuer: string): Promise<IssuerRecord | null> {
-    return this.issuers.get(issuer) || null;
+    const records = this.issuers.get(issuer);
+    if (!records || records.length === 0) {
+      return null;
+    }
+    const now = Date.now();
+    // Find first active record whose validity window covers now
+    const active = records.find((r) => {
+      if (r.status && r.status !== 'active') return false;
+      if (r.validFrom && Date.parse(r.validFrom) > now) return false;
+      if (r.validTo && Date.parse(r.validTo) < now) return false;
+      return true;
+    });
+    // Fallback: return first record (caller handles status/validity checks)
+    return active ?? records[0];
   }
 
+  /**
+   * List all records for an issuer (for rotation inspection).
+   */
+  async listRecords(issuer: string): Promise<IssuerRecord[]> {
+    return this.issuers.get(issuer) ?? [];
+  }
+
+  /**
+   * Add or replace an issuer record. When a record with the same validFrom
+   * already exists for the issuer, it is replaced; otherwise the new record
+   * is appended (supporting overlapping rotation windows).
+   */
   upsert(record: IssuerRecord): void {
-    this.issuers.set(record.issuer, record);
+    const records = this.issuers.get(record.issuer);
+    if (!records) {
+      this.issuers.set(record.issuer, [record]);
+      return;
+    }
+    const idx = records.findIndex(
+      (r) => r.validFrom === record.validFrom && r.validTo === record.validTo
+    );
+    if (idx >= 0) {
+      records[idx] = record;
+    } else {
+      records.push(record);
+    }
+  }
+
+  /**
+   * Suspend all records for an issuer.
+   */
+  suspend(issuer: string): void {
+    const records = this.issuers.get(issuer);
+    if (records) {
+      for (const r of records) {
+        r.status = 'suspended';
+      }
+    }
+  }
+
+  /**
+   * Reactivate all records for an issuer.
+   */
+  reactivate(issuer: string): void {
+    const records = this.issuers.get(issuer);
+    if (records) {
+      for (const r of records) {
+        r.status = 'active';
+      }
+    }
+  }
+
+  /**
+   * Deactivate (revoke) an issuer — marks all records as revoked.
+   */
+  deactivate(issuer: string): void {
+    const records = this.issuers.get(issuer);
+    if (records) {
+      for (const r of records) {
+        r.status = 'revoked';
+      }
+    }
+  }
+
+  private addRecord(record: IssuerRecord): void {
+    const existing = this.issuers.get(record.issuer);
+    if (existing) {
+      existing.push(record);
+    } else {
+      this.issuers.set(record.issuer, [record]);
+    }
   }
 }
 

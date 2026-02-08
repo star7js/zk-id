@@ -63,7 +63,7 @@ These are concrete tickets derived from the near-term roadmap. Use them as GitHu
 
 ## Issuer Trust & Key Lifecycle
 
-### T-005: Issuer Registry Spec + Metadata
+### T-005: Issuer Registry Spec + Metadata ✅
 **Goal:** Formalize issuer registry fields and behavior.
 
 **Scope**
@@ -75,7 +75,7 @@ These are concrete tickets derived from the near-term roadmap. Use them as GitHu
 - Type definitions updated + validated.
 - Docs show example registry entry with metadata.
 
-### T-006: Key Rotation + Suspension Workflow
+### T-006: Key Rotation + Suspension Workflow ✅
 **Goal:** Define and implement issuer key rotation and suspension rules.
 
 **Scope**
