@@ -7,6 +7,7 @@ info:
 
     This API implements the zk-id protocol version **zk-id/1.0-draft**.
     Protocol version is communicated via the `X-ZkId-Protocol-Version` header.
+    Servers may reject incompatible protocol versions with `400`.
 
     This is a reference schema and may evolve as the protocol matures.
 servers:
@@ -15,6 +16,8 @@ paths:
   /api/health:
     get:
       summary: Health check
+      parameters:
+        - $ref: '#/components/parameters/ProtocolVersionHeader'
       responses:
         '200':
           description: OK
@@ -22,6 +25,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
+          headers:
+            X-ZkId-Protocol-Version:
+              $ref: '#/components/headers/ProtocolVersion'
+        '400':
+          description: Incompatible protocol version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal server error
           content:
@@ -31,6 +43,8 @@ paths:
   /api/challenge:
     get:
       summary: Get server-issued nonce and timestamp
+      parameters:
+        - $ref: '#/components/parameters/ProtocolVersionHeader'
       responses:
         '200':
           description: Challenge payload
@@ -38,6 +52,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Challenge'
+          headers:
+            X-ZkId-Protocol-Version:
+              $ref: '#/components/headers/ProtocolVersion'
+        '400':
+          description: Incompatible protocol version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal server error
           content:
@@ -47,6 +70,8 @@ paths:
   /api/issue-credential:
     post:
       summary: Issue a signed credential (Ed25519)
+      parameters:
+        - $ref: '#/components/parameters/ProtocolVersionHeader'
       requestBody:
         required: true
         content:
@@ -75,8 +100,11 @@ paths:
                     type: string
                   credential:
                     $ref: '#/components/schemas/SignedCredential'
+          headers:
+            X-ZkId-Protocol-Version:
+              $ref: '#/components/headers/ProtocolVersion'
         '400':
-          description: Bad request
+          description: Bad request (including incompatible protocol version)
           content:
             application/json:
               schema:
@@ -90,6 +118,8 @@ paths:
   /api/issue-credential-signed:
     post:
       summary: Issue a credential for signed circuits (BabyJub EdDSA)
+      parameters:
+        - $ref: '#/components/parameters/ProtocolVersionHeader'
       requestBody:
         required: true
         content:
@@ -116,8 +146,11 @@ paths:
                     type: string
                   credential:
                     $ref: '#/components/schemas/CircuitSignedCredential'
+          headers:
+            X-ZkId-Protocol-Version:
+              $ref: '#/components/headers/ProtocolVersion'
         '400':
-          description: Bad request
+          description: Bad request (including incompatible protocol version)
           content:
             application/json:
               schema:
@@ -131,6 +164,8 @@ paths:
   /api/verify-age:
     post:
       summary: Verify an age proof
+      parameters:
+        - $ref: '#/components/parameters/ProtocolVersionHeader'
       requestBody:
         required: true
         content:
@@ -144,8 +179,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VerificationResult'
+          headers:
+            X-ZkId-Protocol-Version:
+              $ref: '#/components/headers/ProtocolVersion'
         '400':
-          description: Bad request
+          description: Bad request (including incompatible protocol version)
           content:
             application/json:
               schema:
@@ -159,6 +197,8 @@ paths:
   /api/verify-nationality:
     post:
       summary: Verify a nationality proof
+      parameters:
+        - $ref: '#/components/parameters/ProtocolVersionHeader'
       requestBody:
         required: true
         content:
@@ -172,8 +212,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VerificationResult'
+          headers:
+            X-ZkId-Protocol-Version:
+              $ref: '#/components/headers/ProtocolVersion'
         '400':
-          description: Bad request
+          description: Bad request (including incompatible protocol version)
           content:
             application/json:
               schema:
@@ -187,6 +230,8 @@ paths:
   /api/demo/verify-age:
     post:
       summary: Demo - generate and verify age proof server-side
+      parameters:
+        - $ref: '#/components/parameters/ProtocolVersionHeader'
       requestBody:
         required: true
         content:
@@ -200,8 +245,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DemoVerificationResponse'
+          headers:
+            X-ZkId-Protocol-Version:
+              $ref: '#/components/headers/ProtocolVersion'
         '400':
-          description: Bad request
+          description: Bad request (including incompatible protocol version)
           content:
             application/json:
               schema:
@@ -221,6 +269,8 @@ paths:
   /api/demo/verify-nationality:
     post:
       summary: Demo - generate and verify nationality proof server-side
+      parameters:
+        - $ref: '#/components/parameters/ProtocolVersionHeader'
       requestBody:
         required: true
         content:
@@ -234,8 +284,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DemoVerificationResponse'
+          headers:
+            X-ZkId-Protocol-Version:
+              $ref: '#/components/headers/ProtocolVersion'
         '400':
-          description: Bad request
+          description: Bad request (including incompatible protocol version)
           content:
             application/json:
               schema:
@@ -255,6 +308,8 @@ paths:
   /api/demo/verify-age-signed:
     post:
       summary: Demo - generate and verify signed age proof
+      parameters:
+        - $ref: '#/components/parameters/ProtocolVersionHeader'
       requestBody:
         required: true
         content:
@@ -268,8 +323,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DemoVerificationResponse'
+          headers:
+            X-ZkId-Protocol-Version:
+              $ref: '#/components/headers/ProtocolVersion'
         '400':
-          description: Bad request
+          description: Bad request (including incompatible protocol version)
           content:
             application/json:
               schema:
@@ -289,6 +347,8 @@ paths:
   /api/demo/verify-nationality-signed:
     post:
       summary: Demo - generate and verify signed nationality proof
+      parameters:
+        - $ref: '#/components/parameters/ProtocolVersionHeader'
       requestBody:
         required: true
         content:
@@ -302,8 +362,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DemoVerificationResponse'
+          headers:
+            X-ZkId-Protocol-Version:
+              $ref: '#/components/headers/ProtocolVersion'
         '400':
-          description: Bad request
+          description: Bad request (including incompatible protocol version)
           content:
             application/json:
               schema:
@@ -323,6 +386,8 @@ paths:
   /api/demo/verify-age-revocable:
     post:
       summary: Demo - generate and verify revocable age proof
+      parameters:
+        - $ref: '#/components/parameters/ProtocolVersionHeader'
       requestBody:
         required: true
         content:
@@ -336,8 +401,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DemoVerificationResponse'
+          headers:
+            X-ZkId-Protocol-Version:
+              $ref: '#/components/headers/ProtocolVersion'
         '400':
-          description: Bad request
+          description: Bad request (including incompatible protocol version)
           content:
             application/json:
               schema:
@@ -357,6 +425,8 @@ paths:
   /api/revoke-credential:
     post:
       summary: Revoke a credential by ID
+      parameters:
+        - $ref: '#/components/parameters/ProtocolVersionHeader'
       requestBody:
         required: true
         content:
@@ -379,8 +449,11 @@ paths:
                     type: boolean
                   message:
                     type: string
+          headers:
+            X-ZkId-Protocol-Version:
+              $ref: '#/components/headers/ProtocolVersion'
         '400':
-          description: Bad request
+          description: Bad request (including incompatible protocol version)
           content:
             application/json:
               schema:
@@ -398,6 +471,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 components:
+  parameters:
+    ProtocolVersionHeader:
+      name: X-ZkId-Protocol-Version
+      in: header
+      required: false
+      description: Protocol version for compatibility (e.g., "zk-id/1.0-draft")
+      schema:
+        type: string
+  headers:
+    ProtocolVersion:
+      description: Protocol version (e.g., "zk-id/1.0-draft")
+      schema:
+        type: string
   schemas:
     HealthResponse:
       type: object
