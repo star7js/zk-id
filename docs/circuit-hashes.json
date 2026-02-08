@@ -2,37 +2,37 @@
   "algorithm": "SHA-256",
   "circomVersion": "0.5.46",
   "snarkjsVersion": "0.7.6",
-  "generatedAt": "2026-02-08T22:09:13Z",
+  "generatedAt": "2026-02-08T22:29:03Z",
   "circuits": {
     "age-verify": {
       "wasm": "f1526de4c5267fe9743b70dece85569c09d44e46bf968b259c4e5d08d0121443",
-      "zkey": "46437bd3ed311efa94f1253e6a47491126cdd6e92e69e178a2c7dcc59e969a8f",
-      "verificationKey": "011e067502e2225b534ec82a8e3178f359faec601f560b045e490ce91c23f315"
+      "zkey": "8af6c612f05295b09f2328a6cd4d10107867d85ffc14bd4646831a71e006f632",
+      "verificationKey": "628ce935010f67acfdf0f56ceb9a8f0ab36de60fd1ead31909c1052189d012f9"
     },
     "credential-hash": {
       "wasm": "f003d83fc887b07144cc697096a9de5cad6c47ba60e26662424aac918bbc6a03",
-      "zkey": "dd272e4cf91b09241842d6779d6480a35a241597931928f8308bc5760bcdff8a",
-      "verificationKey": "5073b1eceffbfa6e3d90608416e2c885709376ebd0316c8e0bded5f0aab3e23b"
+      "zkey": "152f22944e2ebe11c9d607ae64f9c32da366a994a68a4fe931b75c39650c05fb",
+      "verificationKey": "6ba8171dffa42b8840ff7c8f47eca6f726d241c4c4054e5aeeec477473746d2b"
     },
     "nationality-verify": {
       "wasm": "e9f60d0f5eca4ee86bb682490830235358cdcfddfee852951d5a697d81398016",
-      "zkey": "f02206c04d7eb2cf997b1fee7bddcccdd65fc26b9fb8de11d8dac5d490acb343",
-      "verificationKey": "aa2bd076201b351f4f1d53bc2afc53420cca5c6bbc812c6d5fdaa2f0cf8995d0"
+      "zkey": "ef7e54ddf62bb8fa13fccad34418509fc63be7cdc671ae7f98dbc2ea5c91f712",
+      "verificationKey": "8dfb1965ddd0123b936cf5bcc1881eb217d0989c19451b3ea171aad3fc9e37b2"
     },
     "age-verify-signed": {
       "wasm": "0ef467afb6b2519514b90cbe9494943c5277611bbc6b7434cf5ec234fecb2bb5",
-      "zkey": "aa52f8b2a479c9c4afbe27711a0aede0c40e725644c11f1e15ffa6e4889c8f26",
-      "verificationKey": "212bd1354391d903636f383f1c20e971123f8f84f8cae96259a3f3b36babe364"
+      "zkey": "97585a1d6b7c28609c11945002039709c1ce06fa39527420ce34bff6c368668e",
+      "verificationKey": "34851703345ef7a34d7efd040c61526eda47d9f99351a00e26a75b079c7e2a04"
     },
     "nationality-verify-signed": {
       "wasm": "1e4ff2418c4844736c7de27c1f73355a785362b20ad4eb47291fbd0db377a857",
-      "zkey": "ed6f32656a53acd0f53e6b23bb25045ab5755ad52e91b753edfeacc1bf2e4183",
-      "verificationKey": "3c2984af642356e97a56d10307b09b78e23dd757443de64eba41d84597e64565"
+      "zkey": "d1c505529af9d0ef5d236395856ee1db6520906c3f91a8652e2f61f634353c4b",
+      "verificationKey": "97a957ad4538977db5bee45bcee8d919e1071d3ce0f427250c1bf738ea95e68f"
     },
     "age-verify-revocable": {
       "wasm": "b086b3bdfa599975097ba93b7d37777a7f722680ddb3b4396f0043e7b02058c8",
-      "zkey": "59d44caea416e07ae58562d96c208a2634a3c05e56b93473e3df5dd09e26b027",
-      "verificationKey": "a20b697dd75723bf6a384888f373dff716633feb16e052b74fc26212aad36687"
+      "zkey": "bc6e1e482b7cd67f759e555346c502e3762a2863ed6e35da95a95d370116ec9e",
+      "verificationKey": "2549bf0dcd9c795190d15ee6a0fa3eb6286bdc43729dcb108038ecc585b935a7"
     }
   }
 }

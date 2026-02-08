@@ -54,7 +54,7 @@ jobs:
         run: npm run --workspace=@zk-id/circuits setup
 
       - name: Verify circuit artifact hashes
-        run: npm run verify:hashes
+        run: npm run verify-hashes --workspace=@zk-id/circuits
 
       - name: Report success
         if: success()

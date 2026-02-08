@@ -43,14 +43,14 @@ $SNARKJS groth16 setup \
   "$POT_FILE_SMALL" \
   "$BUILD_DIR/age-verify_0000.zkey"
 
-# Contribute to the ceremony (this should be done by multiple parties in production)
-echo "Contributing randomness..."
-$SNARKJS zkey contribute \
+# Apply deterministic beacon for reproducible dev/CI builds
+# Production should use a proper multi-party ceremony with multiple contributors
+echo "Applying beacon (deterministic)..."
+$SNARKJS zkey beacon \
   "$BUILD_DIR/age-verify_0000.zkey" \
   "$BUILD_DIR/age-verify.zkey" \
-  --name="First contribution" \
-  -v \
-  -e="random entropy"
+  0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20 10 \
+  --name="Final beacon phase2"
 
 # Export verification key
 echo "Exporting verification key..."
@@ -65,12 +65,11 @@ $SNARKJS groth16 setup \
   "$POT_FILE_SMALL" \
   "$BUILD_DIR/credential-hash_0000.zkey"
 
-$SNARKJS zkey contribute \
+$SNARKJS zkey beacon \
   "$BUILD_DIR/credential-hash_0000.zkey" \
   "$BUILD_DIR/credential-hash.zkey" \
-  --name="First contribution" \
-  -v \
-  -e="random entropy"
+  0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20 10 \
+  --name="Final beacon phase2"
 
 $SNARKJS zkey export verificationkey \
   "$BUILD_DIR/credential-hash.zkey" \
@@ -83,12 +82,11 @@ $SNARKJS groth16 setup \
   "$POT_FILE_SMALL" \
   "$BUILD_DIR/nationality-verify_0000.zkey"
 
-$SNARKJS zkey contribute \
+$SNARKJS zkey beacon \
   "$BUILD_DIR/nationality-verify_0000.zkey" \
   "$BUILD_DIR/nationality-verify.zkey" \
-  --name="First contribution" \
-  -v \
-  -e="random entropy"
+  0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20 10 \
+  --name="Final beacon phase2"
 
 $SNARKJS zkey export verificationkey \
   "$BUILD_DIR/nationality-verify.zkey" \
@@ -101,12 +99,11 @@ $SNARKJS groth16 setup \
   "$POT_FILE_LARGE" \
   "$BUILD_DIR/age-verify-signed_0000.zkey"
 
-$SNARKJS zkey contribute \
+$SNARKJS zkey beacon \
   "$BUILD_DIR/age-verify-signed_0000.zkey" \
   "$BUILD_DIR/age-verify-signed.zkey" \
-  --name="First contribution" \
-  -v \
-  -e="random entropy"
+  0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20 10 \
+  --name="Final beacon phase2"
 
 $SNARKJS zkey export verificationkey \
   "$BUILD_DIR/age-verify-signed.zkey" \
@@ -119,12 +116,11 @@ $SNARKJS groth16 setup \
   "$POT_FILE_LARGE" \
   "$BUILD_DIR/nationality-verify-signed_0000.zkey"
 
-$SNARKJS zkey contribute \
+$SNARKJS zkey beacon \
   "$BUILD_DIR/nationality-verify-signed_0000.zkey" \
   "$BUILD_DIR/nationality-verify-signed.zkey" \
-  --name="First contribution" \
-  -v \
-  -e="random entropy"
+  0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20 10 \
+  --name="Final beacon phase2"
 
 $SNARKJS zkey export verificationkey \
   "$BUILD_DIR/nationality-verify-signed.zkey" \
@@ -137,12 +133,11 @@ $SNARKJS groth16 setup \
   "$POT_FILE_MEDIUM" \
   "$BUILD_DIR/age-verify-revocable_0000.zkey"
 
-$SNARKJS zkey contribute \
+$SNARKJS zkey beacon \
   "$BUILD_DIR/age-verify-revocable_0000.zkey" \
   "$BUILD_DIR/age-verify-revocable.zkey" \
-  --name="First contribution" \
-  -v \
-  -e="random entropy"
+  0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20 10 \
+  --name="Final beacon phase2"
 
 $SNARKJS zkey export verificationkey \
   "$BUILD_DIR/age-verify-revocable.zkey" \
