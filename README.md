@@ -105,7 +105,7 @@ const client = new ZkIdClient({
 ```
 
 **Server side** (your backend):
-```typescript
+```typescript  
 import { ZkIdServer, InMemoryIssuerRegistry, InMemoryChallengeStore } from '@zk-id/sdk';
 import { InMemoryRevocationStore } from '@zk-id/core';
 
