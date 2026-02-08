@@ -203,12 +203,41 @@ zk-id/
 
 ## Use Cases
 
+### Age Verification
 - **Age-Restricted Content**: Verify minimum age requirements for restricted websites (18+, 21+)
 - **Social Media**: Compliance with age restrictions (13+, 16+)
 - **E-Commerce**: Age verification for alcohol, tobacco, cannabis
 - **Gaming**: Age-appropriate content access controls
 - **Voting**: Prove eligibility (18+) without revealing exact age
 - **Discounts**: Prove senior (65+) or student status without ID
+
+### Financial Services
+- **Bank account holder verification**: Prove you hold an active account without revealing account number or balance
+- **Credit eligibility**: Prove creditworthiness meets a threshold without exposing exact score or history
+- **Accredited investor status**: Prove income/net-worth thresholds for regulatory compliance without financial disclosure
+
+### Insurance
+- **Health insurance validity**: Prove active coverage to a provider without revealing policy details or medical history
+- **Auto insurance**: Prove current coverage when renting a car or at a traffic stop without exposing policy limits or premium
+- **Claims eligibility**: Prove coverage for a specific category without revealing full policy
+
+### Vehicle & Licensing
+- **Car registration**: Prove your vehicle registration is current without revealing VIN or address
+- **Driver's license class**: Prove you hold a valid license of a required class without revealing license number
+
+### Memberships & Access
+- **Country club or gym membership**: Prove active or transferable membership status without revealing member ID or payment history
+- **Alumni verification**: Prove graduation from a university without revealing GPA, transcript, or student ID
+- **Professional credentials**: Prove an active license (medical, legal, engineering) without exposing license number
+
+### Compliance & KYC
+- **Portable KYC**: Prove you passed identity verification at one institution so another can accept it without re-collecting documents
+- **Employment verification**: Prove current employment for a loan or rental application without revealing salary or position
+- **Income thresholds**: Prove income exceeds a required multiple (e.g., 3x rent) without revealing exact figures
+
+### Healthcare & Travel
+- **Vaccination or health status**: Prove immunization compliance without revealing full medical records
+- **Travel authorization**: Prove valid visa or entry status without revealing passport number or travel history
 
 ## Technology
 
