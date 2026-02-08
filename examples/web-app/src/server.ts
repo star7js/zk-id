@@ -273,7 +273,7 @@ app.post('/api/verify-nationality', async (req, res) => {
  */
 app.post('/api/demo/verify-age', async (req, res) => {
   try {
-    const { credentialId, minAge } = req.body;
+    const { credentialId, minAge, nonce: providedNonce, requestTimestamp: providedTimestamp } = req.body;
 
     if (!credentialId || minAge === undefined) {
       return res.status(400).json({
@@ -298,7 +298,10 @@ app.post('/api/demo/verify-age', async (req, res) => {
 
     // Generate proof (this is the expensive operation)
     const proofGenStart = Date.now();
-    const { nonce, requestTimestamp } = await zkIdServer.createChallenge();
+    const { nonce, requestTimestamp } =
+      providedNonce && providedTimestamp
+        ? { nonce: providedNonce, requestTimestamp: providedTimestamp }
+        : await zkIdServer.createChallenge();
     const requestTimestampMs = Date.parse(requestTimestamp);
     const proof = await generateAgeProof(
       signedCredential.credential,
@@ -377,7 +380,7 @@ app.post('/api/demo/verify-age', async (req, res) => {
  */
 app.post('/api/demo/verify-age-signed', async (req, res) => {
   try {
-    const { credentialId, minAge } = req.body;
+    const { credentialId, minAge, nonce: providedNonce, requestTimestamp: providedTimestamp } = req.body;
 
     if (!credentialId || minAge === undefined) {
       return res.status(400).json({
@@ -399,7 +402,10 @@ app.post('/api/demo/verify-age-signed', async (req, res) => {
     }
 
     const proofGenStart = Date.now();
-    const { nonce, requestTimestamp } = await zkIdServer.createChallenge();
+    const { nonce, requestTimestamp } =
+      providedNonce && providedTimestamp
+        ? { nonce: providedNonce, requestTimestamp: providedTimestamp }
+        : await zkIdServer.createChallenge();
     const requestTimestampMs = Date.parse(requestTimestamp);
     const signatureInputs = circuitIssuer.getSignatureInputs(signedCredential);
 
@@ -480,7 +486,7 @@ app.post('/api/demo/verify-age-signed', async (req, res) => {
  */
 app.post('/api/demo/verify-nationality', async (req, res) => {
   try {
-    const { credentialId, targetNationality } = req.body;
+    const { credentialId, targetNationality, nonce: providedNonce, requestTimestamp: providedTimestamp } = req.body;
 
     if (!credentialId || targetNationality === undefined) {
       return res.status(400).json({
@@ -505,7 +511,10 @@ app.post('/api/demo/verify-nationality', async (req, res) => {
 
     // Generate proof (this is the expensive operation)
     const proofGenStart = Date.now();
-    const { nonce, requestTimestamp } = await zkIdServer.createChallenge();
+    const { nonce, requestTimestamp } =
+      providedNonce && providedTimestamp
+        ? { nonce: providedNonce, requestTimestamp: providedTimestamp }
+        : await zkIdServer.createChallenge();
     const requestTimestampMs = Date.parse(requestTimestamp);
     const proof = await generateNationalityProof(
       signedCredential.credential,
@@ -585,7 +594,7 @@ app.post('/api/demo/verify-nationality', async (req, res) => {
  */
 app.post('/api/demo/verify-nationality-signed', async (req, res) => {
   try {
-    const { credentialId, targetNationality } = req.body;
+    const { credentialId, targetNationality, nonce: providedNonce, requestTimestamp: providedTimestamp } = req.body;
 
     if (!credentialId || targetNationality === undefined) {
       return res.status(400).json({
@@ -607,7 +616,10 @@ app.post('/api/demo/verify-nationality-signed', async (req, res) => {
     }
 
     const proofGenStart = Date.now();
-    const { nonce, requestTimestamp } = await zkIdServer.createChallenge();
+    const { nonce, requestTimestamp } =
+      providedNonce && providedTimestamp
+        ? { nonce: providedNonce, requestTimestamp: providedTimestamp }
+        : await zkIdServer.createChallenge();
     const requestTimestampMs = Date.parse(requestTimestamp);
     const signatureInputs = circuitIssuer.getSignatureInputs(signedCredential);
 

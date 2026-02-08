@@ -595,12 +595,17 @@
             resultDiv.style.display = 'block';
 
             try {
+                const challengeResponse = await fetch('/api/challenge');
+                const challenge = await challengeResponse.json();
+
                 const response = await fetch('/api/demo/verify-age', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         credentialId: state.credentialId,
-                        minAge
+                        minAge,
+                        nonce: challenge.nonce,
+                        requestTimestamp: challenge.requestTimestamp
                     })
                 });
 
@@ -696,12 +701,17 @@
             resultDiv.style.display = 'block';
 
             try {
+                const challengeResponse = await fetch('/api/challenge');
+                const challenge = await challengeResponse.json();
+
                 const response = await fetch('/api/demo/verify-age-signed', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         credentialId: state.circuitCredentialId,
-                        minAge
+                        minAge,
+                        nonce: challenge.nonce,
+                        requestTimestamp: challenge.requestTimestamp
                     })
                 });
 
@@ -761,12 +771,17 @@
             resultDiv.style.display = 'block';
 
             try {
+                const challengeResponse = await fetch('/api/challenge');
+                const challenge = await challengeResponse.json();
+
                 const response = await fetch('/api/demo/verify-nationality', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         credentialId: state.credentialId,
-                        targetNationality
+                        targetNationality,
+                        nonce: challenge.nonce,
+                        requestTimestamp: challenge.requestTimestamp
                     })
                 });
 
@@ -862,12 +877,17 @@
             resultDiv.style.display = 'block';
 
             try {
+                const challengeResponse = await fetch('/api/challenge');
+                const challenge = await challengeResponse.json();
+
                 const response = await fetch('/api/demo/verify-nationality-signed', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         credentialId: state.circuitCredentialId,
-                        targetNationality
+                        targetNationality,
+                        nonce: challenge.nonce,
+                        requestTimestamp: challenge.requestTimestamp
                     })
                 });
 
