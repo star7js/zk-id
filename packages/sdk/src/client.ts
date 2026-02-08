@@ -16,6 +16,8 @@ import {
   generateAgeProof,
   generateNationalityProof,
   generateAgeProofRevocable,
+  PROTOCOL_VERSION,
+  isProtocolCompatible,
 } from '@zk-id/core';
 
 export interface ZkIdClientConfig {
@@ -153,12 +155,22 @@ export class ZkIdClient {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-ZkId-Protocol-Version': PROTOCOL_VERSION,
       },
       body: JSON.stringify(proofResponse),
     });
 
     if (!response.ok) {
       throw new Error(`Verification failed: ${response.statusText}`);
+    }
+
+    // Check protocol version compatibility
+    const serverProtocolVersion = response.headers.get('X-ZkId-Protocol-Version');
+    if (serverProtocolVersion && !isProtocolCompatible(PROTOCOL_VERSION, serverProtocolVersion)) {
+      console.warn(
+        `[zk-id] Protocol version mismatch: client=${PROTOCOL_VERSION}, server=${serverProtocolVersion}. ` +
+        'This may cause compatibility issues.'
+      );
     }
 
     const result = await response.json();

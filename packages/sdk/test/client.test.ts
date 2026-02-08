@@ -183,6 +183,9 @@ describe('SDK Client Tests', () => {
           ok: true,
           json: async () => ({ verified: true }),
           statusText: 'OK',
+          headers: {
+            get: (name: string) => (name === 'X-ZkId-Protocol-Version' ? 'zk-id/1.0-draft' : null),
+          },
         });
 
         const client = new ZkIdClient({
@@ -213,6 +216,9 @@ describe('SDK Client Tests', () => {
           ok: true,
           json: async () => ({ verified: false }),
           statusText: 'OK',
+          headers: {
+            get: (name: string) => (name === 'X-ZkId-Protocol-Version' ? 'zk-id/1.0-draft' : null),
+          },
         });
 
         const client = new ZkIdClient({
@@ -307,6 +313,9 @@ describe('SDK Client Tests', () => {
           ok: true,
           json: async () => ({ verified: true }),
           statusText: 'OK',
+          headers: {
+            get: (name: string) => (name === 'X-ZkId-Protocol-Version' ? 'zk-id/1.0-draft' : null),
+          },
         });
 
         const client = new ZkIdClient({
@@ -335,6 +344,9 @@ describe('SDK Client Tests', () => {
           ok: true,
           json: async () => ({ verified: false }),
           statusText: 'OK',
+          headers: {
+            get: (name: string) => (name === 'X-ZkId-Protocol-Version' ? 'zk-id/1.0-draft' : null),
+          },
         });
 
         const client = new ZkIdClient({

@@ -1,9 +1,13 @@
 openapi: 3.0.3
 info:
   title: zk-id Demo API
-  version: 0.1.0
+  version: 0.4.1
   description: |
     Demo REST API for zk-id verification flows.
+
+    This API implements the zk-id protocol version **zk-id/1.0-draft**.
+    Protocol version is communicated via the `X-ZkId-Protocol-Version` header.
+
     This is a reference schema and may evolve as the protocol matures.
 servers:
   - url: http://localhost:3000
@@ -17,15 +21,13 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                  timestamp:
-                    type: string
-                    format: date-time
-                  issuer:
-                    type: string
+                $ref: '#/components/schemas/HealthResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/challenge:
     get:
       summary: Get server-issued nonce and timestamp
@@ -36,6 +38,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Challenge'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/issue-credential:
     post:
       summary: Issue a signed credential (Ed25519)
@@ -67,6 +75,18 @@ paths:
                     type: string
                   credential:
                     $ref: '#/components/schemas/SignedCredential'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/issue-credential-signed:
     post:
       summary: Issue a credential for signed circuits (BabyJub EdDSA)
@@ -96,6 +116,18 @@ paths:
                     type: string
                   credential:
                     $ref: '#/components/schemas/CircuitSignedCredential'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/verify-age:
     post:
       summary: Verify an age proof
@@ -112,6 +144,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VerificationResult'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/verify-nationality:
     post:
       summary: Verify a nationality proof
@@ -128,6 +172,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VerificationResult'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/demo/verify-age:
     post:
       summary: Demo - generate and verify age proof server-side
@@ -144,6 +200,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DemoVerificationResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Credential not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/demo/verify-nationality:
     post:
       summary: Demo - generate and verify nationality proof server-side
@@ -160,6 +234,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DemoVerificationResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Credential not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/demo/verify-age-signed:
     post:
       summary: Demo - generate and verify signed age proof
@@ -176,6 +268,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DemoVerificationResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Credential not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/demo/verify-nationality-signed:
     post:
       summary: Demo - generate and verify signed nationality proof
@@ -192,6 +302,58 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DemoVerificationResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Credential not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/demo/verify-age-revocable:
+    post:
+      summary: Demo - generate and verify revocable age proof
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DemoAgeRequest'
+      responses:
+        '200':
+          description: Demo response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DemoVerificationResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Credential not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/revoke-credential:
     post:
       summary: Revoke a credential by ID
@@ -217,8 +379,40 @@ paths:
                     type: boolean
                   message:
                     type: string
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Credential not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   schemas:
+    HealthResponse:
+      type: object
+      required: [status, timestamp, issuer, protocolVersion]
+      properties:
+        status:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        issuer:
+          type: string
+        protocolVersion:
+          type: string
+          description: Protocol version (e.g., "zk-id/1.0-draft")
     Challenge:
       type: object
       required: [nonce, requestTimestamp]
@@ -326,12 +520,94 @@ components:
           type: string
         requestTimestamp:
           type: integer
+    AgeProofSignedPublicSignals:
+      type: object
+      description: Public signals for signed age proofs (includes issuer public key)
+      properties:
+        currentYear:
+          type: integer
+        minAge:
+          type: integer
+        credentialHash:
+          type: string
+        nonce:
+          type: string
+        requestTimestamp:
+          type: integer
+        issuerPublicKey:
+          type: array
+          items:
+            type: string
+          description: BabyJub issuer public key coordinates
+    NationalityProofSignedPublicSignals:
+      type: object
+      description: Public signals for signed nationality proofs (includes issuer public key)
+      properties:
+        targetNationality:
+          type: integer
+        credentialHash:
+          type: string
+        nonce:
+          type: string
+        requestTimestamp:
+          type: integer
+        issuerPublicKey:
+          type: array
+          items:
+            type: string
+          description: BabyJub issuer public key coordinates
+    AgeProofRevocablePublicSignals:
+      type: object
+      description: Public signals for revocable age proofs (includes merkle root)
+      properties:
+        currentYear:
+          type: integer
+        minAge:
+          type: integer
+        credentialHash:
+          type: string
+        nonce:
+          type: string
+        requestTimestamp:
+          type: integer
+        merkleRoot:
+          type: string
+          description: Merkle root of the valid credentials tree
     ProofResponse:
       type: object
-      required: [claimType, proof, nonce, requestTimestamp]
+      required: [claimType, proof, nonce, requestTimestamp, signedCredential]
       properties:
         credentialId:
           type: string
+        claimType:
+          type: string
+          enum: [age, nationality, age-revocable]
+        proof:
+          type: object
+          properties:
+            proof:
+              $ref: '#/components/schemas/Proof'
+            publicSignals:
+              oneOf:
+                - $ref: '#/components/schemas/AgePublicSignals'
+                - $ref: '#/components/schemas/NationalityPublicSignals'
+                - $ref: '#/components/schemas/AgeProofSignedPublicSignals'
+                - $ref: '#/components/schemas/NationalityProofSignedPublicSignals'
+                - $ref: '#/components/schemas/AgeProofRevocablePublicSignals'
+        signedCredential:
+          oneOf:
+            - $ref: '#/components/schemas/SignedCredential'
+            - $ref: '#/components/schemas/CircuitSignedCredential'
+        nonce:
+          type: string
+        requestTimestamp:
+          type: string
+          format: date-time
+    SignedProofRequest:
+      type: object
+      description: Request body for verifySignedProof() flow
+      required: [claimType, proof, signedCredential, nonce, requestTimestamp]
+      properties:
         claimType:
           type: string
           enum: [age, nationality]
@@ -342,10 +618,10 @@ components:
               $ref: '#/components/schemas/Proof'
             publicSignals:
               oneOf:
-                - $ref: '#/components/schemas/AgePublicSignals'
-                - $ref: '#/components/schemas/NationalityPublicSignals'
+                - $ref: '#/components/schemas/AgeProofSignedPublicSignals'
+                - $ref: '#/components/schemas/NationalityProofSignedPublicSignals'
         signedCredential:
-          $ref: '#/components/schemas/SignedCredential'
+          $ref: '#/components/schemas/CircuitSignedCredential'
         nonce:
           type: string
         requestTimestamp:
@@ -379,6 +655,7 @@ components:
           format: date-time
     VerificationResult:
       type: object
+      required: [verified]
       properties:
         verified:
           type: boolean
@@ -390,6 +667,9 @@ components:
           type: integer
         error:
           type: string
+        protocolVersion:
+          type: string
+          description: Protocol version (e.g., "zk-id/1.0-draft")
     DemoVerificationResponse:
       type: object
       properties:
@@ -399,6 +679,29 @@ components:
           type: string
         error:
           type: string
+        privacy:
+          type: object
+          description: Privacy guarantees of the proof
+          properties:
+            doesNotRevealBirthYear:
+              type: boolean
+            doesNotRevealNationality:
+              type: boolean
+            doesNotRevealCredentialId:
+              type: boolean
+        proofDetails:
+          type: object
+          description: Details about the verified proof
+          properties:
+            claimType:
+              type: string
+            minAge:
+              type: integer
+            targetNationality:
+              type: integer
+            verifiedAt:
+              type: string
+              format: date-time
         timing:
           type: object
           properties:
@@ -408,3 +711,98 @@ components:
               type: integer
             totalMs:
               type: integer
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: Error message
+        details:
+          type: string
+          description: Additional error details
+        verified:
+          type: boolean
+          description: Present in verification errors (always false)
+    # SDK Configuration Schemas (Informational)
+    ZkIdServerConfig:
+      type: object
+      description: SDK server configuration (informational - not an API endpoint)
+      properties:
+        issuerPrivateKey:
+          type: string
+        verificationKeys:
+          $ref: '#/components/schemas/VerificationKeySet'
+        requiredPolicy:
+          $ref: '#/components/schemas/RequiredPolicy'
+    VerificationKeySet:
+      type: object
+      description: Collection of verification keys for different proof types
+      properties:
+        ageProof:
+          $ref: '#/components/schemas/VerificationKey'
+        nationalityProof:
+          $ref: '#/components/schemas/VerificationKey'
+        ageProofSigned:
+          $ref: '#/components/schemas/VerificationKey'
+        nationalityProofSigned:
+          $ref: '#/components/schemas/VerificationKey'
+        ageProofRevocable:
+          $ref: '#/components/schemas/VerificationKey'
+    VerificationKey:
+      type: object
+      description: ZK-SNARK verification key
+      properties:
+        protocol:
+          type: string
+        curve:
+          type: string
+        nPublic:
+          type: integer
+        vk_alpha_1:
+          type: array
+          items:
+            type: string
+        vk_beta_2:
+          type: array
+        vk_gamma_2:
+          type: array
+        vk_delta_2:
+          type: array
+        vk_alphabeta_12:
+          type: array
+        IC:
+          type: array
+    RequiredPolicy:
+      type: object
+      description: Policy for proof validation requirements
+      properties:
+        requireNonce:
+          type: boolean
+        requireTimestamp:
+          type: boolean
+        maxProofAgeSeconds:
+          type: integer
+    ProofChallenge:
+      type: object
+      description: Challenge parameters for proof generation
+      properties:
+        nonce:
+          type: string
+        requestTimestamp:
+          type: string
+          format: date-time
+    BatchVerificationResult:
+      type: object
+      description: Result of batch proof verification
+      properties:
+        verified:
+          type: boolean
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/VerificationResult'
+        errors:
+          type: array
+          items:
+            type: string

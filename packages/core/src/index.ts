@@ -14,3 +14,4 @@ export * from './revocation';
 export * from './revocation-accumulator';
 export * from './valid-credential-tree';
 export * from './signature';
+export * from './version';

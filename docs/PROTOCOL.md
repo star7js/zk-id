@@ -4,9 +4,40 @@ This document specifies the zk-id protocol for privacy-preserving identity verif
 
 ## Version
 
-**Protocol Version**: 0.1.0
+**Protocol Version**: zk-id/1.0-draft
 **Status**: Draft / Experimental
-**Last Updated**: 2026
+**Last Updated**: 2026-02-08
+
+## Protocol Versioning
+
+The zk-id protocol uses semantic versioning for wire-format compatibility, decoupled from npm package versions.
+
+**Format**: `zk-id/<major>.<minor>[-suffix]`
+
+**Version Components:**
+- **Major version**: Incremented for breaking protocol changes (incompatible proof structures, public signals format changes)
+- **Minor version**: Incremented for backward-compatible additions (new claim types, optional fields)
+- **Suffix**: Pre-release indicators (`-draft`, `-rc1`, etc.)
+
+**Compatibility Rules:**
+- Implementations with the same major version MUST be compatible
+- Minor version differences SHOULD be handled gracefully
+- Clients and servers communicate protocol version via the `X-ZkId-Protocol-Version` HTTP header
+
+**Compatibility Checking:**
+```typescript
+import { PROTOCOL_VERSION, isProtocolCompatible } from '@zk-id/core';
+
+// Check if two versions are compatible
+const compatible = isProtocolCompatible('zk-id/1.0-draft', 'zk-id/1.2');
+// Returns true (same major version)
+```
+
+**Version History:**
+
+| Version | Date | Changes |
+|---------|------|---------|
+| zk-id/1.0-draft | 2026-02-08 | Initial protocol specification with age, nationality, and age-revocable claim types |
 
 ## Goals
 
@@ -89,7 +120,7 @@ A website or service that requests and verifies proofs.
 
 ```typescript
 {
-  claimType: 'age' | 'nationality';  // Type of claim to prove
+  claimType: 'age' | 'nationality' | 'age-revocable';  // Type of claim to prove
   minAge?: number;                    // For age claims (e.g., 18, 21)
   targetNationality?: number;         // For nationality claims (ISO 3166-1 code)
   nonce: string;                      // 128-bit random value (hex)
@@ -142,14 +173,40 @@ A website or service that requests and verifies proofs.
 
 **Selective Disclosure:** Birth year is included in the credential hash computation but not revealed in the proof.
 
+### Age Proof (Revocable)
+
+```typescript
+{
+  proof: {
+    pi_a: string[];        // Groth16 proof component A
+    pi_b: string[][];      // Groth16 proof component B
+    pi_c: string[];        // Groth16 proof component C
+    protocol: 'groth16';
+    curve: 'bn128';
+  };
+  publicSignals: {
+    currentYear: number;   // Year used in proof (e.g., 2026)
+    minAge: number;        // Minimum age requirement (e.g., 18)
+    credentialHash: string; // Public credential commitment
+    nonce: string;         // Replay protection nonce
+    requestTimestamp: number; // Request timestamp (Unix ms)
+    merkleRoot: string;    // Root of valid credentials Merkle tree
+  };
+}
+```
+
+**Revocation Support:** The `merkleRoot` public signal binds the proof to a specific state of the valid credentials tree, enabling privacy-preserving revocation checks.
+
 ### Proof Response
 
 ```typescript
 {
   credentialId: string;           // ID of credential used
-  claimType: string;              // Type of claim proven
-  proof: AgeProof | NationalityProof;  // The zero-knowledge proof
+  claimType: string;              // Type of claim proven ('age', 'nationality', 'age-revocable')
+  proof: AgeProof | NationalityProof | AgeProofRevocable;  // The zero-knowledge proof
+  signedCredential: SignedCredential | CircuitSignedCredential;  // Issuer-signed credential
   nonce: string;                  // From the request (replay protection)
+  requestTimestamp: string;       // ISO 8601 timestamp from request
 }
 ```
 
@@ -162,6 +219,7 @@ A website or service that requests and verifies proofs.
   minAge?: number;           // Minimum age proven (for age claims)
   targetNationality?: number; // Nationality proven (for nationality claims)
   error?: string;            // Error message if verification failed
+  protocolVersion?: string;  // Protocol version used for verification (e.g., "zk-id/1.0-draft")
 }
 ```
 

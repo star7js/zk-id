@@ -28,6 +28,7 @@ import {
   validateProofConstraints,
   validateNationalityProofConstraints,
   validateAgeProofRevocableConstraints,
+  PROTOCOL_VERSION,
 } from '@zk-id/core';
 import { readFileSync } from 'fs';
 import { EventEmitter } from 'events';
@@ -183,6 +184,13 @@ export class ZkIdServer extends EventEmitter {
   private signedVerificationKey?: VerificationKey;
   private signedNationalityVerificationKey?: VerificationKey;
   private revocableVerificationKey?: VerificationKey;
+
+  /**
+   * Get the protocol version implemented by this SDK
+   */
+  get protocolVersion(): string {
+    return PROTOCOL_VERSION;
+  }
 
   constructor(config: ZkIdServerConfig) {
     super();
@@ -625,6 +633,7 @@ export class ZkIdServer extends EventEmitter {
             request.claimType === 'nationality'
               ? (request.proof as NationalityProofSigned).publicSignals.targetNationality
               : undefined,
+          protocolVersion: PROTOCOL_VERSION,
         }
       : { verified: false, error: 'Proof verification failed' };
 
@@ -663,6 +672,7 @@ export class ZkIdServer extends EventEmitter {
           verified: true,
           claimType: proofResponse.claimType,
           minAge: proof.publicSignals.minAge,
+          protocolVersion: PROTOCOL_VERSION,
         };
       } else {
         return {
@@ -716,6 +726,7 @@ export class ZkIdServer extends EventEmitter {
           verified: true,
           claimType: proofResponse.claimType,
           targetNationality: proof.publicSignals.targetNationality,
+          protocolVersion: PROTOCOL_VERSION,
         };
       } else {
         return {
@@ -778,6 +789,7 @@ export class ZkIdServer extends EventEmitter {
           verified: true,
           claimType: proofResponse.claimType,
           minAge: proof.publicSignals.minAge,
+          protocolVersion: PROTOCOL_VERSION,
         };
       } else {
         return {
@@ -981,6 +993,7 @@ export interface VerificationResult {
   minAge?: number;
   targetNationality?: number;
   error?: string;
+  protocolVersion?: string;
 }
 
 /**

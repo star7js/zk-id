@@ -17,6 +17,7 @@ import {
   generateAgeProofSigned,
   generateNationalityProofSigned,
   generateAgeProofRevocable,
+  PROTOCOL_VERSION,
 } from '@zk-id/core';
 
 async function main() {
@@ -42,6 +43,12 @@ const AGE_REVOCABLE_ZKEY_PATH = join(CIRCUITS_BASE, 'age-verify-revocable.zkey')
 // Middleware
 app.use(express.json({ limit: '100kb' }));
 app.use(express.static(join(__dirname, 'public')));
+
+// Protocol version header middleware
+app.use((req, res, next) => {
+  res.setHeader('X-ZkId-Protocol-Version', PROTOCOL_VERSION);
+  next();
+});
 
 // Create a test issuer (in production, this would use secure key management)
 const issuerName = 'Demo Government ID Authority';
@@ -897,6 +904,7 @@ app.get('/api/health', (req, res) => {
     status: 'ok',
     timestamp: new Date().toISOString(),
     issuer: 'Demo Government ID Authority',
+    protocolVersion: PROTOCOL_VERSION,
   });
 });
 
