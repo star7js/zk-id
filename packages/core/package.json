@@ -30,7 +30,7 @@
     "snarkjs": "^0.7.0"
   },
   "devDependencies": {
-    "@types/chai": "^4.3.20",
+    "@types/chai": "^5.2.3",
     "@types/mocha": "^10.0.10",
     "@types/node": "^25.2.2",
     "chai": "^6.2.2",
