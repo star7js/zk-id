@@ -47,7 +47,7 @@ Current age verification systems force users to expose sensitive information:
 - ✅ **Small**: Proofs are ~200 bytes
 - ✅ **Secure**: Built on Groth16 ZK-SNARKs with Ed25519 signatures
 - ✅ **Multi-Attribute**: Support for multiple credential attributes with selective disclosure
-- ✅ **Revocation**: Production-ready credential revocation system
+- ✅ **Revocation**: In-circuit Merkle proofs for credential validity (non-revocation)
 - ✅ **Telemetry**: Built-in verification event monitoring
 - ✅ **Batch Verification**: Efficient verification of multiple proofs
 - ✅ **Developer-Friendly**: Simple SDK for easy website integration
@@ -264,9 +264,11 @@ Note: These circuits use BabyJub EdDSA signatures (circomlib), not Ed25519.
 - [x] **Telemetry & monitoring** (verification event tracking)
 - [x] **Batch verification** (efficient multi-proof verification)
 - [x] **Web integration example** (Express + HTML demo)
+- [x] **In-circuit revocation proofs** (Merkle inclusion for valid-set)
+- [ ] TypeScript SDK integration for revocable credentials
 - [ ] Browser wallet implementation
 - [ ] Mobile wallet (iOS/Android)
-- [ ] Credential accumulator (efficient on-chain revocation)
+- [ ] Sparse Merkle tree for revocation-list (scalability improvement)
 - [ ] Recursive proof composition
 
 ## Security Considerations

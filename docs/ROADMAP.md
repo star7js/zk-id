@@ -13,6 +13,7 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - ✅ Issuer registry (trusted issuers, status, validity)
 - ✅ Revocation store (commitment-based)
 - ✅ Merkle revocation accumulator scaffold (in-memory demo)
+- ✅ **Revocation proofs in circuit** (Merkle inclusion for valid-set)
 - ✅ Batch verification
 - ✅ Telemetry hooks
 - ✅ Demo web app with signed and unsigned flows
@@ -37,10 +38,10 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 
 ## Near Term (Q2 2026)
 
-1. **Revocation Proofs in Circuit**
-   - Define revocation witness format (Merkle path or accumulator).
-   - Add circuit constraints for membership/exclusion proofs.
-   - Add proof generation + verification paths.
+1. **Revocation SDK Integration**
+   - TypeScript prover integration for revocable credentials.
+   - Verifier SDK support for checking Merkle root validity.
+   - Production storage for Merkle tree state and witness generation.
 
 2. **Wallet Integration**
    - Define client-side wallet flow.
@@ -82,18 +83,20 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 
 ## Open Questions
 
-- Should revocation be exclusion proof (non-membership) or inclusion proof of revoked list?
+- ~~Should revocation be exclusion proof (non-membership) or inclusion proof of revoked list?~~ **Resolved**: Valid-set inclusion for v0.3.0 (simple Merkle tree). Sparse Merkle exclusion proofs deferred to future version for better scalability.
 - Should issuer identity be a DID or a more constrained identifier?
 - Which universal setup should be supported first (PLONK, Marlin, or Halo2)?
 - What privacy budget is acceptable for metadata leakage (issuer, issuance time)?
+- When should we migrate from valid-set inclusion to revocation-list exclusion proofs?
 
 ## Version Targets (Tentative)
 
-- **v0.3.x**: Challenge flow + issuer registry + signed circuits (done)
-- **v0.4.0**: Revocation proofs in circuit + wallet prototype
+- **v0.2.x**: Challenge flow + issuer registry + signed circuits (done)
+- **v0.3.0**: Revocation proofs in circuit (Merkle inclusion) ← **Current**
+- **v0.4.0**: Revocation SDK integration + wallet prototype
 - **v0.5.0**: KMS/HSM integration examples + issuer policy tooling
 - **v1.0.0**: Audit-ready release
 
 ---
 
-Last updated: 2026-02-08
+Last updated: 2026-02-07
