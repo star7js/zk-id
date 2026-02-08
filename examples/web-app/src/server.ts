@@ -62,6 +62,48 @@ app.use((req, res, next) => {
 const getClientProtocolVersion = (req: express.Request): string | undefined =>
   req.get('X-ZkId-Protocol-Version') ?? undefined;
 
+type RateLimiterOptions = {
+  windowMs: number;
+  limit: number;
+  message: { error: string };
+};
+
+const createRateLimiter = (options: RateLimiterOptions) => {
+  const hits = new Map<string, { count: number; resetAt: number }>();
+  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const now = Date.now();
+    const key = req.ip || req.socket.remoteAddress || 'unknown';
+    const entry = hits.get(key);
+
+    if (!entry || entry.resetAt <= now) {
+      hits.set(key, { count: 1, resetAt: now + options.windowMs });
+      return next();
+    }
+
+    entry.count += 1;
+    if (entry.count > options.limit) {
+      const retryAfterSeconds = Math.max(1, Math.ceil((entry.resetAt - now) / 1000));
+      res.setHeader('Retry-After', String(retryAfterSeconds));
+      return res.status(429).json(options.message);
+    }
+
+    return next();
+  };
+};
+
+// Basic rate limiting for demo endpoints (tune via env for real deployments)
+const apiLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  limit: Number(process.env.API_RATE_LIMIT || 60),
+  message: { error: 'Too many requests, please try again later.' },
+});
+
+const demoProofLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  limit: Number(process.env.DEMO_PROOF_RATE_LIMIT || 10),
+  message: { error: 'Too many demo proof requests, please try again later.' },
+});
+
 // Create a test issuer (in production, this would use secure key management)
 const issuerName = 'Demo Government ID Authority';
 const issuer = CredentialIssuer.createTestIssuer(issuerName);
@@ -129,7 +171,7 @@ const issuedCircuitCredentials = new Map<string, any>();
  * - Verify user's identity through KYC
  * - Rate limit requests
  */
-app.post('/api/issue-credential', async (req, res) => {
+app.post('/api/issue-credential', apiLimiter, async (req, res) => {
   try {
     const { birthYear, nationality, userId } = req.body;
 
@@ -187,7 +229,7 @@ app.get('/api/challenge', async (_req, res) => {
 /**
  * Demo endpoint: Issue a credential for signed circuits
  */
-app.post('/api/issue-credential-signed', async (req, res) => {
+app.post('/api/issue-credential-signed', apiLimiter, async (req, res) => {
   try {
     const { birthYear, nationality } = req.body;
 
@@ -231,7 +273,7 @@ app.post('/api/issue-credential-signed', async (req, res) => {
 /**
  * Demo endpoint: Verify age proof
  */
-app.post('/api/verify-age', async (req, res) => {
+app.post('/api/verify-age', apiLimiter, async (req, res) => {
   try {
     const proofResponse: ProofResponse = req.body;
     const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
@@ -276,7 +318,7 @@ app.post('/api/verify-age', async (req, res) => {
 /**
  * Demo endpoint: Verify nationality proof
  */
-app.post('/api/verify-nationality', async (req, res) => {
+app.post('/api/verify-nationality', apiLimiter, async (req, res) => {
   try {
     const proofResponse: ProofResponse = req.body;
     const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
@@ -323,7 +365,7 @@ app.post('/api/verify-nationality', async (req, res) => {
  * This endpoint combines proof generation + verification for the web demo.
  * It generates a real ZK proof server-side and then verifies it.
  */
-app.post('/api/demo/verify-age', async (req, res) => {
+app.post('/api/demo/verify-age', demoProofLimiter, async (req, res) => {
   try {
     const { credentialId, minAge, nonce: providedNonce, requestTimestamp: providedTimestamp } = req.body;
 
@@ -434,7 +476,7 @@ app.post('/api/demo/verify-age', async (req, res) => {
 /**
  * Demo endpoint: Generate and verify signed age proof
  */
-app.post('/api/demo/verify-age-signed', async (req, res) => {
+app.post('/api/demo/verify-age-signed', demoProofLimiter, async (req, res) => {
   try {
     const { credentialId, minAge, nonce: providedNonce, requestTimestamp: providedTimestamp } = req.body;
 
@@ -544,7 +586,7 @@ app.post('/api/demo/verify-age-signed', async (req, res) => {
  * This endpoint combines proof generation + verification for the web demo.
  * It generates a real ZK proof server-side and then verifies it.
  */
-app.post('/api/demo/verify-nationality', async (req, res) => {
+app.post('/api/demo/verify-nationality', demoProofLimiter, async (req, res) => {
   try {
     const { credentialId, targetNationality, nonce: providedNonce, requestTimestamp: providedTimestamp } = req.body;
 
@@ -656,7 +698,7 @@ app.post('/api/demo/verify-nationality', async (req, res) => {
 /**
  * Demo endpoint: Generate and verify revocable age proof
  */
-app.post('/api/demo/verify-age-revocable', async (req, res) => {
+app.post('/api/demo/verify-age-revocable', demoProofLimiter, async (req, res) => {
   try {
     const { credentialId, minAge, nonce: providedNonce, requestTimestamp: providedTimestamp } = req.body;
 
@@ -777,7 +819,7 @@ app.post('/api/demo/verify-age-revocable', async (req, res) => {
 /**
  * Demo endpoint: Generate and verify signed nationality proof
  */
-app.post('/api/demo/verify-nationality-signed', async (req, res) => {
+app.post('/api/demo/verify-nationality-signed', demoProofLimiter, async (req, res) => {
   try {
     const { credentialId, targetNationality, nonce: providedNonce, requestTimestamp: providedTimestamp } = req.body;
 
@@ -899,7 +941,7 @@ function getNationalityName(code: number): string {
 /**
  * Demo endpoint: Revoke a credential (admin only - would require auth in production)
  */
-app.post('/api/revoke-credential', async (req, res) => {
+app.post('/api/revoke-credential', apiLimiter, async (req, res) => {
   try {
     const { credentialId } = req.body;
 
