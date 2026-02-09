@@ -80,8 +80,10 @@ export interface ZkIdServerConfig {
   requiredNationality?: number;
   /** Optional required policy object (preferred over requiredMinAge/requiredNationality) */
   requiredPolicy?: RequiredPolicy;
-  /** Maximum allowed clock skew for request timestamps (ms) */
+  /** Maximum age (in past) for request timestamps in ms. Prevents replay of stale proofs. */
   maxRequestAgeMs?: number;
+  /** Maximum allowed future timestamp skew in ms (default: 60000 = 1 minute). Allows small clock differences. */
+  maxFutureSkewMs?: number;
   /** Protocol version enforcement policy (default: warn) */
   protocolVersionPolicy?: ProtocolVersionPolicy;
   /** Revocation root TTL in seconds (default: 300). Used in getRevocationRootInfo(). */
@@ -551,12 +553,25 @@ export class ZkIdServer extends EventEmitter {
       this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
       return result;
     }
+    // Check for future timestamps (time-shifted proofs)
+    const maxFutureSkew = this.config.maxFutureSkewMs ?? 60000; // Default: 1 minute clock skew
+    const timeDiffMs = requestMs - Date.now();
+    if (timeDiffMs > maxFutureSkew) {
+      const result = {
+        verified: false,
+        error: 'Request timestamp is too far in the future',
+      };
+      this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
+      return result;
+    }
+
+    // Check for stale timestamps (replay protection)
     if (this.config.maxRequestAgeMs !== undefined) {
-      const ageMs = Math.abs(Date.now() - requestMs);
+      const ageMs = Date.now() - requestMs;
       if (ageMs > this.config.maxRequestAgeMs) {
         const result = {
           verified: false,
-          error: 'Request timestamp outside allowed window',
+          error: 'Request timestamp is too old',
         };
         this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier);
         return result;
@@ -690,10 +705,20 @@ export class ZkIdServer extends EventEmitter {
       return result;
     }
 
+    // Check for future timestamps (time-shifted proofs)
+    const maxFutureSkew = this.config.maxFutureSkewMs ?? 60000; // Default: 1 minute clock skew
+    const timeDiffMs = requestMs - Date.now();
+    if (timeDiffMs > maxFutureSkew) {
+      const result = { verified: false, error: 'Request timestamp is too far in the future' };
+      this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier);
+      return result;
+    }
+
+    // Check for stale timestamps (replay protection)
     if (this.config.maxRequestAgeMs !== undefined) {
-      const ageMs = Math.abs(Date.now() - requestMs);
+      const ageMs = Date.now() - requestMs;
       if (ageMs > this.config.maxRequestAgeMs) {
-        const result = { verified: false, error: 'Request timestamp outside allowed window' };
+        const result = { verified: false, error: 'Request timestamp is too old' };
         this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier);
         return result;
       }

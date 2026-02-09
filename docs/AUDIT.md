@@ -44,7 +44,7 @@ This document tracks the requirements for a production-ready, audit-worthy v1.0.
 ### Critical
 
 - [x] **Nonce replay**: `InMemoryNonceStore` uses `setTimeout` for expiry — this leaks in long-running processes. Production deployments MUST use a persistent store — **FIXED**: Replaced with Map-based lazy expiry in v0.6.0
-- [ ] **Challenge timing**: `maxRequestAgeMs` prevents stale proofs but does not prevent time-shifted proofs (prover uses a future timestamp). Add server-side time validation
+- [x] **Challenge timing**: `maxRequestAgeMs` prevents stale proofs but does not prevent time-shifted proofs (prover uses a future timestamp). Add server-side time validation — **FIXED**: Added server-side future timestamp validation in server.ts. Removed Math.abs() that masked future timestamps. New config option `maxFutureSkewMs` (default 60s) allows small clock skew. Rejects timestamps beyond allowed skew with clear error message. Comprehensive tests added for both rejection and acceptance cases (v0.6.0)
 - [x] **Credential hash collision**: If two credentials have the same `Poseidon(birthYear, nationality, salt)`, they are indistinguishable. Salt entropy (256 bits) makes this negligible, but document the security margin — **DOCUMENTED**: Added comprehensive collision resistance analysis in CRYPTOGRAPHIC-PARAMETERS.md with probability calculations and security margin (256-bit salt → ~2^128 security, negligible collision probability even at billion-credential scale) (v0.6.0)
 
 ### High Priority

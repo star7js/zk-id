@@ -423,7 +423,62 @@ describe('ZkIdServer - signature and policy enforcement', () => {
 
     const result = await server.verifyProof(proofResponse);
     expect(result.verified).to.equal(false);
-    expect(result.error).to.equal('Request timestamp outside allowed window');
+    expect(result.error).to.equal('Request timestamp is too old');
+  });
+
+  it('rejects proof when request timestamp is in the future (beyond allowed skew)', async () => {
+    const { signedCredential, publicKey } = makeSignedCredential('123');
+
+    const server = new ZkIdServer({
+      verificationKeyPath: getVerificationKeyPath(),
+      issuerPublicKeys: { TestIssuer: publicKey },
+      maxFutureSkewMs: 1000, // Allow 1 second of clock skew
+    });
+
+    // Create a timestamp 10 seconds in the future (beyond the 1 second skew)
+    const futureMs = Date.now() + 10_000;
+    const proofResponse: ProofResponse = {
+      credentialId: signedCredential.credential.id,
+      claimType: 'age',
+      proof: makeAgeProof('123', 18, 'nonce-8', futureMs),
+      signedCredential,
+      nonce: 'nonce-8',
+      requestTimestamp: new Date(futureMs).toISOString(),
+    };
+
+    const result = await server.verifyProof(proofResponse);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.equal('Request timestamp is too far in the future');
+  });
+
+  it('accepts proof with small future timestamp within allowed skew', async () => {
+    const { signedCredential, publicKey } = makeSignedCredential('123');
+
+    const server = new ZkIdServer({
+      verificationKeyPath: getVerificationKeyPath(),
+      issuerPublicKeys: { TestIssuer: publicKey },
+      maxFutureSkewMs: 5000, // Allow 5 seconds of clock skew
+      maxRequestAgeMs: 60000,
+    });
+
+    // Create a timestamp 2 seconds in the future (within the 5 second skew)
+    const futureMs = Date.now() + 2000;
+    const proofResponse: ProofResponse = {
+      credentialId: signedCredential.credential.id,
+      claimType: 'age',
+      proof: makeAgeProof('123', 18, 'nonce-9', futureMs),
+      signedCredential,
+      nonce: 'nonce-9',
+      requestTimestamp: new Date(futureMs).toISOString(),
+    };
+
+    const result = await server.verifyProof(proofResponse);
+    // The proof will fail verification (it's a fake proof), but it should NOT
+    // fail due to timestamp validation. This tests that small future timestamps
+    // within the allowed skew are accepted by the timestamp validator.
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.not.include('timestamp');
+    expect(result.error).to.not.include('future');
   });
 });
 
