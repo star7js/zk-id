@@ -21,6 +21,10 @@ export class RedisNonceStore implements NonceStore {
     this.client = client;
     this.keyPrefix = options.keyPrefix ?? 'zkid:nonce:';
     this.ttlSeconds = options.ttlSeconds ?? 300;
+
+    if (!Number.isInteger(this.ttlSeconds) || this.ttlSeconds <= 0) {
+      throw new Error('ttlSeconds must be a positive integer');
+    }
   }
 
   async has(nonce: string): Promise<boolean> {

@@ -13,6 +13,7 @@ import {
   AgeProofRevocable,
   ProofRequest,
 } from './types';
+import { validateNonce, validateMinAge, validateNationality } from './validation';
 
 // ---------------------------------------------------------------------------
 // Multi-Claim Types
@@ -115,9 +116,14 @@ export function createMultiClaimRequest(
     throw new Error('Multi-claim request must contain at least one claim');
   }
 
+  validateNonce(nonce);
+
   // Validate no duplicate labels
   const labels = new Set<string>();
   for (const claim of claims) {
+    if (!claim.label || claim.label.length === 0) {
+      throw new Error('Claim label must be a non-empty string');
+    }
     if (labels.has(claim.label)) {
       throw new Error(`Duplicate claim label: ${claim.label}`);
     }
@@ -127,22 +133,20 @@ export function createMultiClaimRequest(
   // Validate claim parameters
   for (const claim of claims) {
     if (claim.claimType === 'age' || claim.claimType === 'age-revocable') {
-      if (claim.minAge === undefined || claim.minAge < 0) {
+      if (claim.minAge === undefined) {
         throw new Error(
           `Claim '${claim.label}': minAge is required for ${claim.claimType} claims`
         );
       }
+      validateMinAge(claim.minAge);
     }
     if (claim.claimType === 'nationality') {
-      if (
-        claim.targetNationality === undefined ||
-        claim.targetNationality < 1 ||
-        claim.targetNationality > 999
-      ) {
+      if (claim.targetNationality === undefined) {
         throw new Error(
-          `Claim '${claim.label}': valid targetNationality is required for nationality claims`
+          `Claim '${claim.label}': targetNationality is required for nationality claims`
         );
       }
+      validateNationality(claim.targetNationality);
     }
   }
 

@@ -20,3 +20,4 @@ export * from './proving-system';
 export * from './nullifier';
 export * from './recursive';
 export * from './bbs';
+export * from './validation';

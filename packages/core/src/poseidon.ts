@@ -6,14 +6,20 @@
 
 import { buildPoseidon } from 'circomlibjs';
 
-let poseidonInstance: any = null;
+/** Poseidon hash function instance from circomlibjs. */
+interface PoseidonHasher {
+  (inputs: (number | bigint)[]): Uint8Array;
+  F: { toObject(hash: Uint8Array): bigint };
+}
+
+let poseidonInstance: PoseidonHasher | null = null;
 
 /**
  * Initialize the Poseidon hash function (lazy loaded)
  */
-async function getPoseidon() {
+async function getPoseidon(): Promise<PoseidonHasher> {
   if (!poseidonInstance) {
-    poseidonInstance = await buildPoseidon();
+    poseidonInstance = await buildPoseidon() as unknown as PoseidonHasher;
   }
   return poseidonInstance;
 }

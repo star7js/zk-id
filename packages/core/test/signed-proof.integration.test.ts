@@ -28,7 +28,7 @@ describe('Signed Proof Integration', () => {
       '../../circuits/build/age-verify-signed_verification_key.json'
     );
 
-    const nonce = '123';
+    const nonce = 'integration-test-nonce-123456';
     const requestTimestampMs = Date.now();
 
     const proof = await generateAgeProofSigned(

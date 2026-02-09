@@ -10,6 +10,13 @@ import {
   RevocationWitness,
 } from './types';
 import { poseidonHash } from './poseidon';
+import {
+  validateMinAge,
+  validateNonce,
+  validateRequestTimestamp,
+  validateNationality,
+  validateHexString,
+} from './validation';
 
 /**
  * Generates a zero-knowledge proof that the credential holder is at least minAge years old
@@ -28,6 +35,11 @@ export async function generateAgeProof(
   wasmPath: string,
   zkeyPath: string
 ): Promise<AgeProof> {
+  validateMinAge(minAge);
+  validateNonce(nonce);
+  validateRequestTimestamp(requestTimestampMs);
+  validateHexString(credential.salt, 'credential.salt');
+
   const currentYear = new Date().getFullYear();
 
   // Recompute the credential hash to use as a public signal
@@ -59,11 +71,11 @@ export async function generateAgeProof(
   // Format the proof
   const formattedProof: AgeProof = {
     proof: {
-      pi_a: proof.pi_a.slice(0, 2).map((x: any) => x.toString()),
-      pi_b: proof.pi_b.slice(0, 2).map((arr: any) =>
-        arr.map((x: any) => x.toString())
+      pi_a: proof.pi_a.slice(0, 2).map((x: unknown) => String(x)),
+      pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) =>
+        arr.map((x: unknown) => String(x))
       ),
-      pi_c: proof.pi_c.slice(0, 2).map((x: any) => x.toString()),
+      pi_c: proof.pi_c.slice(0, 2).map((x: unknown) => String(x)),
       protocol: proof.protocol,
       curve: proof.curve,
     },
@@ -113,6 +125,11 @@ export async function generateNationalityProof(
   wasmPath: string,
   zkeyPath: string
 ): Promise<NationalityProof> {
+  validateNationality(targetNationality);
+  validateNonce(nonce);
+  validateRequestTimestamp(requestTimestampMs);
+  validateHexString(credential.salt, 'credential.salt');
+
   // Recompute the credential hash to use as a public signal
   const credentialHash = await poseidonHash([
     credential.birthYear,
@@ -141,11 +158,11 @@ export async function generateNationalityProof(
   // Format the proof
   const formattedProof: NationalityProof = {
     proof: {
-      pi_a: proof.pi_a.slice(0, 2).map((x: any) => x.toString()),
-      pi_b: proof.pi_b.slice(0, 2).map((arr: any) =>
-        arr.map((x: any) => x.toString())
+      pi_a: proof.pi_a.slice(0, 2).map((x: unknown) => String(x)),
+      pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) =>
+        arr.map((x: unknown) => String(x))
       ),
-      pi_c: proof.pi_c.slice(0, 2).map((x: any) => x.toString()),
+      pi_c: proof.pi_c.slice(0, 2).map((x: unknown) => String(x)),
       protocol: proof.protocol,
       curve: proof.curve,
     },
@@ -196,6 +213,11 @@ export async function generateAgeProofSigned(
   wasmPath: string,
   zkeyPath: string
 ): Promise<AgeProofSigned> {
+  validateMinAge(minAge);
+  validateNonce(nonce);
+  validateRequestTimestamp(requestTimestampMs);
+  validateHexString(credential.salt, 'credential.salt');
+
   const currentYear = new Date().getFullYear();
 
   const credentialHash = await poseidonHash([
@@ -228,11 +250,11 @@ export async function generateAgeProofSigned(
 
   const formattedProof: AgeProofSigned = {
     proof: {
-      pi_a: proof.pi_a.slice(0, 2).map((x: any) => x.toString()),
-      pi_b: proof.pi_b.slice(0, 2).map((arr: any) =>
-        arr.map((x: any) => x.toString())
+      pi_a: proof.pi_a.slice(0, 2).map((x: unknown) => String(x)),
+      pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) =>
+        arr.map((x: unknown) => String(x))
       ),
-      pi_c: proof.pi_c.slice(0, 2).map((x: any) => x.toString()),
+      pi_c: proof.pi_c.slice(0, 2).map((x: unknown) => String(x)),
       protocol: proof.protocol,
       curve: proof.curve,
     },
@@ -287,6 +309,11 @@ export async function generateNationalityProofSigned(
   wasmPath: string,
   zkeyPath: string
 ): Promise<NationalityProofSigned> {
+  validateNationality(targetNationality);
+  validateNonce(nonce);
+  validateRequestTimestamp(requestTimestampMs);
+  validateHexString(credential.salt, 'credential.salt');
+
   const credentialHash = await poseidonHash([
     credential.birthYear,
     credential.nationality,
@@ -316,11 +343,11 @@ export async function generateNationalityProofSigned(
 
   const formattedProof: NationalityProofSigned = {
     proof: {
-      pi_a: proof.pi_a.slice(0, 2).map((x: any) => x.toString()),
-      pi_b: proof.pi_b.slice(0, 2).map((arr: any) =>
-        arr.map((x: any) => x.toString())
+      pi_a: proof.pi_a.slice(0, 2).map((x: unknown) => String(x)),
+      pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) =>
+        arr.map((x: unknown) => String(x))
       ),
-      pi_c: proof.pi_c.slice(0, 2).map((x: any) => x.toString()),
+      pi_c: proof.pi_c.slice(0, 2).map((x: unknown) => String(x)),
       protocol: proof.protocol,
       curve: proof.curve,
     },
@@ -384,6 +411,11 @@ export async function generateAgeProofRevocable(
   wasmPath: string,
   zkeyPath: string
 ): Promise<AgeProofRevocable> {
+  validateMinAge(minAge);
+  validateNonce(nonce);
+  validateRequestTimestamp(requestTimestampMs);
+  validateHexString(credential.salt, 'credential.salt');
+
   const currentYear = new Date().getFullYear();
 
   // Recompute the credential hash to use as a public signal
@@ -419,11 +451,11 @@ export async function generateAgeProofRevocable(
   // Public signal index mapping: [0]=currentYear, [1]=minAge, [2]=credentialHash, [3]=merkleRoot, [4]=nonce, [5]=requestTimestamp
   const formattedProof: AgeProofRevocable = {
     proof: {
-      pi_a: proof.pi_a.slice(0, 2).map((x: any) => x.toString()),
-      pi_b: proof.pi_b.slice(0, 2).map((arr: any) =>
-        arr.map((x: any) => x.toString())
+      pi_a: proof.pi_a.slice(0, 2).map((x: unknown) => String(x)),
+      pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) =>
+        arr.map((x: unknown) => String(x))
       ),
-      pi_c: proof.pi_c.slice(0, 2).map((x: any) => x.toString()),
+      pi_c: proof.pi_c.slice(0, 2).map((x: unknown) => String(x)),
       protocol: proof.protocol,
       curve: proof.curve,
     },

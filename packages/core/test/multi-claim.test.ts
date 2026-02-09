@@ -15,16 +15,16 @@ describe('Multi-Claim Proofs', () => {
         { label: 'nationality', claimType: 'nationality', targetNationality: 840 },
       ];
 
-      const request = createMultiClaimRequest(claims, 'nonce-123');
+      const request = createMultiClaimRequest(claims, 'nonce-1234567890ab');
 
       assert.strictEqual(request.claims.length, 2);
-      assert.strictEqual(request.nonce, 'nonce-123');
+      assert.strictEqual(request.nonce, 'nonce-1234567890ab');
       assert.ok(request.timestamp);
     });
 
     it('should reject empty claims array', () => {
       assert.throws(
-        () => createMultiClaimRequest([], 'nonce'),
+        () => createMultiClaimRequest([], 'nonce-valid-16chars'),
         /at least one claim/
       );
     });
@@ -36,7 +36,7 @@ describe('Multi-Claim Proofs', () => {
       ];
 
       assert.throws(
-        () => createMultiClaimRequest(claims, 'nonce'),
+        () => createMultiClaimRequest(claims, 'nonce-valid-16chars'),
         /Duplicate claim label/
       );
     });
@@ -47,7 +47,7 @@ describe('Multi-Claim Proofs', () => {
       ];
 
       assert.throws(
-        () => createMultiClaimRequest(claims, 'nonce'),
+        () => createMultiClaimRequest(claims, 'nonce-valid-16chars'),
         /minAge is required/
       );
     });
@@ -58,7 +58,7 @@ describe('Multi-Claim Proofs', () => {
       ];
 
       assert.throws(
-        () => createMultiClaimRequest(claims, 'nonce'),
+        () => createMultiClaimRequest(claims, 'nonce-valid-16chars'),
         /targetNationality is required/
       );
     });
@@ -69,8 +69,8 @@ describe('Multi-Claim Proofs', () => {
       ];
 
       assert.throws(
-        () => createMultiClaimRequest(claims, 'nonce'),
-        /valid targetNationality/
+        () => createMultiClaimRequest(claims, 'nonce-valid-16chars'),
+        /nationality must be between/
       );
     });
 
@@ -79,7 +79,7 @@ describe('Multi-Claim Proofs', () => {
         { label: 'age-rev', claimType: 'age-revocable', minAge: 21 },
       ];
 
-      const request = createMultiClaimRequest(claims, 'nonce');
+      const request = createMultiClaimRequest(claims, 'nonce-valid-16chars');
       assert.strictEqual(request.claims[0].claimType, 'age-revocable');
     });
 
@@ -90,7 +90,7 @@ describe('Multi-Claim Proofs', () => {
         { label: 'citizen', claimType: 'nationality', targetNationality: 840 },
       ];
 
-      const request = createMultiClaimRequest(claims, 'nonce');
+      const request = createMultiClaimRequest(claims, 'nonce-valid-16chars');
       assert.strictEqual(request.claims.length, 3);
     });
   });
@@ -102,7 +102,7 @@ describe('Multi-Claim Proofs', () => {
         { label: 'nat', claimType: 'nationality', targetNationality: 826 },
       ];
 
-      const request = createMultiClaimRequest(claims, 'nonce-456');
+      const request = createMultiClaimRequest(claims, 'nonce-4567890abcde');
       const expanded = expandMultiClaimRequest(request);
 
       assert.strictEqual(expanded.length, 2);
@@ -110,12 +110,12 @@ describe('Multi-Claim Proofs', () => {
       assert.strictEqual(expanded[0].label, 'age');
       assert.strictEqual(expanded[0].proofRequest.claimType, 'age');
       assert.strictEqual(expanded[0].proofRequest.minAge, 18);
-      assert.strictEqual(expanded[0].proofRequest.nonce, 'nonce-456');
+      assert.strictEqual(expanded[0].proofRequest.nonce, 'nonce-4567890abcde');
 
       assert.strictEqual(expanded[1].label, 'nat');
       assert.strictEqual(expanded[1].proofRequest.claimType, 'nationality');
       assert.strictEqual(expanded[1].proofRequest.targetNationality, 826);
-      assert.strictEqual(expanded[1].proofRequest.nonce, 'nonce-456');
+      assert.strictEqual(expanded[1].proofRequest.nonce, 'nonce-4567890abcde');
     });
 
     it('should share the same nonce across all expanded requests', () => {
@@ -125,11 +125,11 @@ describe('Multi-Claim Proofs', () => {
         { label: 'c', claimType: 'nationality', targetNationality: 840 },
       ];
 
-      const request = createMultiClaimRequest(claims, 'shared-nonce');
+      const request = createMultiClaimRequest(claims, 'shared-nonce-12345');
       const expanded = expandMultiClaimRequest(request);
 
       for (const item of expanded) {
-        assert.strictEqual(item.proofRequest.nonce, 'shared-nonce');
+        assert.strictEqual(item.proofRequest.nonce, 'shared-nonce-12345');
         assert.strictEqual(item.proofRequest.timestamp, request.timestamp);
       }
     });
