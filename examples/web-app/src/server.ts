@@ -166,7 +166,7 @@ app.post('/api/issue-credential', apiLimiter, async (req, res) => {
 /**
  * Demo endpoint: Get a server-issued nonce + timestamp challenge
  */
-app.get('/api/challenge', async (_req, res) => {
+app.get('/api/challenge', apiLimiter, async (_req, res) => {
   const challenge = await zkIdServer.createChallenge();
   res.json(challenge);
 });
@@ -302,7 +302,7 @@ app.post('/api/revoke-credential', apiLimiter, async (req, res) => {
 /**
  * Revocation root endpoint (root + version metadata)
  */
-app.get('/api/revocation/root', async (_req, res) => {
+app.get('/api/revocation/root', apiLimiter, async (_req, res) => {
   try {
     const info = await validCredentialTree.getRootInfo();
     res.json(info);
