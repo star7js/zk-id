@@ -1,6 +1,6 @@
 {
   "name": "zk-id",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Privacy-preserving identity verification using zero-knowledge proofs",
   "private": true,
   "workspaces": [

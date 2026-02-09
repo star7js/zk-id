@@ -39,6 +39,10 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - ✅ Issuer dashboard prototype (`IssuerDashboard`, `DashboardStats`, `IssuerSummary` in `@zk-id/sdk`)
 - ✅ ISO 18013-5/7 standards mapping (`toMdlElements`, `createAgeOverAttestation`, `STANDARDS_MAPPINGS` in `@zk-id/issuer`)
 - ✅ Multi-claim proof types (`MultiClaimRequest`, `createMultiClaimRequest`, `expandMultiClaimRequest` in `@zk-id/core`)
+- ✅ Proving system abstraction (`ProvingSystem`, `Groth16ProvingSystem`, `PLONKProvingSystem`, pluggable registry)
+- ✅ Nullifier system for sybil resistance (`computeNullifier`, `createNullifierScope`, `NullifierStore`)
+- ✅ Recursive proof aggregation scaffold (`RecursiveAggregator`, `LogicalAggregator`, `AggregatedProof`)
+- ✅ v1.0.0 audit checklist (`docs/AUDIT.md`)
 
 ## Now (Next 2–6 Weeks)
 
@@ -97,8 +101,11 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 
 2. **Cryptography Improvements**
    - ✅ Multi-claim proof types and request/response bundling.
-   - Recursive proofs (circuit-level aggregation).
-   - Optional universal setup (PLONK).
+   - ✅ Proving system abstraction layer (Groth16 + PLONK scaffold).
+   - ✅ Recursive proof aggregation scaffold (LogicalAggregator + RecursiveAggregator interface).
+   - ✅ Nullifier system for sybil resistance (Poseidon-based, scope-isolated).
+   - Recursive proofs: actual circuit implementation (Groth16-in-Groth16, Nova, or Halo2).
+   - PLONK: generate universal SRS and PLONK-compatible zkeys for all circuits.
 
 3. **Operational Tooling**
    - ✅ Issuer dashboard prototype.
@@ -108,22 +115,31 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 ## Long Term (Q4 2026+)
 
 1. **Formal Verification + Audits**
-   - Third-party audit of circuits and SDK.
+   - Third-party audit of circuits and SDK (see `docs/AUDIT.md` for scope).
    - Formal verification of core constraints.
+   - Trusted setup ceremony for production Groth16 keys.
 
-2. **Multi-Issuer Trust Framework**
+2. **Nullifier Circuit**
+   - Circom circuit that computes `Poseidon(commitment, scopeHash)` and exposes the nullifier as a public signal.
+   - Integrate nullifier proof with age/nationality verification (combined circuit).
+   - On-chain nullifier set for trustless sybil detection.
+
+3. **Multi-Issuer Trust Framework**
    - Trust scoring, federation, and cross-jurisdiction policies.
    - Multi-issuer credentials and threshold issuance.
+   - W3C Verifiable Credentials Data Model alignment.
+   - DID method for issuer identifiers.
 
-3. **Enterprise Scale**
+4. **Enterprise Scale**
    - SLA-grade monitoring, alerts, and compliance tooling.
-   - Hardware acceleration options.
+   - Hardware acceleration options (rapidsnark, GPU proving).
+   - Mobile SDK (React Native / Flutter) for proof generation.
 
 ## Open Questions
 
 - ~~Should revocation be exclusion proof (non-membership) or inclusion proof of revoked list?~~ **Resolved**: Valid-set inclusion for v0.3.0 (simple Merkle tree). Sparse Merkle exclusion proofs deferred to future version for better scalability.
-- Should issuer identity be a DID or a more constrained identifier?
-- Which universal setup should be supported first (PLONK, Marlin, or Halo2)?
+- Should issuer identity be a DID or a more constrained identifier? **Leaning DID**: W3C DID Core is a recommendation; `did:web` or `did:key` would provide interop with the VC ecosystem.
+- ~~Which universal setup should be supported first (PLONK, Marlin, or Halo2)?~~ **Resolved**: PLONK (via snarkjs) is scaffolded first since it shares the BN128 curve and circom toolchain. Halo2 deferred to post-v1.0 due to circuit rewrite requirements.
 - What privacy budget is acceptable for metadata leakage (issuer, issuance time)?
 - When should we migrate from valid-set inclusion to revocation-list exclusion proofs?
 
@@ -136,7 +152,7 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - **v0.4.2**: Protocol versioning, revocation root helpers, Postgres tree, demo rate limiting (done)
 - **v0.4.5**: Incremental Merkle tree optimization, witness freshness helper, Redis storage (done)
 - **v0.5.0**: Wallet prototype + distributed tree synchronization + benchmarks + deprecation policy (done)
-- **v0.6.0**: KMS/HSM integration + policy tooling + dashboard + standards alignment + multi-claim (done)
+- **v0.6.0**: KMS/HSM + policy + dashboard + standards + multi-claim + proving abstraction + nullifiers + recursive scaffold (done)
 - **v1.0.0**: Audit-ready release
 
 ---

@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — v0.6.0 Preview
+## [0.6.0] - 2026-02-09
 
 ### Added
 - **KMS/HSM integration** — `EnvelopeKeyManager`, `FileKeyManager` in `@zk-id/issuer`
@@ -34,8 +34,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `expandMultiClaimRequest()` converts to individual proof requests for parallel proving
   - `aggregateVerificationResults()` combines per-claim results into an overall pass/fail
   - Supports `age`, `nationality`, and `age-revocable` claim types
+- **Proving system abstraction** — `ProvingSystem`, `Groth16ProvingSystem`, `PLONKProvingSystem` in `@zk-id/core`
+  - Unified `ProvingSystem` interface decoupling from Groth16-specific snarkjs API
+  - Pluggable proving system registry with `registerProvingSystem()` / `getProvingSystem()`
+  - `PROVING_SYSTEM_COMPARISON` documenting tradeoffs (trusted setup, proof size, verification time)
+  - PLONK scaffold ready for universal SRS setup (no per-circuit ceremony)
+- **Nullifier system for sybil resistance** — `computeNullifier`, `createNullifierScope`, `consumeNullifier`, `InMemoryNullifierStore` in `@zk-id/core`
+  - Deterministic nullifier computation: `Poseidon(commitment, scopeHash)` prevents double-use per scope
+  - Scope-based isolation: actions are unlinkable across different scopes
+  - `NullifierStore` interface for pluggable backend (in-memory, Redis, Postgres)
+  - Follows same pattern as Worldcoin/Semaphore for sybil-resistant anonymous actions
+- **Recursive proof aggregation scaffold** — `LogicalAggregator`, `RecursiveAggregator`, `AggregatedProof` in `@zk-id/core`
+  - `RecursiveAggregator` interface for pluggable recursive proof backends
+  - `LogicalAggregator` pass-through implementation (bundles proofs without recursion)
+  - `RECURSIVE_PROOF_STATUS` documenting implementation state for Groth16-in-Groth16, Nova, and Halo2
+  - Helpers: `createAggregateInput()`, `isRecursiveProof()`, `getConstituentPublicSignals()`
+- **v1.0.0 audit checklist** — `docs/AUDIT.md` covering circuits, crypto primitives, API security, code quality
 - `docs/STANDARDS.md` documenting ISO 18013-5/7 mapping, privacy comparison, and architectural differences
-- 40 new tests (10 KMS, 17 policy, 13 dashboard) + standards and multi-claim test suites
+- 80+ new tests across all new modules
+
+### Changed
+- Bumped all package versions from 0.5.0 to 0.6.0
 
 ## [0.5.0] - 2026-02-09
 
@@ -214,6 +233,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Full web application with issuer and verifier
 - Comprehensive documentation and README
 
+[0.6.0]: https://github.com/star7js/zk-id/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/star7js/zk-id/compare/v0.4.5...v0.5.0
 [0.4.5]: https://github.com/star7js/zk-id/compare/v0.4.4...v0.4.5
 [0.4.4]: https://github.com/star7js/zk-id/compare/v0.4.3...v0.4.4
