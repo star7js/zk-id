@@ -170,11 +170,11 @@ describe('Boundary and Concurrency Tests', () => {
     it('handles many records', async () => {
       const index = new InMemoryIssuedCredentialIndex();
       for (let i = 0; i < 1000; i++) {
-        await index.record(`commitment-${i}`);
+        await index.record(BigInt(i + 1000000).toString());
       }
       assert.strictEqual(await index.issuedCount(), 1000);
-      assert.strictEqual(await index.wasIssued('commitment-500'), true);
-      assert.strictEqual(await index.wasIssued('commitment-1001'), false);
+      assert.strictEqual(await index.wasIssued(BigInt(1000500).toString()), true);
+      assert.strictEqual(await index.wasIssued(BigInt(1001001).toString()), false);
     });
   });
 

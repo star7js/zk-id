@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import path from 'path';
+import { randomBytes } from 'crypto';
 import { CircuitCredentialIssuer } from '@zk-id/issuer';
 import { generateAgeProofSigned } from '../src/prover';
 import { loadVerificationKey, verifyAgeProofSignedWithIssuer } from '../src/verifier';
@@ -28,7 +29,7 @@ describe('Signed Proof Integration', () => {
       '../../circuits/build/age-verify-signed_verification_key.json'
     );
 
-    const nonce = 'integration-test-nonce-123456';
+    const nonce = BigInt('0x' + randomBytes(31).toString('hex')).toString();
     const requestTimestampMs = Date.now();
 
     const proof = await generateAgeProofSigned(
