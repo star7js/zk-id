@@ -1,7 +1,6 @@
 import { strict as assert } from 'assert';
 import { InMemoryValidCredentialTree } from '../src/valid-credential-tree';
-import { InMemoryRevocationStore } from '../src/revocation';
-import { UnifiedRevocationManager } from '../src/unified-revocation';
+import { UnifiedRevocationManager, InMemoryIssuedCredentialIndex } from '../src/unified-revocation';
 import { createCredential } from '../src/credential';
 import { poseidonHash } from '../src/poseidon';
 
@@ -155,27 +154,27 @@ describe('Boundary and Concurrency Tests', () => {
     });
   });
 
-  describe('InMemoryRevocationStore - boundary conditions', () => {
-    it('isRevoked returns false for unrevoked commitment', async () => {
-      const store = new InMemoryRevocationStore();
-      assert.strictEqual(await store.isRevoked('12345'), false);
+  describe('InMemoryIssuedCredentialIndex - boundary conditions', () => {
+    it('wasIssued returns false for unrecorded commitment', async () => {
+      const index = new InMemoryIssuedCredentialIndex();
+      assert.strictEqual(await index.wasIssued('12345'), false);
     });
 
-    it('revoke is idempotent', async () => {
-      const store = new InMemoryRevocationStore();
-      await store.revoke('12345');
-      await store.revoke('12345');
-      assert.strictEqual(await store.getRevokedCount(), 1);
+    it('record is idempotent', async () => {
+      const index = new InMemoryIssuedCredentialIndex();
+      await index.record('12345');
+      await index.record('12345');
+      assert.strictEqual(await index.issuedCount(), 1);
     });
 
-    it('handles many revocations', async () => {
-      const store = new InMemoryRevocationStore();
+    it('handles many records', async () => {
+      const index = new InMemoryIssuedCredentialIndex();
       for (let i = 0; i < 1000; i++) {
-        await store.revoke(`commitment-${i}`);
+        await index.record(`commitment-${i}`);
       }
-      assert.strictEqual(await store.getRevokedCount(), 1000);
-      assert.strictEqual(await store.isRevoked('commitment-500'), true);
-      assert.strictEqual(await store.isRevoked('commitment-1001'), false);
+      assert.strictEqual(await index.issuedCount(), 1000);
+      assert.strictEqual(await index.wasIssued('commitment-500'), true);
+      assert.strictEqual(await index.wasIssued('commitment-1001'), false);
     });
   });
 
@@ -227,8 +226,8 @@ describe('Boundary and Concurrency Tests', () => {
 
     it('handles concurrent revocations through UnifiedRevocationManager', async () => {
       const tree = new InMemoryValidCredentialTree(10);
-      const store = new InMemoryRevocationStore();
-      const manager = new UnifiedRevocationManager({ validTree: tree, revocationStore: store });
+      const issuedIndex = new InMemoryIssuedCredentialIndex();
+      const manager = new UnifiedRevocationManager({ validTree: tree, issuedIndex });
 
       const creds = await Promise.all(
         Array.from({ length: 10 }, (_, i) =>
@@ -245,17 +244,17 @@ describe('Boundary and Concurrency Tests', () => {
       await Promise.all(creds.map((c) => manager.revokeCredential(c.commitment)));
 
       assert.strictEqual(await manager.validCount(), 0);
-      assert.strictEqual(await manager.revokedCount(), 10);
+      assert.strictEqual(await manager.issuedCount(), 10);
 
       for (const c of creds) {
-        assert.strictEqual(await manager.isRevoked(c.commitment), true);
+        assert.strictEqual(await manager.getStatus(c.commitment), 'revoked');
       }
     });
 
-    it('handles concurrent isRevoked checks', async () => {
+    it('handles concurrent status checks', async () => {
       const tree = new InMemoryValidCredentialTree(10);
-      const store = new InMemoryRevocationStore();
-      const manager = new UnifiedRevocationManager({ validTree: tree, revocationStore: store });
+      const issuedIndex = new InMemoryIssuedCredentialIndex();
+      const manager = new UnifiedRevocationManager({ validTree: tree, issuedIndex });
 
       const creds = await Promise.all(
         Array.from({ length: 10 }, (_, i) =>
@@ -274,14 +273,14 @@ describe('Boundary and Concurrency Tests', () => {
 
       // Check all concurrently
       const results = await Promise.all(
-        creds.map((c) => manager.isRevoked(c.commitment))
+        creds.map((c) => manager.getStatus(c.commitment))
       );
 
       for (let i = 0; i < 5; i++) {
-        assert.strictEqual(results[i], true, `cred ${i} should be revoked`);
+        assert.strictEqual(results[i], 'revoked', `cred ${i} should be revoked`);
       }
       for (let i = 5; i < 10; i++) {
-        assert.strictEqual(results[i], false, `cred ${i} should not be revoked`);
+        assert.strictEqual(results[i], 'valid', `cred ${i} should be valid`);
       }
     });
 
