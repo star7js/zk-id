@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.6.0] - 2026-02-09
 
+### Fixed
+- **Test suite failures** — Fixed 3 failing tests that were blocking CI
+  - Installed missing `@digitalbazaar/bbs-signatures` optional dependency for BBS+ signature tests
+  - Fixed boundary test commitment format to use BigInt-compatible numeric strings
+  - Fixed integration test nonce generation to use proper numeric values for circuit compatibility
+
 ### Added
 - **KMS/HSM integration** — `EnvelopeKeyManager`, `FileKeyManager` in `@zk-id/issuer`
   - `EnvelopeKeyManager`: AES-256-GCM envelope encryption for Ed25519 private keys with seal/unseal workflow
