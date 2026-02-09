@@ -12,3 +12,4 @@ export * from './format';
 export * from './circuit-issuer';
 export * from './kms';
 export * from './policy';
+export * from './standards';
