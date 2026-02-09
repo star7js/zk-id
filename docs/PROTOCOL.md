@@ -40,9 +40,71 @@ const compatible = isProtocolCompatible('zk-id/1.0-draft', 'zk-id/1.2');
 
 **Version History:**
 
-| Version | Date | Changes |
-|---------|------|---------|
-| zk-id/1.0-draft | 2026-02-08 | Initial protocol specification with age, nationality, and age-revocable claim types |
+| Version | Date | Status | Changes |
+|---------|------|--------|---------|
+| zk-id/1.0-draft | 2026-02-08 | Active | Initial protocol specification with age, nationality, and age-revocable claim types |
+
+### Deprecation Policy
+
+Protocol versions follow a three-stage lifecycle: **Active**, **Deprecated**, and **Sunset**.
+
+**Lifecycle Stages:**
+
+| Stage | Meaning | Server Behavior |
+|-------|---------|-----------------|
+| **Active** | Fully supported; clients and servers should use this version | Normal processing |
+| **Deprecated** | Still functional but scheduled for removal | Respond normally but include `Deprecation` and `Sunset` HTTP headers |
+| **Sunset** | No longer accepted by conforming servers | Reject with `400 Gone` or `410 Gone` |
+
+**Deprecation Rules:**
+
+1. **Minimum deprecation window**: At least 90 days must pass between a deprecation announcement and the sunset date.
+2. **Recommended migration lead time**: Clients should begin migration at least 60 days before the sunset date.
+3. **Announcement**: Deprecation is announced via:
+   - An update to the `DEPRECATION_SCHEDULE` in `@zk-id/core` (machine-readable)
+   - A changelog entry and release note
+   - HTTP response headers on affected endpoints
+4. **Successor**: Every deprecated version must specify a successor version that clients should migrate to.
+
+**HTTP Headers for Deprecation Signaling:**
+
+Servers using `@zk-id/sdk` automatically include deprecation headers when a client sends a deprecated protocol version. Headers follow [RFC 8594](https://www.rfc-editor.org/rfc/rfc8594) and the [IETF Deprecation draft](https://datatracker.ietf.org/doc/draft-ietf-httpapi-deprecation-header/).
+
+| Header | Value | When |
+|--------|-------|------|
+| `Deprecation` | ISO 8601 date of deprecation | Deprecated or Sunset |
+| `Sunset` | ISO 8601 date of sunset | Deprecated or Sunset |
+| `Link` | `<migration-url>; rel="sunset"` | When migration docs URL is configured |
+
+**Programmatic Usage:**
+
+```typescript
+import {
+  getVersionStatus,
+  isVersionDeprecated,
+  isVersionSunset,
+  buildDeprecationHeaders,
+  DEPRECATION_SCHEDULE,
+} from '@zk-id/core';
+
+// Check if a client's version is deprecated
+const entry = getVersionStatus(clientVersion);
+if (entry && isVersionDeprecated(clientVersion)) {
+  const headers = buildDeprecationHeaders(entry, 'https://docs.example.com/migrate');
+  // Add headers to HTTP response
+}
+
+// Reject sunset versions
+if (isVersionSunset(clientVersion)) {
+  return res.status(410).json({ error: 'Protocol version has been sunset' });
+}
+```
+
+**Current Deprecation Schedule:**
+
+| Version | Status | Deprecated | Sunset | Successor |
+|---------|--------|------------|--------|-----------|
+| zk-id/1.0-draft | Active | - | - | - |
 
 ## Goals
 

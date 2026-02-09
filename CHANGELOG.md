@@ -22,6 +22,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - JSON export/import for single credential backup and full wallet backup/restore
   - Support for age, nationality, and age-revocable proof generation
 - 43 new tests (15 for distributed tree sync, 28 for browser wallet)
+- **Performance benchmarks** — `runBenchmark`, `checkTarget`, `formatResult`, `PERFORMANCE_TARGETS` in `@zk-id/core`
+  - Lightweight benchmark runner with warmup, per-iteration timing, and statistical aggregation (avg, median, p95, min, max, ops/s)
+  - 16 predefined performance targets covering Poseidon hashing, credential creation, Merkle tree operations, constraint validation, proof generation, and proof verification
+  - `checkTarget()` for automated pass/fail checks against performance targets
+  - `formatResult()` for human-readable benchmark output
+  - Benchmark test suite validating Poseidon hash, credential creation, Merkle tree, and constraint validation against targets
+  - `docs/BENCHMARKS.md` documenting all targets, methodology, and browser considerations
+- **Protocol deprecation policy** — `DEPRECATION_SCHEDULE`, `DEPRECATION_POLICY`, `getVersionStatus`, `isVersionDeprecated`, `isVersionSunset`, `buildDeprecationHeaders` in `@zk-id/core`
+  - Three-stage lifecycle: Active → Deprecated → Sunset
+  - 90-day minimum deprecation window with 60-day recommended migration lead time
+  - Machine-readable `DEPRECATION_SCHEDULE` for programmatic enforcement
+  - `buildDeprecationHeaders()` for RFC 8594 compliant `Deprecation`, `Sunset`, and `Link` HTTP headers
+  - Protocol specification updated with deprecation rules and HTTP signaling documentation
+- 28 new tests (10 for benchmarks, 18 for deprecation policy)
 
 ## [0.4.5] - 2026-02-09
 

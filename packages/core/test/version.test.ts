@@ -3,6 +3,13 @@ import {
   PROTOCOL_VERSION,
   parseProtocolVersion,
   isProtocolCompatible,
+  DEPRECATION_SCHEDULE,
+  DEPRECATION_POLICY,
+  getVersionStatus,
+  isVersionDeprecated,
+  isVersionSunset,
+  buildDeprecationHeaders,
+  ProtocolDeprecationEntry,
 } from '../src/version';
 
 describe('Protocol Version', () => {
@@ -125,6 +132,186 @@ describe('Protocol Version', () => {
 
     it('should return false for both invalid versions', () => {
       assert.strictEqual(isProtocolCompatible('invalid1', 'invalid2'), false);
+    });
+  });
+
+  describe('Deprecation Policy', () => {
+    describe('DEPRECATION_SCHEDULE', () => {
+      it('should contain the current protocol version', () => {
+        const entry = DEPRECATION_SCHEDULE.find((e) => e.version === PROTOCOL_VERSION);
+        assert.ok(entry, 'Current protocol version should be in the schedule');
+        assert.strictEqual(entry.status, 'active');
+      });
+
+      it('should have valid entries with parseable versions', () => {
+        for (const entry of DEPRECATION_SCHEDULE) {
+          assert.doesNotThrow(
+            () => parseProtocolVersion(entry.version),
+            `Schedule entry version ${entry.version} should be parseable`
+          );
+          assert.ok(
+            ['active', 'deprecated', 'sunset'].includes(entry.status),
+            `Invalid status: ${entry.status}`
+          );
+        }
+      });
+    });
+
+    describe('DEPRECATION_POLICY', () => {
+      it('should define minimum deprecation window', () => {
+        assert.ok(DEPRECATION_POLICY.minDeprecationWindowDays >= 90);
+      });
+
+      it('should define HTTP header names', () => {
+        assert.strictEqual(DEPRECATION_POLICY.sunsetHeader, 'Sunset');
+        assert.strictEqual(DEPRECATION_POLICY.deprecationHeader, 'Deprecation');
+      });
+    });
+
+    describe('getVersionStatus', () => {
+      it('should return entry for known version', () => {
+        const entry = getVersionStatus('zk-id/1.0-draft');
+        assert.ok(entry);
+        assert.strictEqual(entry.version, 'zk-id/1.0-draft');
+        assert.strictEqual(entry.status, 'active');
+      });
+
+      it('should return null for unknown version', () => {
+        const entry = getVersionStatus('zk-id/99.99');
+        assert.strictEqual(entry, null);
+      });
+
+      it('should accept a custom schedule', () => {
+        const custom: ProtocolDeprecationEntry[] = [
+          {
+            version: 'zk-id/0.9',
+            status: 'sunset',
+            deprecatedAt: '2025-01-01T00:00:00Z',
+            sunsetAt: '2025-06-01T00:00:00Z',
+            successor: 'zk-id/1.0-draft',
+            migrationNote: 'Upgrade to v1.0',
+          },
+        ];
+
+        const entry = getVersionStatus('zk-id/0.9', custom);
+        assert.ok(entry);
+        assert.strictEqual(entry.status, 'sunset');
+        assert.strictEqual(entry.successor, 'zk-id/1.0-draft');
+      });
+    });
+
+    describe('isVersionDeprecated', () => {
+      const schedule: ProtocolDeprecationEntry[] = [
+        { version: 'zk-id/1.0', status: 'active' },
+        {
+          version: 'zk-id/0.9',
+          status: 'deprecated',
+          deprecatedAt: '2025-06-01T00:00:00Z',
+          sunsetAt: '2025-12-01T00:00:00Z',
+          successor: 'zk-id/1.0',
+        },
+        {
+          version: 'zk-id/0.8',
+          status: 'sunset',
+          deprecatedAt: '2025-01-01T00:00:00Z',
+          sunsetAt: '2025-06-01T00:00:00Z',
+          successor: 'zk-id/0.9',
+        },
+      ];
+
+      it('should return false for active version', () => {
+        assert.strictEqual(isVersionDeprecated('zk-id/1.0', schedule), false);
+      });
+
+      it('should return true for deprecated version', () => {
+        assert.strictEqual(isVersionDeprecated('zk-id/0.9', schedule), true);
+      });
+
+      it('should return true for sunset version', () => {
+        assert.strictEqual(isVersionDeprecated('zk-id/0.8', schedule), true);
+      });
+
+      it('should return false for unknown version', () => {
+        assert.strictEqual(isVersionDeprecated('zk-id/99.0', schedule), false);
+      });
+    });
+
+    describe('isVersionSunset', () => {
+      const schedule: ProtocolDeprecationEntry[] = [
+        { version: 'zk-id/1.0', status: 'active' },
+        { version: 'zk-id/0.9', status: 'deprecated' },
+        { version: 'zk-id/0.8', status: 'sunset' },
+      ];
+
+      it('should return false for active version', () => {
+        assert.strictEqual(isVersionSunset('zk-id/1.0', schedule), false);
+      });
+
+      it('should return false for deprecated-but-not-sunset version', () => {
+        assert.strictEqual(isVersionSunset('zk-id/0.9', schedule), false);
+      });
+
+      it('should return true for sunset version', () => {
+        assert.strictEqual(isVersionSunset('zk-id/0.8', schedule), true);
+      });
+
+      it('should return false for unknown version', () => {
+        assert.strictEqual(isVersionSunset('zk-id/99.0', schedule), false);
+      });
+    });
+
+    describe('buildDeprecationHeaders', () => {
+      it('should return empty headers for active version', () => {
+        const entry: ProtocolDeprecationEntry = {
+          version: 'zk-id/1.0',
+          status: 'active',
+        };
+
+        const headers = buildDeprecationHeaders(entry);
+        assert.deepStrictEqual(headers, {});
+      });
+
+      it('should include Deprecation header for deprecated version', () => {
+        const entry: ProtocolDeprecationEntry = {
+          version: 'zk-id/0.9',
+          status: 'deprecated',
+          deprecatedAt: '2025-06-01T00:00:00Z',
+          sunsetAt: '2025-12-01T00:00:00Z',
+        };
+
+        const headers = buildDeprecationHeaders(entry);
+        assert.strictEqual(headers['Deprecation'], '2025-06-01T00:00:00Z');
+        assert.strictEqual(headers['Sunset'], '2025-12-01T00:00:00Z');
+      });
+
+      it('should include Link header when migration URL provided', () => {
+        const entry: ProtocolDeprecationEntry = {
+          version: 'zk-id/0.9',
+          status: 'deprecated',
+          deprecatedAt: '2025-06-01T00:00:00Z',
+        };
+
+        const headers = buildDeprecationHeaders(
+          entry,
+          'https://docs.example.com/migration'
+        );
+        assert.ok(headers['Link']);
+        assert.ok(headers['Link'].includes('https://docs.example.com/migration'));
+        assert.ok(headers['Link'].includes('rel="sunset"'));
+      });
+
+      it('should include Sunset header for sunset version', () => {
+        const entry: ProtocolDeprecationEntry = {
+          version: 'zk-id/0.8',
+          status: 'sunset',
+          deprecatedAt: '2025-01-01T00:00:00Z',
+          sunsetAt: '2025-06-01T00:00:00Z',
+        };
+
+        const headers = buildDeprecationHeaders(entry);
+        assert.strictEqual(headers['Sunset'], '2025-06-01T00:00:00Z');
+        assert.strictEqual(headers['Deprecation'], '2025-01-01T00:00:00Z');
+      });
     });
   });
 });
