@@ -6,5 +6,5 @@ Date: 2026-02-08
 - **Issuer trust requires configuration**: verifier must be configured with trusted issuer public keys.
 - **Revocation privacy tradeoffs**: demo Merkle accumulator is in-memory and not wired into circuits or proofs yet.
 - **Operational security**: no built-in protection against device compromise or malware on clients.
-- **Rate limiting**: demo rate limiter is not sufficient for production.
+- **Rate limiting**: demo uses IP-based rate limiting (60 req/min via `express-rate-limit`), which can be bypassed by changing IPs. Production should use authenticated session-based rate limiting with token buckets or sliding windows.
 - **Demo/Examples**: examples are for illustration and are not secure deployments.
