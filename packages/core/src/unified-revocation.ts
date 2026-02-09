@@ -1,7 +1,7 @@
 /**
  * Unified Revocation Manager
  *
- * Single entry-point for credential lifecycle management. Uses three
+ * Single entry-point for credential lifecycle management. Uses two
  * cleanly separated stores:
  *
  *   1. ValidCredentialTree (Merkle tree) — source of truth for ZK proofs.
@@ -10,9 +10,6 @@
  *   2. IssuedCredentialIndex (append-only set) — records every commitment
  *      that was ever issued. Never deleted from. Lets us distinguish
  *      "revoked" (was issued, removed from tree) from "never issued".
- *
- *   3. AuditLogger (external) — revocation events are logged via the
- *      existing AuditLogger interface, not mixed into data structures.
  *
  * The old RevocationStore (blacklist) is no longer used here. It remains
  * available as a standalone component for consumers that need it.
@@ -31,12 +28,20 @@ import { ValidCredentialTree, RevocationWitness, RevocationRootInfo, IssuedCrede
 export class InMemoryIssuedCredentialIndex implements IssuedCredentialIndex {
   private readonly issued = new Set<string>();
 
+  private normalizeCommitment(commitment: string): string {
+    try {
+      return BigInt(commitment).toString();
+    } catch {
+      throw new Error('Invalid commitment format');
+    }
+  }
+
   async record(commitment: string): Promise<void> {
-    this.issued.add(commitment);
+    this.issued.add(this.normalizeCommitment(commitment));
   }
 
   async wasIssued(commitment: string): Promise<boolean> {
-    return this.issued.has(commitment);
+    return this.issued.has(this.normalizeCommitment(commitment));
   }
 
   async issuedCount(): Promise<number> {

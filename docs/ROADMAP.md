@@ -45,7 +45,7 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - ✅ v1.0.0 audit checklist (`docs/AUDIT.md`)
 - ✅ BBS selective disclosure (`generateBBSKeyPair`, `deriveBBSDisclosureProof`, `verifyBBSDisclosureProof` in `@zk-id/core`)
 - ✅ BBS credential issuer (`BBSCredentialIssuer` in `@zk-id/issuer`)
-- ✅ Unified revocation manager (`UnifiedRevocationManager` with three-store architecture: tree + issued index + audit logger)
+- ✅ Unified revocation manager (`UnifiedRevocationManager` with two-store architecture: tree + issued index)
 - ✅ `IssuedCredentialIndex` interface and `InMemoryIssuedCredentialIndex` (append-only, distinguishes revoked from never-issued)
 - ✅ Proof type discriminators (`ZkProof` discriminated union, `proofType` on all proof interfaces)
 - ✅ Input validation module and `any` type elimination across all packages

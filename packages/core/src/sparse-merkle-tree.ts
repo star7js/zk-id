@@ -195,6 +195,9 @@ export class SparseMerkleTree implements ValidCredentialTree {
 
     const leaf = BigInt(normalized);
     const index = await this.leafIndex(leaf);
+    if (this.getNode(0, index) !== 0n) {
+      return null;
+    }
     return this.buildWitness(index);
   }
 

@@ -197,23 +197,23 @@ describe('UnifiedRevocationManager', () => {
   describe('InMemoryIssuedCredentialIndex', () => {
     it('record is idempotent', async () => {
       const idx = new InMemoryIssuedCredentialIndex();
-      await idx.record('abc');
-      await idx.record('abc');
+      await idx.record('123');
+      await idx.record('123');
       assert.strictEqual(await idx.issuedCount(), 1);
     });
 
     it('tracks multiple commitments', async () => {
       const idx = new InMemoryIssuedCredentialIndex();
-      await idx.record('a');
-      await idx.record('b');
-      await idx.record('c');
+      await idx.record('1');
+      await idx.record('2');
+      await idx.record('3');
       assert.strictEqual(await idx.issuedCount(), 3);
-      assert.strictEqual(await idx.wasIssued('b'), true);
-      assert.strictEqual(await idx.wasIssued('d'), false);
+      assert.strictEqual(await idx.wasIssued('2'), true);
+      assert.strictEqual(await idx.wasIssued('4'), false);
     });
   });
 
-  describe('consistency — three-store separation', () => {
+  describe('consistency — two-store separation', () => {
     it('stays in sync across add-revoke-reactivate cycle', async () => {
       const cred = await createCredential(1990, 840);
 

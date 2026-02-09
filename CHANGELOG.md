@@ -62,7 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Holders can derive selective disclosure proofs without issuer interaction
   - Full audit logging with signature scheme metadata
 - **Unified revocation manager** — `UnifiedRevocationManager` in `@zk-id/core`
-  - Three cleanly separated stores: `ValidCredentialTree` (Merkle tree), `IssuedCredentialIndex` (append-only), `AuditLogger` (external)
+  - Two cleanly separated stores: `ValidCredentialTree` (Merkle tree), `IssuedCredentialIndex` (append-only)
   - `addCredential()` writes to both tree and issued index; `revokeCredential()` removes from tree only (issued index is append-only)
   - Three-way `CredentialStatus`: `'valid'` (in tree), `'revoked'` (was issued, removed from tree), `'unknown'` (never issued)
   - `getStatus()`, `isValid()`, `isRevoked()`, `reactivateCredential()` with precise lifecycle semantics
@@ -92,7 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fixed credential signature binding** — `credentialSignaturePayload` now includes issuer identity and issuance timestamp in the signed payload, preventing issuer substitution attacks where an attacker could swap the `issuer` field on a `SignedCredential` without invalidating the signature
 
 ### Changed
-- **Revocation model** — replaced dual blacklist+whitelist with three-store architecture (tree + issued index + audit logger); `RevocationStore` kept as standalone for consumers who need it
+- **Revocation model** — replaced dual blacklist+whitelist with two-store architecture (tree + issued index); `RevocationStore` kept as standalone for consumers who need it
 - **`verifyBatch()`** now dispatches on `proof.proofType` discriminated union (no separate `type` parameter needed)
 - Eliminated all `any` types across core, issuer, SDK, and redis packages
 - Added input validation module with domain-specific validators (birth year, nationality, commitment format)

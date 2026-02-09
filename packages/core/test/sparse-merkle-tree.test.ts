@@ -324,6 +324,34 @@ describe('SparseMerkleTree', () => {
       }
       assert.strictEqual(current.toString(), await tree.getRoot());
     });
+
+    it('returns null when leaf is occupied by another commitment', async () => {
+      const depth = 2;
+      const tree = new SparseMerkleTree(depth);
+      const mask = (1n << BigInt(depth)) - 1n;
+
+      const seen = new Map<bigint, bigint>();
+      let first: bigint | null = null;
+      let second: bigint | null = null;
+
+      for (let i = 1n; i < 500n; i++) {
+        const hash = await poseidonHash([i]);
+        const index = hash & mask;
+        const existing = seen.get(index);
+        if (existing !== undefined && existing !== i) {
+          first = existing;
+          second = i;
+          break;
+        }
+        seen.set(index, i);
+      }
+
+      assert.ok(first !== null && second !== null, 'should find a collision');
+
+      await tree.add(first!.toString());
+      const witness = await tree.getNonMembershipWitness(second!.toString());
+      assert.strictEqual(witness, null);
+    });
   });
 
   describe('sparse storage efficiency', () => {

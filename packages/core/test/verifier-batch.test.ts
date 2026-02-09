@@ -51,7 +51,6 @@ describe('Batch Verification Tests', () => {
         {
           proof: mockProof,
           verificationKey: ageVerificationKey,
-          type: 'age',
         },
       ]);
 
@@ -107,12 +106,10 @@ describe('Batch Verification Tests', () => {
         {
           proof: mockAgeProof,
           verificationKey: ageVerificationKey,
-          type: 'age',
         },
         {
           proof: mockNationalityProof,
           verificationKey: nationalityVerificationKey,
-          type: 'nationality',
         },
       ]);
 
@@ -144,9 +141,9 @@ describe('Batch Verification Tests', () => {
       };
 
       const result = await verifyBatch([
-        { proof: mockProof, verificationKey: ageVerificationKey, type: 'age' },
-        { proof: mockProof, verificationKey: ageVerificationKey, type: 'age' },
-        { proof: mockProof, verificationKey: ageVerificationKey, type: 'age' },
+        { proof: mockProof, verificationKey: ageVerificationKey },
+        { proof: mockProof, verificationKey: ageVerificationKey },
+        { proof: mockProof, verificationKey: ageVerificationKey },
       ]);
 
       expect(result.results[0].index).to.equal(0);

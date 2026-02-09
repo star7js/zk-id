@@ -376,8 +376,6 @@ export async function loadVerificationKey(path: string): Promise<VerificationKey
  *
  * Each proof carries a `proofType` discriminator so the verifier can
  * dispatch to the correct verification function automatically.
- * A legacy `type` field is still accepted for backwards compatibility
- * but is ignored when `proof.proofType` is present.
  *
  * @param proofs - Array of proofs with their verification keys
  * @returns Batch verification result with individual and aggregate outcomes
@@ -386,8 +384,6 @@ export async function verifyBatch(
   proofs: Array<{
     proof: ZkProof;
     verificationKey: VerificationKey;
-    /** @deprecated Use proof.proofType discriminator instead */
-    type?: string;
   }>
 ): Promise<BatchVerificationResult> {
   // Handle empty array
