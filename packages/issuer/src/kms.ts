@@ -152,7 +152,9 @@ export class EnvelopeKeyManager implements IssuerKeyManager {
     const authTag = Buffer.from(bundle.authTag, 'hex');
     const encrypted = Buffer.from(bundle.encryptedPrivateKey, 'hex');
 
-    const decipher = createDecipheriv('aes-256-gcm', masterKey, iv);
+    const decipher = createDecipheriv('aes-256-gcm', masterKey, iv, {
+      authTagLength: 16, // 16 bytes = 128 bits (standard for GCM)
+    });
     decipher.setAuthTag(authTag);
 
     const decrypted = Buffer.concat([

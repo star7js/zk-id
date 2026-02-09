@@ -16,6 +16,31 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Validate inputs
+      shell: bash
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
+        INPUT_SHA256: ${{ inputs.sha256 }}
+        INPUT_CHECKSUM_URL: ${{ inputs.checksum_url }}
+      run: |
+        # Validate version format (e.g., v2.1.8)
+        if ! echo "$INPUT_VERSION" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+          echo "Invalid version format: $INPUT_VERSION" >&2
+          exit 1
+        fi
+
+        # Validate SHA256 if provided (64 hex characters)
+        if [ -n "$INPUT_SHA256" ] && ! echo "$INPUT_SHA256" | grep -qE '^[a-f0-9]{64}$'; then
+          echo "Invalid SHA256 format: $INPUT_SHA256" >&2
+          exit 1
+        fi
+
+        # Validate checksum URL if provided (must be HTTPS github.com)
+        if [ -n "$INPUT_CHECKSUM_URL" ] && ! echo "$INPUT_CHECKSUM_URL" | grep -qE '^https://github\.com/'; then
+          echo "Invalid checksum URL: must be from github.com over HTTPS" >&2
+          exit 1
+        fi
+
     - name: Cache Circom
       id: cache-circom
       uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5
