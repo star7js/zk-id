@@ -2,6 +2,16 @@
  * Core type definitions for zk-id
  */
 
+/**
+ * Credential represents a privacy-preserving identity commitment
+ *
+ * IMPORTANT: Commitment Binding Limitation
+ * The Poseidon commitment binds exactly 3 fields: (birthYear, nationality, salt).
+ * This structure is hardcoded in all circuits (age-verify.circom, nationality-verify.circom, etc.).
+ * Extending the credential schema (e.g., adding dateOfBirth, name, or other attributes)
+ * requires designing, auditing, and deploying new circuits with different Poseidon inputs.
+ * Backwards compatibility is NOT automatic — new fields = new commitment = new circuits.
+ */
 export interface Credential {
   /** Unique identifier for this credential */
   id: string;
@@ -11,7 +21,7 @@ export interface Credential {
   nationality: number;
   /** Random salt for privacy (used in commitment) */
   salt: string;
-  /** Poseidon hash commitment to (birthYear, nationality, salt) */
+  /** Poseidon hash commitment: H(birthYear, nationality, salt) — binds exactly 3 fields */
   commitment: string;
   /** ISO 8601 timestamp of credential creation */
   createdAt: string;

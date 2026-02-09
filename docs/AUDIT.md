@@ -11,8 +11,8 @@ This document tracks the requirements for a production-ready, audit-worthy v1.0.
   - `age-verify.circom`: `nonce` and `requestTimestamp` are copied but not constrained beyond binding — document why this is intentional — **DOCUMENTED**: Added comments explaining server-side validation in v0.6.0
   - All signed circuits: `signatureR8` and `signatureS` are 256-bit arrays — ensure each element is binary-constrained — **VERIFIED**: Binary constraints enforced by EdDSAVerifier's arithmetic operations and CompConstant subgroup order check, documented in v0.6.0
 - [x] **Field overflow**: `GreaterEqThan(8)` limits age comparison to 8 bits (0-255). Verify that `currentYear - birthYear` cannot exceed 255 or underflow. Consider increasing to 12 bits for defense in depth — **FIXED**: Widened to 12 bits in v0.6.0
-- [ ] **Merkle tree depth hardcoded**: `AgeVerifyRevocable` hardcodes `depth=10`. This limits the valid credential set to 1024 entries. Document this limit or make it configurable
-- [ ] **EdDSA message length**: `EdDSAVerifier(256)` verifies 256 bits. Ensure the Poseidon hash output fits in 256 bits for the BN128 field (it does — BN128 prime is ~254 bits — but add an explicit comment)
+- [x] **Merkle tree depth hardcoded**: `AgeVerifyRevocable` hardcodes `depth=10`. This limits the valid credential set to 1024 entries. Document this limit or make it configurable — **DOCUMENTED**: Added clear comment in age-verify-revocable.circom explaining 1,024 entry limit and scaling options in v0.6.0
+- [x] **EdDSA message length**: `EdDSAVerifier(256)` verifies 256 bits. Ensure the Poseidon hash output fits in 256 bits for the BN128 field (it does — BN128 prime is ~254 bits — but add an explicit comment) — **DOCUMENTED**: Added explicit comments in age-verify-signed.circom and nationality-verify-signed.circom confirming 254-bit Poseidon fits in 256-bit EdDSAVerifier in v0.6.0
 - [x] **Deterministic nullifier circuit**: Add a circuit that computes `Poseidon(commitment, scopeHash)` and exposes the nullifier as a public signal. Without this, nullifiers are computed off-chain and must be trusted — **FIXED**: Added nullifier.circom in v0.6.0
 
 ### High Priority
@@ -23,8 +23,8 @@ This document tracks the requirements for a production-ready, audit-worthy v1.0.
 
 ### Medium Priority
 
-- [ ] **Power-of-tau parameters**: Document which ptau file is used and its provenance (Hermez ceremony, Iden3, or custom)
-- [ ] **Circuit constraint count**: Document constraint counts for each circuit to detect unexpected growth
+- [x] **Power-of-tau parameters**: Document which ptau file is used and its provenance (Hermez ceremony, Iden3, or custom) — **DOCUMENTED**: Full provenance in `docs/TRUSTED-SETUP.md` (Hermez ceremony, 177 participants, 3 ptau files documented) in v0.6.0
+- [x] **Circuit constraint count**: Document constraint counts for each circuit to detect unexpected growth — **DOCUMENTED**: Complete complexity metrics in `docs/CIRCUIT-COMPLEXITY.md` with constraint counts, ptau requirements, and growth monitoring in v0.6.0
 
 ## Cryptographic Primitives
 
@@ -36,8 +36,8 @@ This document tracks the requirements for a production-ready, audit-worthy v1.0.
 
 ### High Priority
 
-- [ ] **Field element encoding**: Ensure all values passed to Poseidon fit in the BN128 scalar field (~254 bits). The salt is 256 bits — verify no truncation occurs when converting `BigInt('0x' + salt)`
-- [ ] **Commitment binding**: The Poseidon commitment `H(birthYear, nationality, salt)` binds exactly 3 fields. Extending the credential schema requires a new circuit. Document this limitation
+- [x] **Field element encoding**: Ensure all values passed to Poseidon fit in the BN128 scalar field (~254 bits). The salt is 256 bits — verify no truncation occurs when converting `BigInt('0x' + salt)` — **DOCUMENTED**: Added comments in credential.ts explaining circomlibjs Poseidon performs automatic modular reduction, no truncation occurs (v0.6.0)
+- [x] **Commitment binding**: The Poseidon commitment `H(birthYear, nationality, salt)` binds exactly 3 fields. Extending the credential schema requires a new circuit. Document this limitation — **DOCUMENTED**: Added comprehensive JSDoc to Credential interface in types.ts explaining 3-field binding and circuit redesign requirements for schema extensions (v0.6.0)
 
 ## API Security
 
@@ -45,7 +45,7 @@ This document tracks the requirements for a production-ready, audit-worthy v1.0.
 
 - [x] **Nonce replay**: `InMemoryNonceStore` uses `setTimeout` for expiry — this leaks in long-running processes. Production deployments MUST use a persistent store — **FIXED**: Replaced with Map-based lazy expiry in v0.6.0
 - [ ] **Challenge timing**: `maxRequestAgeMs` prevents stale proofs but does not prevent time-shifted proofs (prover uses a future timestamp). Add server-side time validation
-- [ ] **Credential hash collision**: If two credentials have the same `Poseidon(birthYear, nationality, salt)`, they are indistinguishable. Salt entropy (256 bits) makes this negligible, but document the security margin
+- [x] **Credential hash collision**: If two credentials have the same `Poseidon(birthYear, nationality, salt)`, they are indistinguishable. Salt entropy (256 bits) makes this negligible, but document the security margin — **DOCUMENTED**: Added comprehensive collision resistance analysis in CRYPTOGRAPHIC-PARAMETERS.md with probability calculations and security margin (256-bit salt → ~2^128 security, negligible collision probability even at billion-credential scale) (v0.6.0)
 
 ### High Priority
 

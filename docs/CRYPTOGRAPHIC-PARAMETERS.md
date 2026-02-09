@@ -157,6 +157,41 @@ zk-id uses EdDSA signatures over the Baby Jubjub elliptic curve for credential i
 
 ---
 
+## Credential Commitment Scheme
+
+### Construction
+
+Credential commitments use Poseidon(3) hash:
+
+```
+commitment = H(birthYear, nationality, salt)
+```
+
+Where:
+- `birthYear`: 12-bit value (1900-4095)
+- `nationality`: 10-bit value (1-999, ISO 3166-1 numeric)
+- `salt`: 256-bit random value (32 bytes from `crypto.randomBytes`)
+
+### Collision Resistance
+
+**Collision Scenario**: Two credentials with identical `Poseidon(birthYear, nationality, salt)` are cryptographically indistinguishable. The prover could use either credential interchangeably.
+
+**Security Margin**:
+- **Preimage resistance**: Finding `(birthYear, nationality, salt)` given `commitment` requires ~2^128 operations (Poseidon security level)
+- **Collision resistance**: Finding two distinct inputs with the same hash requires ~2^128 operations (birthday bound for 254-bit output)
+- **Salt entropy**: 256 bits of randomness makes accidental collisions negligible
+
+**Probability Analysis**:
+- **Single collision probability**: `1 / 2^254` (negligible, ~10^-76)
+- **Birthday attack** (after issuing N credentials): `N^2 / 2^255`
+  - 1 billion credentials → probability ~10^-58 (negligible)
+  - 2^64 credentials → probability ~10^-38 (still negligible)
+- **Targeted collision** (attacker tries to match a specific commitment): ~2^128 hash operations required
+
+**Practical Security**: With 256-bit salt entropy and Poseidon's 128-bit security level, credential hash collisions are computationally infeasible for any realistic deployment scale.
+
+---
+
 ## Groth16 Proving System
 
 ### Parameters

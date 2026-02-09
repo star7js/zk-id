@@ -55,6 +55,8 @@ template NationalityVerifySigned() {
     signal requestTimestampCopy <== requestTimestamp;
     requestTimestampCopy === requestTimestamp;
 
+    // NOTE: Poseidon hash output (~254 bits) fits in 256-bit EdDSAVerifier
+    // BN128 field prime p ≈ 2^254, so all Poseidon outputs < 2^256
     component hashBits = Num2Bits(256);
     hashBits.in <== credentialHash;
 

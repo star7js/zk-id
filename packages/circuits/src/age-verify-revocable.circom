@@ -102,4 +102,10 @@ template AgeVerifyRevocable(depth) {
     }
 }
 
+// IMPORTANT: Merkle tree depth is hardcoded to 10, limiting the valid credential set
+// to 2^10 = 1,024 entries. To support more credentials, this value must be increased
+// and the circuit recompiled with a new trusted setup.
+// Depth 10 → 1,024 credentials
+// Depth 15 → 32,768 credentials
+// Depth 20 → 1,048,576 credentials
 component main {public [currentYear, minAge, credentialHash, merkleRoot, nonce, requestTimestamp]} = AgeVerifyRevocable(10);

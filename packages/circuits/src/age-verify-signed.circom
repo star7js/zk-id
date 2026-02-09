@@ -74,6 +74,9 @@ template AgeVerifySigned() {
     requestTimestampCopy === requestTimestamp;
 
     // Convert credentialHash to bits for signature verification
+    // NOTE: Poseidon hash output is in BN128 scalar field (~254 bits), which fits
+    // comfortably in 256 bits with no truncation. BN128 prime p ≈ 2^254, so all
+    // Poseidon outputs are < 2^254 < 2^256.
     component hashBits = Num2Bits(256);
     hashBits.in <== credentialHash;
 

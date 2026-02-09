@@ -21,6 +21,12 @@ export async function createCredential(
   const salt = randomBytes(32).toString('hex');
 
   // Compute Poseidon commitment with 3 inputs
+  // NOTE: Field element encoding safety
+  // - Salt is 256 bits, but BN128 scalar field is ~254 bits (p ≈ 2^254)
+  // - BigInt('0x' + salt) may produce values > field prime
+  // - circomlibjs Poseidon automatically performs modular reduction (value mod p)
+  // - No truncation occurs - reduction is cryptographically sound
+  // - Same encoding pattern used consistently in prover.ts
   const commitment = await poseidonHash([
     birthYear,
     nationality,
@@ -71,6 +77,8 @@ export async function deriveCommitment(
   validateNationality(nationality);
   validateHexString(salt, 'salt');
 
+  // NOTE: 256-bit salt → BigInt conversion is safe for BN128 field (~254 bits)
+  // Poseidon hash performs automatic modular reduction if needed
   const commitment = await poseidonHash([
     birthYear,
     nationality,
