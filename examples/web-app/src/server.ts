@@ -45,6 +45,7 @@ const AGE_REVOCABLE_ZKEY_PATH = join(CIRCUITS_BASE, 'age-verify-revocable.zkey')
 // Middleware
 app.use(express.json({ limit: '100kb' }));
 app.use(express.static(join(__dirname, 'public')));
+app.use('/circuits', express.static(CIRCUITS_BASE));
 
 // Protocol version header middleware
 app.use((req, res, next) => {
