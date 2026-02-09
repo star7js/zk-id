@@ -1,20 +1,48 @@
 /**
  * Unified Revocation Manager
  *
- * Resolves the dual-model problem where RevocationStore (blacklist) and
- * ValidCredentialTree (whitelist) could get out of sync. This manager
- * coordinates both stores so that:
+ * Single entry-point for credential lifecycle management. Uses three
+ * cleanly separated stores:
  *
- *   - Issuing adds to the valid-set (whitelist)
- *   - Revoking removes from the valid-set AND records in the blacklist
- *   - Status checks are consistent regardless of which model is queried
+ *   1. ValidCredentialTree (Merkle tree) — source of truth for ZK proofs.
+ *      "In tree" = valid. Removals invalidate Merkle witnesses.
  *
- * The ValidCredentialTree is the source of truth for ZK proofs (Merkle
- * inclusion). The RevocationStore serves as a fast lookup cache and
- * audit trail of revocation events.
+ *   2. IssuedCredentialIndex (append-only set) — records every commitment
+ *      that was ever issued. Never deleted from. Lets us distinguish
+ *      "revoked" (was issued, removed from tree) from "never issued".
+ *
+ *   3. AuditLogger (external) — revocation events are logged via the
+ *      existing AuditLogger interface, not mixed into data structures.
+ *
+ * The old RevocationStore (blacklist) is no longer used here. It remains
+ * available as a standalone component for consumers that need it.
  */
 
-import { RevocationStore, ValidCredentialTree, RevocationWitness, RevocationRootInfo } from './types';
+import { ValidCredentialTree, RevocationWitness, RevocationRootInfo, IssuedCredentialIndex } from './types';
+
+// ---------------------------------------------------------------------------
+// In-memory IssuedCredentialIndex
+// ---------------------------------------------------------------------------
+
+/**
+ * Simple append-only set tracking which commitments were ever issued.
+ * Production deployments should use a persistent store (Postgres, Redis, etc.).
+ */
+export class InMemoryIssuedCredentialIndex implements IssuedCredentialIndex {
+  private readonly issued = new Set<string>();
+
+  async record(commitment: string): Promise<void> {
+    this.issued.add(commitment);
+  }
+
+  async wasIssued(commitment: string): Promise<boolean> {
+    return this.issued.has(commitment);
+  }
+
+  async issuedCount(): Promise<number> {
+    return this.issued.size;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -23,36 +51,38 @@ import { RevocationStore, ValidCredentialTree, RevocationWitness, RevocationRoot
 export interface UnifiedRevocationConfig {
   /** The Merkle-tree valid-set (source of truth for ZK proofs). */
   validTree: ValidCredentialTree;
-  /** Optional blacklist store for fast lookup and audit trail. */
-  revocationStore?: RevocationStore;
+  /** Append-only index of issued credentials (distinguishes revoked from never-issued). */
+  issuedIndex?: IssuedCredentialIndex;
 }
+
+/** Credential status as determined by the unified manager. */
+export type CredentialStatus = 'valid' | 'revoked' | 'unknown';
 
 // ---------------------------------------------------------------------------
 // Unified Manager
 // ---------------------------------------------------------------------------
 
 /**
- * Coordinates revocation across both the valid-credential tree (whitelist)
- * and the revocation store (blacklist), ensuring they stay in sync.
+ * Manages the full credential lifecycle through a single API.
  *
  * ```ts
  * const manager = new UnifiedRevocationManager({
  *   validTree: new InMemoryValidCredentialTree(10),
- *   revocationStore: new InMemoryRevocationStore(), // optional
+ *   issuedIndex: new InMemoryIssuedCredentialIndex(),
  * });
  *
- * await manager.addCredential(commitment);    // adds to tree
- * await manager.revokeCredential(commitment); // removes from tree + adds to blacklist
- * await manager.isRevoked(commitment);        // true (checks tree membership)
+ * await manager.addCredential(commitment);    // tree + issued index
+ * await manager.revokeCredential(commitment); // removes from tree
+ * await manager.getStatus(commitment);        // 'revoked'
  * ```
  */
 export class UnifiedRevocationManager {
   private readonly validTree: ValidCredentialTree;
-  private readonly revocationStore?: RevocationStore;
+  private readonly issuedIndex?: IssuedCredentialIndex;
 
   constructor(config: UnifiedRevocationConfig) {
     this.validTree = config.validTree;
-    this.revocationStore = config.revocationStore;
+    this.issuedIndex = config.issuedIndex;
   }
 
   // -----------------------------------------------------------------------
@@ -60,75 +90,78 @@ export class UnifiedRevocationManager {
   // -----------------------------------------------------------------------
 
   /**
-   * Register a credential as valid (adds to Merkle tree).
-   * Call this when issuing a new credential.
+   * Issue a credential: adds to the Merkle tree and records in the
+   * issued-credential index.
    */
   async addCredential(commitment: string): Promise<void> {
     await this.validTree.add(commitment);
+    if (this.issuedIndex) {
+      await this.issuedIndex.record(commitment);
+    }
   }
 
   /**
-   * Revoke a credential.
+   * Revoke a credential by removing it from the Merkle tree.
    *
-   * 1. Removes from the valid-credential tree (invalidates Merkle proofs)
-   * 2. Records in the revocation store (fast lookup + audit trail)
+   * After revocation any existing Merkle witnesses become stale and
+   * proofs using the old root will fail the freshness check.
    *
-   * After revocation, any existing Merkle witnesses become stale and
-   * proofs using the old root will fail the root freshness check.
+   * The issued-credential index is NOT modified (append-only) so the
+   * commitment can still be recognized as "was issued, now revoked".
    */
   async revokeCredential(commitment: string): Promise<void> {
-    // Remove from whitelist first (source of truth for ZK proofs)
     await this.validTree.remove(commitment);
+  }
 
-    // Record in blacklist for fast lookup
-    if (this.revocationStore) {
-      await this.revocationStore.revoke(commitment);
+  /**
+   * Re-activate a previously revoked credential by adding it back
+   * to the Merkle tree.
+   */
+  async reactivateCredential(commitment: string): Promise<void> {
+    await this.validTree.add(commitment);
+  }
+
+  // -----------------------------------------------------------------------
+  // Status queries
+  // -----------------------------------------------------------------------
+
+  /**
+   * Get the precise status of a credential:
+   *   - `'valid'`   — in the Merkle tree (can generate inclusion proofs)
+   *   - `'revoked'` — was issued but no longer in the tree
+   *   - `'unknown'` — never recorded in the issued index
+   *
+   * Without an issued index, absent credentials are reported as `'unknown'`.
+   */
+  async getStatus(commitment: string): Promise<CredentialStatus> {
+    if (await this.validTree.contains(commitment)) {
+      return 'valid';
     }
+    if (this.issuedIndex && await this.issuedIndex.wasIssued(commitment)) {
+      return 'revoked';
+    }
+    return 'unknown';
+  }
+
+  /** Check if a credential is currently in the valid set. */
+  async isValid(commitment: string): Promise<boolean> {
+    return this.validTree.contains(commitment);
   }
 
   /**
    * Check if a credential has been revoked.
    *
-   * Uses the valid-credential tree (whitelist) as the source of truth:
-   * a credential is revoked if it's NOT in the valid set.
-   *
-   * Falls back to the revocation store if the tree doesn't contain
-   * the credential (could be revoked or never issued).
+   * Returns `true` only when the credential was issued (recorded in the
+   * issued index) but is no longer in the Merkle tree. Returns `false`
+   * for valid credentials AND for unknown commitments.
    */
   async isRevoked(commitment: string): Promise<boolean> {
-    const inTree = await this.validTree.contains(commitment);
-    if (inTree) {
-      return false; // In valid set → not revoked
-    }
-
-    // Not in tree. Could be revoked or never issued.
-    // Check blacklist for explicit revocation record.
-    if (this.revocationStore) {
-      return this.revocationStore.isRevoked(commitment);
-    }
-
-    // No blacklist configured; absence from tree = revoked
-    return true;
-  }
-
-  /**
-   * Re-activate a previously revoked credential.
-   * Adds back to the valid-credential tree.
-   */
-  async reactivateCredential(commitment: string): Promise<void> {
-    await this.validTree.add(commitment);
-    // Note: we intentionally do NOT remove from RevocationStore
-    // to preserve the audit trail of the revocation event.
+    return (await this.getStatus(commitment)) === 'revoked';
   }
 
   // -----------------------------------------------------------------------
   // Tree accessors (delegate to ValidCredentialTree)
   // -----------------------------------------------------------------------
-
-  /** Check if a credential is in the valid set. */
-  async isValid(commitment: string): Promise<boolean> {
-    return this.validTree.contains(commitment);
-  }
 
   /** Get the current Merkle root. */
   async getRoot(): Promise<string> {
@@ -148,15 +181,15 @@ export class UnifiedRevocationManager {
     return this.validTree.getWitness(commitment);
   }
 
-  /** Get the number of valid credentials. */
+  /** Number of currently valid credentials (in the tree). */
   async validCount(): Promise<number> {
     return this.validTree.size();
   }
 
-  /** Get the number of explicitly revoked credentials (blacklist). */
-  async revokedCount(): Promise<number> {
-    if (this.revocationStore) {
-      return this.revocationStore.getRevokedCount();
+  /** Number of credentials ever issued (if issued index is configured). */
+  async issuedCount(): Promise<number> {
+    if (this.issuedIndex) {
+      return this.issuedIndex.issuedCount();
     }
     return 0;
   }

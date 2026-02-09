@@ -210,6 +210,23 @@ export interface RevocationStore {
   getRevokedCount(): Promise<number>;
 }
 
+/**
+ * Append-only index of every credential commitment ever issued.
+ *
+ * This is NOT a revocation store — it only records that a commitment was
+ * issued at some point. Combined with the ValidCredentialTree it allows
+ * distinguishing "revoked" (was issued, no longer in tree) from "never
+ * issued" (not in tree and never was).
+ */
+export interface IssuedCredentialIndex {
+  /** Record that a commitment was issued. Idempotent. */
+  record(commitment: string): Promise<void>;
+  /** Check whether a commitment was ever issued. */
+  wasIssued(commitment: string): Promise<boolean>;
+  /** Total number of commitments ever issued. */
+  issuedCount(): Promise<number>;
+}
+
 export interface RevocationWitness {
   /** Merkle root at the time of issuance */
   root: string;
