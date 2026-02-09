@@ -13,3 +13,4 @@ export * from './circuit-issuer';
 export * from './kms';
 export * from './policy';
 export * from './standards';
+export * from './bbs-issuer';
