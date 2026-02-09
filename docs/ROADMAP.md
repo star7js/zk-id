@@ -37,6 +37,8 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - ✅ KMS/HSM integration examples (`EnvelopeKeyManager`, `FileKeyManager` in `@zk-id/issuer`)
 - ✅ Issuer policy tooling (`IssuerPolicy`, `checkKeyRotation`, `validateIssuerPolicy`, `generateRotationPlan` in `@zk-id/issuer`)
 - ✅ Issuer dashboard prototype (`IssuerDashboard`, `DashboardStats`, `IssuerSummary` in `@zk-id/sdk`)
+- ✅ ISO 18013-5/7 standards mapping (`toMdlElements`, `createAgeOverAttestation`, `STANDARDS_MAPPINGS` in `@zk-id/issuer`)
+- ✅ Multi-claim proof types (`MultiClaimRequest`, `createMultiClaimRequest`, `expandMultiClaimRequest` in `@zk-id/core`)
 
 ## Now (Next 2–6 Weeks)
 
@@ -90,11 +92,12 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 ## Mid Term (Q3 2026)
 
 1. **Standards Alignment**
-   - Optional mappings to ISO 18013-5/7 and related age-verification standards.
-   - Formalize external credential formats and conversions.
+   - ✅ Optional mappings to ISO 18013-5/7 and related age-verification standards.
+   - ✅ Formalize external credential formats and conversions.
 
 2. **Cryptography Improvements**
-   - Recursive proofs or multi-claim proofs.
+   - ✅ Multi-claim proof types and request/response bundling.
+   - Recursive proofs (circuit-level aggregation).
    - Optional universal setup (PLONK).
 
 3. **Operational Tooling**
@@ -133,7 +136,7 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - **v0.4.2**: Protocol versioning, revocation root helpers, Postgres tree, demo rate limiting (done)
 - **v0.4.5**: Incremental Merkle tree optimization, witness freshness helper, Redis storage (done)
 - **v0.5.0**: Wallet prototype + distributed tree synchronization + benchmarks + deprecation policy (done)
-- **v0.6.0**: KMS/HSM integration examples + issuer policy tooling + dashboard prototype (in progress)
+- **v0.6.0**: KMS/HSM integration + policy tooling + dashboard + standards alignment + multi-claim (done)
 - **v1.0.0**: Audit-ready release
 
 ---

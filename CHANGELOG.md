@@ -23,7 +23,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Per-issuer summaries: status, key count, credentials issued/revoked, last issuance, jurisdiction
   - Aggregate stats: active/suspended/revoked issuers, total credentials, revocation counts
   - `trackIssuer()`/`untrackIssuer()` for scoped monitoring
-- 40 new tests (10 KMS, 17 policy, 13 dashboard)
+- **ISO 18013-5/7 standards alignment** — country code conversion, mDL element mapping, age-over attestation in `@zk-id/issuer`
+  - `ISO_3166_NUMERIC_TO_ALPHA2` / `ISO_3166_ALPHA2_TO_NUMERIC` bidirectional country code tables
+  - `toMdlElements()` converts a `SignedCredential` to ISO 18013-5 mDL data elements
+  - `createAgeOverAttestation()` produces ISO 18013-7 `age_over_NN` attestation objects
+  - `STANDARDS_MAPPINGS` array documenting full zk-id ↔ ISO 18013-5/7 concept mapping
+  - `MDL_NAMESPACE`, `MDL_ELEMENTS` constants for programmatic access
+- **Multi-claim proof API** — `createMultiClaimRequest`, `expandMultiClaimRequest`, `aggregateVerificationResults` in `@zk-id/core`
+  - `MultiClaimRequest` bundles multiple claim specs (age, nationality) with a shared nonce
+  - `expandMultiClaimRequest()` converts to individual proof requests for parallel proving
+  - `aggregateVerificationResults()` combines per-claim results into an overall pass/fail
+  - Supports `age`, `nationality`, and `age-revocable` claim types
+- `docs/STANDARDS.md` documenting ISO 18013-5/7 mapping, privacy comparison, and architectural differences
+- 40 new tests (10 KMS, 17 policy, 13 dashboard) + standards and multi-claim test suites
 
 ## [0.5.0] - 2026-02-09
 

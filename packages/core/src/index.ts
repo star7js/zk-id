@@ -15,3 +15,4 @@ export * from './valid-credential-tree';
 export * from './signature';
 export * from './version';
 export * from './benchmark';
+export * from './multi-claim';
