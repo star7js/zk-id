@@ -57,14 +57,16 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 ## Near Term (Q2 2026)
 
 1. **Revocation Lifecycle & Root Distribution**
-   - Root versioning and witness refresh policy.
-   - Root dissemination channel and expiry strategy.
-   - Production storage for Merkle tree state and witness generation.
+   - ✅ Root versioning and witness refresh policy.
+   - ✅ Root dissemination channel and expiry strategy.
+   - ✅ Production storage for Merkle tree state and witness generation (incremental tree optimization).
+   - ✅ Incremental Merkle tree updates (O(depth) mutations, O(1) reads).
+   - ✅ Witness freshness helper (`isWitnessFresh()`) for client-side staleness checks.
    - Distributed tree state management and root synchronization.
 
 2. **Production Storage & Reliability**
-   - ✅ Reference implementation for Postgres valid-credential tree.
-   - Reference implementation for Redis store.
+   - ✅ Reference implementation for Postgres valid-credential tree (with layer caching).
+   - ✅ Reference implementation for Redis store (@zk-id/redis package).
    - ✅ Rate limiting + abuse prevention modules (demo server).
    - ✅ Audit log adapter interface.
 
@@ -121,7 +123,8 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - **v0.4.0**: Revocation SDK integration (done)
 - **v0.4.1**: Revocation-tree stability + Merkle root freshness guard (done)
 - **v0.4.2**: Protocol versioning, revocation root helpers, Postgres tree, demo rate limiting (done)
-- **v0.5.0**: Wallet prototype + production storage
+- **v0.4.5**: Incremental Merkle tree optimization, witness freshness helper, Redis storage (done)
+- **v0.5.0**: Wallet prototype + distributed tree synchronization
 - **v0.6.0**: KMS/HSM integration examples + issuer policy tooling
 - **v1.0.0**: Audit-ready release
 

@@ -43,13 +43,14 @@ Current age verification systems force users to expose sensitive information:
 ## Features
 
 - ✅ **Privacy-Preserving**: Prove eligibility without revealing personal data
-- ✅ **Fast**: Proof verification in <100ms
+- ✅ **Fast**: Proof verification in <100ms, optimized revocation checks with incremental Merkle trees
 - ✅ **Small**: Proofs are ~200 bytes
 - ✅ **Secure**: Built on Groth16 ZK-SNARKs with Ed25519 signatures
 - ✅ **Multi-Attribute**: Support for multiple credential attributes with selective disclosure
-- ✅ **Revocation**: In-circuit Merkle proofs for credential validity (non-revocation)
+- ✅ **Revocation**: In-circuit Merkle proofs for credential validity with O(1) reads and O(depth) updates
 - ✅ **Telemetry**: Built-in verification event monitoring
 - ✅ **Batch Verification**: Efficient verification of multiple proofs
+- ✅ **Production Storage**: Postgres and Redis implementations with layer caching
 - ✅ **Developer-Friendly**: Simple SDK for easy website integration
 - ✅ **Protocol Versioning**: Explicit wire-format compatibility via headers
 

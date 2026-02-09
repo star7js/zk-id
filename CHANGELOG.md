@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.5] - 2026-02-09
+
+### Added
+- `isWitnessFresh()` helper method to `ZkIdClient` for checking witness staleness against current root
+- Incremental Merkle tree optimization for `InMemoryValidCredentialTree` with cached layers and path-only updates
+- Layer caching with invalidation to `PostgresValidCredentialTree` for improved read performance
+- Pre-computed zero hashes for efficient tree initialization
+
+### Changed
+- Optimized `InMemoryValidCredentialTree` from O(2^depth) per query to O(depth) per mutation and O(1) per read
+- Optimized `PostgresValidCredentialTree` with in-memory layer cache (first query loads, mutations update incrementally)
+- Workspace build order now sequential to prevent race conditions in CI
+
+### Removed
+- Dead `RevocationAccumulator` scaffold code (unused interface and implementation)
+- Old `buildLayers()` method from `PostgresValidCredentialTree` (replaced by `rebuildCache()`)
+
+### Performance
+- At depth 10: `getRoot()` reduced from 2047 Poseidon hashes to 0 (cached)
+- At depth 10: `add()/remove()` now performs 10 Poseidon hashes (incremental path update)
+- At depth 10: `getWitness()` reduced from 2047 Poseidon hashes to 0 (array lookups)
+
+### Docs
+- Updated ARCHITECTURE.md with comprehensive revocation system documentation
+- Clarified two-layer revocation model (blacklist + ZK Merkle whitelist)
+- Documented circuit integration, root distribution, and privacy properties
+
 ## [0.4.4] - 2026-02-08
 
 ### Removed
@@ -123,6 +150,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Full web application with issuer and verifier
 - Comprehensive documentation and README
 
+[0.4.5]: https://github.com/star7js/zk-id/compare/v0.4.4...v0.4.5
 [0.4.4]: https://github.com/star7js/zk-id/compare/v0.4.3...v0.4.4
 [0.4.3]: https://github.com/star7js/zk-id/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/star7js/zk-id/compare/v0.4.1...v0.4.2
