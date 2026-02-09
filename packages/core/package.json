@@ -26,6 +26,7 @@
     "test:watch": "mocha -r ts-node/register/transpile-only test/**/*.test.ts --watch --watch-extensions ts"
   },
   "dependencies": {
+    "@digitalbazaar/bbs-signatures": "^3.0.0",
     "circomlibjs": "^0.1.7",
     "snarkjs": "^0.7.0"
   },

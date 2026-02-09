@@ -43,6 +43,8 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - ✅ Nullifier system for sybil resistance (`computeNullifier`, `createNullifierScope`, `NullifierStore`)
 - ✅ Recursive proof aggregation scaffold (`RecursiveAggregator`, `LogicalAggregator`, `AggregatedProof`)
 - ✅ v1.0.0 audit checklist (`docs/AUDIT.md`)
+- ✅ BBS selective disclosure (`generateBBSKeyPair`, `deriveBBSDisclosureProof`, `verifyBBSDisclosureProof` in `@zk-id/core`)
+- ✅ BBS credential issuer (`BBSCredentialIssuer` in `@zk-id/issuer`)
 
 ## Now (Next 2–6 Weeks)
 
@@ -104,8 +106,11 @@ This roadmap focuses on security, interoperability, and production readiness. Da
    - ✅ Proving system abstraction layer (Groth16 + PLONK scaffold).
    - ✅ Recursive proof aggregation scaffold (LogicalAggregator + RecursiveAggregator interface).
    - ✅ Nullifier system for sybil resistance (Poseidon-based, scope-isolated).
+   - ✅ BBS selective disclosure (BLS12-381-SHA-256, per IETF draft-irtf-cfrg-bbs-signatures).
+   - ✅ BBS credential issuer (field-level BBS signing for per-field disclosure).
    - Recursive proofs: actual circuit implementation (Groth16-in-Groth16, Nova, or Halo2).
    - PLONK: generate universal SRS and PLONK-compatible zkeys for all circuits.
+   - BBS+SNARK hybrid: prove predicates (age >= 18) over BBS-signed messages inside a SNARK circuit.
 
 3. **Operational Tooling**
    - ✅ Issuer dashboard prototype.
@@ -152,7 +157,7 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - **v0.4.2**: Protocol versioning, revocation root helpers, Postgres tree, demo rate limiting (done)
 - **v0.4.5**: Incremental Merkle tree optimization, witness freshness helper, Redis storage (done)
 - **v0.5.0**: Wallet prototype + distributed tree synchronization + benchmarks + deprecation policy (done)
-- **v0.6.0**: KMS/HSM + policy + dashboard + standards + multi-claim + proving abstraction + nullifiers + recursive scaffold (done)
+- **v0.6.0**: KMS/HSM + policy + dashboard + standards + multi-claim + proving abstraction + nullifiers + recursive scaffold + BBS selective disclosure (done)
 - **v1.0.0**: Audit-ready release
 
 ---

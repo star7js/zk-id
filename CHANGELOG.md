@@ -49,9 +49,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `LogicalAggregator` pass-through implementation (bundles proofs without recursion)
   - `RECURSIVE_PROOF_STATUS` documenting implementation state for Groth16-in-Groth16, Nova, and Halo2
   - Helpers: `createAggregateInput()`, `isRecursiveProof()`, `getConstituentPublicSignals()`
+- **BBS selective disclosure** — `generateBBSKeyPair`, `signBBSMessages`, `deriveBBSDisclosureProof`, `verifyBBSDisclosureProof` in `@zk-id/core`
+  - BBS signatures (BLS12-381-SHA-256 ciphersuite) per IETF draft-irtf-cfrg-bbs-signatures
+  - Credential fields signed as individual BBS messages enabling per-field selective disclosure
+  - `credentialFieldsToBBSMessages()` encodes credential fields in canonical order
+  - `serializeBBSProof()` / `deserializeBBSProof()` for JSON-safe transport
+  - `getDisclosedFields()` extracts revealed field values from a disclosure proof
+  - Complementary to ZK-SNARK predicates: BBS for "reveal field X", SNARKs for "prove age >= 18"
+- **BBS credential issuer** — `BBSCredentialIssuer` in `@zk-id/issuer`
+  - Issues credentials with BBS signatures (BLS12-381) instead of Ed25519
+  - Each credential field (id, birthYear, nationality, salt, issuedAt, issuer) is a separate BBS message
+  - Holders can derive selective disclosure proofs without issuer interaction
+  - Full audit logging with signature scheme metadata
 - **v1.0.0 audit checklist** — `docs/AUDIT.md` covering circuits, crypto primitives, API security, code quality
 - `docs/STANDARDS.md` documenting ISO 18013-5/7 mapping, privacy comparison, and architectural differences
-- 80+ new tests across all new modules
+- 100+ new tests across all new modules
 
 ### Security
 - **Fixed credential signature binding** — `credentialSignaturePayload` now includes issuer identity and issuance timestamp in the signed payload, preventing issuer substitution attacks where an attacker could swap the `issuer` field on a `SignedCredential` without invalidating the signature
