@@ -28,21 +28,26 @@ export class ManagedCredentialIssuer {
     userId?: string
   ): Promise<SignedCredential> {
     const credential = await createCredential(birthYear, nationality);
-    const signature = await this.signCredential(credential);
+    const issuedAt = new Date().toISOString();
+    const signature = await this.signCredential(credential, issuedAt);
 
     const signedCredential: SignedCredential = {
       credential,
       issuer: this.keyManager.getIssuerName(),
       signature,
-      issuedAt: new Date().toISOString(),
+      issuedAt,
     };
 
     this.logIssuance(signedCredential, userId);
     return signedCredential;
   }
 
-  private async signCredential(credential: Credential): Promise<string> {
-    const message = credentialSignaturePayload(credential);
+  private async signCredential(credential: Credential, issuedAt: string): Promise<string> {
+    const message = credentialSignaturePayload(
+      credential,
+      this.keyManager.getIssuerName(),
+      issuedAt
+    );
     const signature = await this.keyManager.sign(Buffer.from(message));
     return signature.toString('base64');
   }

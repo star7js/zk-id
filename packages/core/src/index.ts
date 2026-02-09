@@ -16,3 +16,6 @@ export * from './signature';
 export * from './version';
 export * from './benchmark';
 export * from './multi-claim';
+export * from './proving-system';
+export * from './nullifier';
+export * from './recursive';

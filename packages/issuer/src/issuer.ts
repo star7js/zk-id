@@ -54,14 +54,15 @@ export class CredentialIssuer {
     // Create the base credential
     const credential = await createCredential(birthYear, nationality);
 
-    // Sign the credential
-    const signature = this.signCredential(credential);
+    // Sign the credential (issuer identity bound into signature)
+    const issuedAt = new Date().toISOString();
+    const signature = this.signCredential(credential, issuedAt);
 
     const signedCredential: SignedCredential = {
       credential,
       issuer: this.config.name,
       signature,
-      issuedAt: new Date().toISOString(),
+      issuedAt,
     };
 
     // In production: log this issuance event for audit trail
@@ -71,10 +72,17 @@ export class CredentialIssuer {
   }
 
   /**
-   * Signs a credential using the issuer's Ed25519 private key
+   * Signs a credential using the issuer's Ed25519 private key.
+   *
+   * The signature binds the credential to this issuer's identity,
+   * preventing issuer substitution attacks.
    */
-  private signCredential(credential: Credential): string {
-    const message = credentialSignaturePayload(credential);
+  private signCredential(credential: Credential, issuedAt: string): string {
+    const message = credentialSignaturePayload(
+      credential,
+      this.config.name,
+      issuedAt
+    );
 
     // Ed25519 signature using the issuer's private key
     const signature = sign(null, Buffer.from(message), this.config.signingKey);
@@ -83,10 +91,17 @@ export class CredentialIssuer {
   }
 
   /**
-   * Verifies a signed credential's Ed25519 signature
+   * Verifies a signed credential's Ed25519 signature.
+   *
+   * Includes issuer and issuance time in the verification payload
+   * to prevent issuer substitution attacks.
    */
   static verifySignature(signedCredential: SignedCredential, publicKey: KeyObject): boolean {
-    const message = credentialSignaturePayload(signedCredential.credential);
+    const message = credentialSignaturePayload(
+      signedCredential.credential,
+      signedCredential.issuer,
+      signedCredential.issuedAt
+    );
 
     try {
       const signature = Buffer.from(signedCredential.signature, 'base64');

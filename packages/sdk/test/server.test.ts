@@ -83,14 +83,15 @@ function makeSignedCredential(commitment: string, issuer = 'TestIssuer') {
     createdAt: new Date().toISOString(),
   };
 
-  const payload = credentialSignaturePayload(credential);
+  const issuedAt = new Date().toISOString();
+  const payload = credentialSignaturePayload(credential, issuer, issuedAt);
   const signature = sign(null, Buffer.from(payload), privateKey).toString('base64');
 
   const signedCredential: SignedCredential = {
     credential,
     issuer,
     signature,
-    issuedAt: new Date().toISOString(),
+    issuedAt,
   };
 
   return { signedCredential, publicKey };
