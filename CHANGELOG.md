@@ -5,7 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — v0.5.0 Preview
+## [Unreleased] — v0.6.0 Preview
+
+### Added
+- **KMS/HSM integration** — `EnvelopeKeyManager`, `FileKeyManager` in `@zk-id/issuer`
+  - `EnvelopeKeyManager`: AES-256-GCM envelope encryption for Ed25519 private keys with seal/unseal workflow
+  - `FileKeyManager`: PEM file-based key loading with `fromPemFiles()` and `fromPemStrings()` constructors
+  - Both implement `IssuerKeyManager` and work with `ManagedCredentialIssuer`
+- **Issuer policy tooling** — `IssuerPolicy`, `checkKeyRotation`, `validateIssuerPolicy`, `generateRotationPlan` in `@zk-id/issuer`
+  - `IssuerPolicy` interface with configurable key age limits, rotation windows, credential caps, and metadata requirements
+  - `DEFAULT_ISSUER_POLICY` (365-day keys) and `STRICT_ISSUER_POLICY` (180-day keys, metadata required)
+  - `checkKeyRotation()` returns rotation status with days-until-expiry and human-readable messages
+  - `validateIssuerPolicy()` checks issuer records against policy with violations and warnings
+  - `generateRotationPlan()` produces a 4-step rotation schedule with ISO 8601 dates
+- **Issuer dashboard prototype** — `IssuerDashboard`, `DashboardStats`, `IssuerSummary` in `@zk-id/sdk`
+  - `IssuerDashboard` aggregates stats from registry, audit log, and revocation store
+  - Per-issuer summaries: status, key count, credentials issued/revoked, last issuance, jurisdiction
+  - Aggregate stats: active/suspended/revoked issuers, total credentials, revocation counts
+  - `trackIssuer()`/`untrackIssuer()` for scoped monitoring
+- 40 new tests (10 KMS, 17 policy, 13 dashboard)
+
+## [0.5.0] - 2026-02-09
 
 ### Added
 - **Distributed tree sync** — `RedisTreeSyncChannel` and `SyncedValidCredentialTree` in `@zk-id/redis`
@@ -182,6 +202,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Full web application with issuer and verifier
 - Comprehensive documentation and README
 
+[0.5.0]: https://github.com/star7js/zk-id/compare/v0.4.5...v0.5.0
 [0.4.5]: https://github.com/star7js/zk-id/compare/v0.4.4...v0.4.5
 [0.4.4]: https://github.com/star7js/zk-id/compare/v0.4.3...v0.4.4
 [0.4.3]: https://github.com/star7js/zk-id/compare/v0.4.2...v0.4.3

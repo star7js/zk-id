@@ -34,6 +34,9 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - ✅ Browser wallet prototype (`BrowserWallet`, `CredentialStore`, `IndexedDBCredentialStore` in `@zk-id/sdk`)
 - ✅ Performance benchmarks with targets (`BenchmarkResult`, `PERFORMANCE_TARGETS`, `runBenchmark` in `@zk-id/core`)
 - ✅ Protocol deprecation policy (`DEPRECATION_SCHEDULE`, `getVersionStatus`, `isVersionDeprecated`, `buildDeprecationHeaders`)
+- ✅ KMS/HSM integration examples (`EnvelopeKeyManager`, `FileKeyManager` in `@zk-id/issuer`)
+- ✅ Issuer policy tooling (`IssuerPolicy`, `checkKeyRotation`, `validateIssuerPolicy`, `generateRotationPlan` in `@zk-id/issuer`)
+- ✅ Issuer dashboard prototype (`IssuerDashboard`, `DashboardStats`, `IssuerSummary` in `@zk-id/sdk`)
 
 ## Now (Next 2–6 Weeks)
 
@@ -95,8 +98,9 @@ This roadmap focuses on security, interoperability, and production readiness. Da
    - Optional universal setup (PLONK).
 
 3. **Operational Tooling**
-   - Issuer dashboard prototype.
-   - Key rotation helpers and policy enforcement.
+   - ✅ Issuer dashboard prototype.
+   - ✅ Key rotation helpers and policy enforcement.
+   - ✅ KMS/HSM integration examples (envelope encryption, file-based keys).
 
 ## Long Term (Q4 2026+)
 
@@ -129,7 +133,7 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - **v0.4.2**: Protocol versioning, revocation root helpers, Postgres tree, demo rate limiting (done)
 - **v0.4.5**: Incremental Merkle tree optimization, witness freshness helper, Redis storage (done)
 - **v0.5.0**: Wallet prototype + distributed tree synchronization + benchmarks + deprecation policy (done)
-- **v0.6.0**: KMS/HSM integration examples + issuer policy tooling
+- **v0.6.0**: KMS/HSM integration examples + issuer policy tooling + dashboard prototype (in progress)
 - **v1.0.0**: Audit-ready release
 
 ---
