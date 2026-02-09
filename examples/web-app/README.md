@@ -1,16 +1,17 @@
 # ZK-ID Web Application Demo
 
-Interactive web demonstration of zero-knowledge identity verification with age and nationality proofs.
+Interactive web demonstration of zero-knowledge identity verification with age and nationality proofs. **Proofs are generated entirely in the browser** — your credential data never leaves your device.
 
 ## Features
 
 ### Verification Types
 - **Age Verification**: Prove age ≥ minimum without revealing exact birth year
 - **Nationality Verification**: Prove nationality without exposing age or other data
-- **Signed Circuit Proofs**: Issuer signature verification inside the ZK circuit
 - **Revocable Proofs**: Merkle tree membership proofs for revocation support
 
-### Security Features
+### Security & Privacy Features
+- **Client-side proof generation**: ZK proofs run in your browser using WebAssembly
+- **Privacy-preserving**: Credential data never sent to server
 - Server-generated nonce challenges to prevent replay attacks
 - Request timestamp validation
 - Ed25519 signature verification for credentials
@@ -61,39 +62,40 @@ The demo issuer (simulating a government ID service) issues credentials containi
 
 In production, this would require KYC/identity verification.
 
-### 2. Proof Generation
+### 2. Proof Generation (Client-Side)
 
 When verification is requested:
 1. User selects claim type (age or nationality)
-2. Client fetches a server challenge (nonce + timestamp)
-3. Server generates a ZK proof using the credential
-4. Proof includes public signals but hides sensitive data
+2. Browser fetches a server challenge (nonce + timestamp)
+3. **Browser downloads circuit artifacts (WASM + zkey) and generates ZK proof locally**
+4. Browser sends only the proof to server (credential data stays client-side)
 
-### 3. Verification
+The proof generation happens entirely in your browser using:
+- **snarkjs** for ZK proof generation
+- **WebAssembly** for high-performance circuit execution
+- **Circuit artifacts** served statically from `/circuits`
+
+### 3. Verification (Server-Side)
 
 The server:
 1. Validates the challenge (nonce freshness, timestamp)
 2. Verifies the Groth16 proof using verification keys
-3. Checks Ed25519 signature (or in-circuit for signed proofs)
+3. Checks Ed25519 signature
 4. Validates against revocation store
 5. Returns verification result
+
+**Important**: The server never sees your credential data — only the proof and public signals.
 
 ## API Endpoints
 
 ### Credential Management
-- `POST /api/issue-credential` - Issue a standard credential
-- `POST /api/issue-credential-signed` - Issue a signed-circuit credential
+- `POST /api/issue-credential` - Issue a credential
 - `POST /api/revoke-credential` - Revoke a credential (admin)
 
 ### Verification
 - `GET /api/challenge` - Get nonce + timestamp challenge
-- `POST /api/verify-age` - Verify age proof
-- `POST /api/verify-nationality` - Verify nationality proof
-- `POST /api/demo/verify-age` - Combined proof generation + verification
-- `POST /api/demo/verify-age-signed` - Signed circuit age verification
-- `POST /api/demo/verify-nationality` - Combined nationality proof + verification
-- `POST /api/demo/verify-nationality-signed` - Signed circuit nationality verification
-- `POST /api/demo/verify-age-revocable` - Revocable age proof
+- `POST /api/verify-age` - Verify client-generated age proof
+- `POST /api/verify-nationality` - Verify client-generated nationality proof
 
 ### System
 - `GET /api/health` - Health check
@@ -102,28 +104,32 @@ The server:
 ## Architecture
 
 ```
-┌─────────────┐
-│   Browser   │
-│   (Client)  │
-└──────┬──────┘
-       │ HTTP/JSON
-       │
-┌──────▼──────┐
-│   Express   │
-│   Server    │
-├─────────────┤
-│  ZkIdServer │  ← SDK integration
-│             │
-│  • Nonce    │
-│  • Challenge│
-│  • Verify   │
-└──────┬──────┘
-       │
-┌──────▼──────┐
-│   Circuits  │
-│   (WASM +   │
-│    ZKEY)    │
-└─────────────┘
+┌─────────────────────────┐
+│   Browser (Client)      │
+│                         │
+│  1. Fetch challenge     │
+│  2. Download circuits   │ ← /circuits/*.wasm, *.zkey
+│  3. Generate ZK proof   │ ← snarkjs + WASM
+│     (local, private)    │
+│  4. Send proof only     │
+└────────┬────────────────┘
+         │ HTTP/JSON
+         │ (proof only, no credential)
+         │
+┌────────▼────────────────┐
+│   Express Server        │
+├─────────────────────────┤
+│  ZkIdServer (SDK)       │
+│                         │
+│  • Nonce/Challenge      │
+│  • Verify proofs        │
+│  • Revocation checks    │
+└────────┬────────────────┘
+         │
+┌────────▼────────────────┐
+│   Verification Keys     │
+│   (server-side only)    │
+└─────────────────────────┘
 ```
 
 ## Configuration
@@ -132,15 +138,17 @@ Environment variables:
 
 - `PORT` - Server port (default: 3000)
 - `API_RATE_LIMIT` - Requests per minute for API endpoints (default: 60)
-- `DEMO_PROOF_RATE_LIMIT` - Requests per minute for proof generation (default: 10)
 
 ## Performance
 
-Typical timings on modern hardware:
+Typical timings on modern hardware (client-side in browser):
 
-- **Proof Generation**: 2-5 seconds
-- **Verification**: 10-50 ms
+- **Circuit Download**: 500ms - 2s (cached after first load)
+- **Proof Generation**: 3-7 seconds (in browser, depends on device)
+- **Verification**: 10-50 ms (server-side)
 - **Proof Size**: ~1.5 KB
+
+**Note**: First-time proof generation requires downloading ~5-10MB of circuit artifacts (WASM + zkey). These are cached by the browser for subsequent proofs.
 
 ## Production Deployment
 
@@ -153,6 +161,8 @@ Typical timings on modern hardware:
 5. **Monitoring**: Add observability and logging
 6. **HTTPS**: Enable TLS termination
 7. **Circuit Audits**: Have circuits audited by ZK security experts
+8. **CDN**: Serve circuit artifacts from CDN for faster downloads
+9. **Wallet Integration**: For production, users should store credentials in a wallet app
 
 ## Telemetry
 
@@ -196,12 +206,39 @@ npm run setup
 
 This is expected during development. The hash check ensures circuit reproducibility.
 
-### Proof generation timeout
+### Slow proof generation in browser
 
-Proof generation is CPU-intensive (2-5s). For better UX in production, consider:
-- Client-side proof generation (move to browser)
-- Worker threads for concurrent proof generation
-- Caching trusted setup artifacts
+Proof generation is CPU-intensive (3-7s in browser). This is normal for ZK proofs. In production:
+- Use Web Workers to avoid blocking the UI
+- Show progress indicators
+- Consider using faster devices or native mobile apps for better performance
+
+## Privacy Architecture
+
+**Your credential data never leaves your browser:**
+
+1. **Issuance**: Credential is stored in browser memory only
+2. **Proof Generation**: Runs entirely client-side (snarkjs + WASM)
+3. **Verification**: Only the proof and public signals are sent to server
+4. **Result**: Server cannot learn your birth year, nationality, or other private data
+
+The server only learns:
+- That you have a valid credential from the issuer
+- The minimum age threshold you meet (e.g., "age ≥ 18")
+- Or your nationality (if you choose to prove it)
+
+The server **cannot** learn:
+- Your exact birth year
+- Other attributes you didn't choose to prove
+- Your credential's private data
+
+## Future: Wallet SDK Integration
+
+This demo currently uses server-side storage for Merkle witnesses (revocable proofs). A production wallet SDK would add:
+- Client-side Merkle witness fetching via `/api/witness` endpoint
+- Fully client-side revocable proof generation
+- Credential storage in secure wallet
+- Multi-issuer support
 
 ## License
 

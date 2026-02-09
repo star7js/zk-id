@@ -33,18 +33,19 @@ A full-featured web application demonstrating zero-knowledge identity verificati
 
 ### Features
 
-- Real Groth16 zero-knowledge proof generation
-- Server-side proof verification
+- **Client-side proof generation**: ZK proofs run entirely in the browser using WebAssembly
+- **Privacy-first architecture**: Credential data never sent to server
+- Server-side proof verification only
 - Interactive UI for testing age and nationality verification
 - Performance metrics and timing information
 - Privacy-preserving selective disclosure
 
 ### Architecture
 
-- **Backend**: Express server with ZK-ID SDK integration
-- **Frontend**: Single-page application with vanilla JavaScript
+- **Backend**: Express server handling verification only (no proof generation)
+- **Frontend**: Browser-based proof generation using snarkjs + WASM
 - **Proof System**: Groth16 on BN128 curve via snarkjs
-- **Circuits**: Circom circuits for age and nationality verification
+- **Circuits**: Circom circuits served as static assets, executed client-side
 
 ### Security Notes
 

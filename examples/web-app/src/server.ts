@@ -1,13 +1,12 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { join } from 'path';
-import { CredentialIssuer, CircuitCredentialIssuer } from '@zk-id/issuer';
+import { CredentialIssuer } from '@zk-id/issuer';
 import {
   ZkIdServer,
   InMemoryNonceStore,
   InMemoryIssuerRegistry,
   InMemoryChallengeStore,
-  SignedProofRequest,
 } from '@zk-id/sdk';
 import {
   ProofResponse,
@@ -15,8 +14,6 @@ import {
   InMemoryValidCredentialTree,
   generateAgeProof,
   generateNationalityProof,
-  generateAgeProofSigned,
-  generateNationalityProofSigned,
   generateAgeProofRevocable,
   PROTOCOL_VERSION,
   isProtocolCompatible,
@@ -32,13 +29,6 @@ const AGE_WASM_PATH = join(CIRCUITS_BASE, 'age-verify_js/age-verify.wasm');
 const AGE_ZKEY_PATH = join(CIRCUITS_BASE, 'age-verify.zkey');
 const NATIONALITY_WASM_PATH = join(CIRCUITS_BASE, 'nationality-verify_js/nationality-verify.wasm');
 const NATIONALITY_ZKEY_PATH = join(CIRCUITS_BASE, 'nationality-verify.zkey');
-const AGE_SIGNED_WASM_PATH = join(CIRCUITS_BASE, 'age-verify-signed_js/age-verify-signed.wasm');
-const AGE_SIGNED_ZKEY_PATH = join(CIRCUITS_BASE, 'age-verify-signed.zkey');
-const NATIONALITY_SIGNED_WASM_PATH = join(
-  CIRCUITS_BASE,
-  'nationality-verify-signed_js/nationality-verify-signed.wasm'
-);
-const NATIONALITY_SIGNED_ZKEY_PATH = join(CIRCUITS_BASE, 'nationality-verify-signed.zkey');
 const AGE_REVOCABLE_WASM_PATH = join(CIRCUITS_BASE, 'age-verify-revocable_js/age-verify-revocable.wasm');
 const AGE_REVOCABLE_ZKEY_PATH = join(CIRCUITS_BASE, 'age-verify-revocable.zkey');
 
@@ -64,7 +54,7 @@ app.use((req, res, next) => {
 const getClientProtocolVersion = (req: express.Request): string | undefined =>
   req.get('X-ZkId-Protocol-Version') ?? undefined;
 
-// Basic rate limiting for demo endpoints (tune via env for real deployments)
+// Basic rate limiting for API endpoints (tune via env for real deployments)
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
   limit: Number(process.env.API_RATE_LIMIT || 60),
@@ -73,18 +63,9 @@ const apiLimiter = rateLimit({
   message: { error: 'Too many requests, please try again later.' },
 });
 
-const demoProofLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  limit: Number(process.env.DEMO_PROOF_RATE_LIMIT || 10),
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many demo proof requests, please try again later.' },
-});
-
 // Create a test issuer (in production, this would use secure key management)
 const issuerName = 'Demo Government ID Authority';
 const issuer = CredentialIssuer.createTestIssuer(issuerName);
-const circuitIssuer = await CircuitCredentialIssuer.createTestIssuer(issuerName);
 const revocationStore = new InMemoryRevocationStore();
 issuer.setRevocationStore(revocationStore);
 const validCredentialTree = new InMemoryValidCredentialTree(10);
@@ -120,9 +101,6 @@ const zkIdServer = new ZkIdServer({
   revocationStore,
   validCredentialTree,
   issuerRegistry,
-  issuerPublicKeyBits: {
-    [issuerName]: circuitIssuer.getIssuerPublicKeyBits(),
-  },
 });
 
 // Setup telemetry
@@ -139,7 +117,6 @@ zkIdServer.onVerification((event) => {
 
 // Store issued credentials (in-memory for demo - production would use database)
 const issuedCredentials = new Map<string, any>();
-const issuedCircuitCredentials = new Map<string, any>();
 
 /**
  * Demo endpoint: Issue a credential
@@ -201,50 +178,6 @@ app.post('/api/issue-credential', apiLimiter, async (req, res) => {
 app.get('/api/challenge', async (_req, res) => {
   const challenge = await zkIdServer.createChallenge();
   res.json(challenge);
-});
-
-/**
- * Demo endpoint: Issue a credential for signed circuits
- */
-app.post('/api/issue-credential-signed', apiLimiter, async (req, res) => {
-  try {
-    const { birthYear, nationality } = req.body;
-
-    if (!birthYear || !nationality) {
-      return res.status(400).json({
-        error: 'Missing required fields: birthYear, nationality',
-      });
-    }
-
-    // Validate inputs
-    const currentYear = new Date().getFullYear();
-    if (birthYear < 1900 || birthYear > currentYear) {
-      return res.status(400).json({
-        error: 'Invalid birth year',
-      });
-    }
-
-    if (nationality < 1 || nationality > 999) {
-      return res.status(400).json({
-        error: 'Invalid nationality code (ISO 3166-1 numeric)',
-      });
-    }
-
-    const circuitCredential = await circuitIssuer.issueCredential(birthYear, nationality);
-    issuedCircuitCredentials.set(circuitCredential.credential.id, circuitCredential);
-
-    res.json({
-      success: true,
-      credential: circuitCredential,
-      message: 'Signed-circuit credential issued successfully',
-    });
-  } catch (error) {
-    console.error('Error issuing signed-circuit credential:', error);
-    res.status(500).json({
-      error: 'Failed to issue signed-circuit credential',
-      details: error instanceof Error ? error.message : 'Unknown error',
-    });
-  }
 });
 
 /**
@@ -337,571 +270,6 @@ app.post('/api/verify-nationality', apiLimiter, async (req, res) => {
   }
 });
 
-/**
- * Demo endpoint: Generate and verify age proof
- * This endpoint combines proof generation + verification for the web demo.
- * It generates a real ZK proof server-side and then verifies it.
- */
-app.post('/api/demo/verify-age', demoProofLimiter, async (req, res) => {
-  try {
-    const { credentialId, minAge, nonce: providedNonce, requestTimestamp: providedTimestamp } = req.body;
-
-    if (!credentialId || minAge === undefined) {
-      return res.status(400).json({
-        error: 'Missing required fields: credentialId, minAge',
-      });
-    }
-
-    // Validate minAge
-    if (!Number.isInteger(minAge) || minAge < 0 || minAge > 150) {
-      return res.status(400).json({
-        error: 'Invalid minAge: must be a number between 0 and 150',
-      });
-    }
-
-    // Look up stored credential
-    const signedCredential = issuedCredentials.get(credentialId);
-    if (!signedCredential) {
-      return res.status(404).json({
-        error: 'Credential not found',
-      });
-    }
-
-    // Generate proof (this is the expensive operation)
-    const proofGenStart = Date.now();
-    const { nonce, requestTimestamp } =
-      providedNonce && providedTimestamp
-        ? { nonce: providedNonce, requestTimestamp: providedTimestamp }
-        : await zkIdServer.createChallenge();
-    const requestTimestampMs = Date.parse(requestTimestamp);
-    const proof = await generateAgeProof(
-      signedCredential.credential,
-      minAge,
-      nonce,
-      requestTimestampMs,
-      AGE_WASM_PATH,
-      AGE_ZKEY_PATH
-    );
-    const proofGenTime = Date.now() - proofGenStart;
-
-    // Wrap in ProofResponse with a fresh nonce
-    const proofResponse: ProofResponse = {
-      proof,
-      nonce,
-      claimType: 'age',
-      credentialId,
-      signedCredential,
-      requestTimestamp,
-    };
-
-    // Verify the proof
-    const verifyStart = Date.now();
-    const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
-    const result = await zkIdServer.verifyProof(
-      proofResponse,
-      clientIp,
-      getClientProtocolVersion(req)
-    );
-    const verifyTime = Date.now() - verifyStart;
-    const totalTime = Date.now() - proofGenStart;
-
-    if (result.verified) {
-      res.json({
-        verified: true,
-        message: `Age verification successful! User is at least ${result.minAge} years old.`,
-        timing: {
-          proofGenerationMs: proofGenTime,
-          verificationMs: verifyTime,
-          totalMs: totalTime,
-        },
-        privacy: {
-          revealed: [`Age ≥ ${result.minAge}`],
-          hidden: ['Exact birth year', 'Nationality', 'Other attributes'],
-        },
-        proofDetails: {
-          system: 'Groth16',
-          curve: 'BN128',
-          proofSize: `${JSON.stringify(proof.proof).length} bytes`,
-        },
-      });
-    } else {
-      res.json({
-        verified: false,
-        message: result.error || 'Age verification failed',
-        timing: {
-          proofGenerationMs: proofGenTime,
-          verificationMs: verifyTime,
-          totalMs: totalTime,
-        },
-      });
-    }
-  } catch (error) {
-    console.error('Error in demo age verification:', error);
-    // Check if this is a circuit assertion failure (user doesn't meet the requirement)
-    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-    const isAssertionFailure = errorMsg.includes('Assert Failed');
-
-    res.status(400).json({
-      verified: false,
-      message: isAssertionFailure
-        ? `Age verification failed: User does not meet the minimum age requirement`
-        : `Failed to generate or verify proof: ${errorMsg}`,
-    });
-  }
-});
-
-/**
- * Demo endpoint: Generate and verify signed age proof
- */
-app.post('/api/demo/verify-age-signed', demoProofLimiter, async (req, res) => {
-  try {
-    const { credentialId, minAge, nonce: providedNonce, requestTimestamp: providedTimestamp } = req.body;
-
-    if (!credentialId || minAge === undefined) {
-      return res.status(400).json({
-        error: 'Missing required fields: credentialId, minAge',
-      });
-    }
-
-    if (!Number.isInteger(minAge) || minAge < 0 || minAge > 150) {
-      return res.status(400).json({
-        error: 'Invalid minAge: must be a number between 0 and 150',
-      });
-    }
-
-    const signedCredential = issuedCircuitCredentials.get(credentialId);
-    if (!signedCredential) {
-      return res.status(404).json({
-        error: 'Signed-circuit credential not found',
-      });
-    }
-
-    const proofGenStart = Date.now();
-    const { nonce, requestTimestamp } =
-      providedNonce && providedTimestamp
-        ? { nonce: providedNonce, requestTimestamp: providedTimestamp }
-        : await zkIdServer.createChallenge();
-    const requestTimestampMs = Date.parse(requestTimestamp);
-    const signatureInputs = circuitIssuer.getSignatureInputs(signedCredential);
-
-    const proof = await generateAgeProofSigned(
-      signedCredential.credential,
-      minAge,
-      nonce,
-      requestTimestampMs,
-      signatureInputs,
-      AGE_SIGNED_WASM_PATH,
-      AGE_SIGNED_ZKEY_PATH
-    );
-    const proofGenTime = Date.now() - proofGenStart;
-
-    const signedRequest: SignedProofRequest = {
-      claimType: 'age',
-      issuer: signedCredential.issuer,
-      nonce,
-      requestTimestamp,
-      proof,
-    };
-
-    const verifyStart = Date.now();
-    const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
-    const result = await zkIdServer.verifySignedProof(
-      signedRequest,
-      clientIp,
-      getClientProtocolVersion(req)
-    );
-    const verifyTime = Date.now() - verifyStart;
-    const totalTime = Date.now() - proofGenStart;
-
-    if (result.verified) {
-      res.json({
-        verified: true,
-        message: `Signed age verification successful! User is at least ${result.minAge} years old.`,
-        timing: {
-          proofGenerationMs: proofGenTime,
-          verificationMs: verifyTime,
-          totalMs: totalTime,
-        },
-        privacy: {
-          revealed: [`Age ≥ ${result.minAge}`],
-          hidden: ['Exact birth year', 'Nationality', 'Other attributes'],
-        },
-        proofDetails: {
-          system: 'Groth16',
-          curve: 'BN128',
-          proofSize: `${JSON.stringify(proof.proof).length} bytes`,
-          issuerVerification: 'In-circuit (BabyJub EdDSA)',
-        },
-      });
-    } else {
-      res.json({
-        verified: false,
-        message: result.error || 'Signed age verification failed',
-        timing: {
-          proofGenerationMs: proofGenTime,
-          verificationMs: verifyTime,
-          totalMs: totalTime,
-        },
-      });
-    }
-  } catch (error) {
-    console.error('Error in demo signed age verification:', error);
-    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-    const isAssertionFailure = errorMsg.includes('Assert Failed');
-
-    res.status(400).json({
-      verified: false,
-      message: isAssertionFailure
-        ? `Signed age verification failed: User does not meet the minimum age requirement`
-        : `Failed to generate or verify signed proof: ${errorMsg}`,
-    });
-  }
-});
-
-/**
- * Demo endpoint: Generate and verify nationality proof
- * This endpoint combines proof generation + verification for the web demo.
- * It generates a real ZK proof server-side and then verifies it.
- */
-app.post('/api/demo/verify-nationality', demoProofLimiter, async (req, res) => {
-  try {
-    const { credentialId, targetNationality, nonce: providedNonce, requestTimestamp: providedTimestamp } = req.body;
-
-    if (!credentialId || targetNationality === undefined) {
-      return res.status(400).json({
-        error: 'Missing required fields: credentialId, targetNationality',
-      });
-    }
-
-    // Validate targetNationality
-    if (!Number.isInteger(targetNationality) || targetNationality < 1 || targetNationality > 999) {
-      return res.status(400).json({
-        error: 'Invalid targetNationality: must be a number between 1 and 999',
-      });
-    }
-
-    // Look up stored credential
-    const signedCredential = issuedCredentials.get(credentialId);
-    if (!signedCredential) {
-      return res.status(404).json({
-        error: 'Credential not found',
-      });
-    }
-
-    // Generate proof (this is the expensive operation)
-    const proofGenStart = Date.now();
-    const { nonce, requestTimestamp } =
-      providedNonce && providedTimestamp
-        ? { nonce: providedNonce, requestTimestamp: providedTimestamp }
-        : await zkIdServer.createChallenge();
-    const requestTimestampMs = Date.parse(requestTimestamp);
-    const proof = await generateNationalityProof(
-      signedCredential.credential,
-      targetNationality,
-      nonce,
-      requestTimestampMs,
-      NATIONALITY_WASM_PATH,
-      NATIONALITY_ZKEY_PATH
-    );
-    const proofGenTime = Date.now() - proofGenStart;
-
-    // Wrap in ProofResponse with a fresh nonce
-    const proofResponse: ProofResponse = {
-      proof,
-      nonce,
-      claimType: 'nationality',
-      credentialId,
-      signedCredential,
-      requestTimestamp,
-    };
-
-    // Verify the proof
-    const verifyStart = Date.now();
-    const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
-    const result = await zkIdServer.verifyProof(
-      proofResponse,
-      clientIp,
-      getClientProtocolVersion(req)
-    );
-    const verifyTime = Date.now() - verifyStart;
-    const totalTime = Date.now() - proofGenStart;
-
-    if (result.verified) {
-      const nationalityName = getNationalityName(targetNationality);
-      res.json({
-        verified: true,
-        message: `Nationality verification successful! User has nationality: ${nationalityName}`,
-        timing: {
-          proofGenerationMs: proofGenTime,
-          verificationMs: verifyTime,
-          totalMs: totalTime,
-        },
-        privacy: {
-          revealed: [`Nationality = ${nationalityName} (${targetNationality})`],
-          hidden: ['Birth year', 'Age', 'Other attributes'],
-        },
-        proofDetails: {
-          system: 'Groth16',
-          curve: 'BN128',
-          proofSize: `${JSON.stringify(proof.proof).length} bytes`,
-        },
-      });
-    } else {
-      res.json({
-        verified: false,
-        message: result.error || 'Nationality verification failed',
-        timing: {
-          proofGenerationMs: proofGenTime,
-          verificationMs: verifyTime,
-          totalMs: totalTime,
-        },
-      });
-    }
-  } catch (error) {
-    console.error('Error in demo nationality verification:', error);
-    // Check if this is a circuit assertion failure (user doesn't have the target nationality)
-    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-    const isAssertionFailure = errorMsg.includes('Assert Failed');
-
-    res.status(400).json({
-      verified: false,
-      message: isAssertionFailure
-        ? `Nationality verification failed: User does not have the target nationality`
-        : `Failed to generate or verify proof: ${errorMsg}`,
-    });
-  }
-});
-
-/**
- * Demo endpoint: Generate and verify revocable age proof
- */
-app.post('/api/demo/verify-age-revocable', demoProofLimiter, async (req, res) => {
-  try {
-    const { credentialId, minAge, nonce: providedNonce, requestTimestamp: providedTimestamp } = req.body;
-
-    if (!credentialId || minAge === undefined) {
-      return res.status(400).json({
-        error: 'Missing required fields: credentialId, minAge',
-      });
-    }
-
-    // Validate minAge
-    if (!Number.isInteger(minAge) || minAge < 0 || minAge > 150) {
-      return res.status(400).json({
-        error: 'Invalid minAge: must be a number between 0 and 150',
-      });
-    }
-
-    // Look up stored credential
-    const signedCredential = issuedCredentials.get(credentialId);
-    if (!signedCredential) {
-      return res.status(404).json({
-        error: 'Credential not found',
-      });
-    }
-
-    // Get Merkle witness from the valid credential tree
-    const witness = await validCredentialTree.getWitness(signedCredential.credential.commitment);
-    if (!witness) {
-      return res.status(400).json({
-        error: 'Credential not found in valid credential tree (possibly revoked)',
-      });
-    }
-
-    // Generate proof (this is the expensive operation)
-    const proofGenStart = Date.now();
-    const { nonce, requestTimestamp } =
-      providedNonce && providedTimestamp
-        ? { nonce: providedNonce, requestTimestamp: providedTimestamp }
-        : await zkIdServer.createChallenge();
-    const requestTimestampMs = Date.parse(requestTimestamp);
-    const proof = await generateAgeProofRevocable(
-      signedCredential.credential,
-      minAge,
-      nonce,
-      requestTimestampMs,
-      witness,
-      AGE_REVOCABLE_WASM_PATH,
-      AGE_REVOCABLE_ZKEY_PATH
-    );
-    const proofGenTime = Date.now() - proofGenStart;
-
-    // Wrap in ProofResponse with a fresh nonce
-    const proofResponse: ProofResponse = {
-      proof,
-      nonce,
-      claimType: 'age-revocable',
-      credentialId,
-      signedCredential,
-      requestTimestamp,
-    };
-
-    // Verify the proof
-    const verifyStart = Date.now();
-    const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
-    const result = await zkIdServer.verifyProof(
-      proofResponse,
-      clientIp,
-      getClientProtocolVersion(req)
-    );
-    const verifyTime = Date.now() - verifyStart;
-    const totalTime = Date.now() - proofGenStart;
-
-    if (result.verified) {
-      res.json({
-        verified: true,
-        message: `Revocable age verification successful! User is at least ${minAge} years old and credential is valid (not revoked).`,
-        timing: {
-          proofGenerationMs: proofGenTime,
-          verificationMs: verifyTime,
-          totalMs: totalTime,
-        },
-        privacy: {
-          revealed: [`Age >= ${minAge}`, 'Credential is in valid set'],
-          hidden: ['Exact birth year', 'Nationality', 'Other attributes'],
-        },
-        proofDetails: {
-          system: 'Groth16',
-          curve: 'BN128',
-          proofSize: `${JSON.stringify(proof.proof).length} bytes`,
-          merkleRoot: proof.publicSignals.merkleRoot,
-        },
-      });
-    } else {
-      res.json({
-        verified: false,
-        message: result.error || 'Revocable age verification failed',
-        timing: {
-          proofGenerationMs: proofGenTime,
-          verificationMs: verifyTime,
-          totalMs: totalTime,
-        },
-      });
-    }
-  } catch (error) {
-    console.error('Error in demo revocable age verification:', error);
-    // Check if this is a circuit assertion failure (user too young)
-    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-    const isAssertionFailure = errorMsg.includes('Assert Failed');
-
-    res.status(400).json({
-      verified: false,
-      message: isAssertionFailure
-        ? `Age verification failed: User is younger than ${req.body.minAge}`
-        : `Failed to generate or verify proof: ${errorMsg}`,
-    });
-  }
-});
-
-/**
- * Demo endpoint: Generate and verify signed nationality proof
- */
-app.post('/api/demo/verify-nationality-signed', demoProofLimiter, async (req, res) => {
-  try {
-    const { credentialId, targetNationality, nonce: providedNonce, requestTimestamp: providedTimestamp } = req.body;
-
-    if (!credentialId || targetNationality === undefined) {
-      return res.status(400).json({
-        error: 'Missing required fields: credentialId, targetNationality',
-      });
-    }
-
-    if (!Number.isInteger(targetNationality) || targetNationality < 1 || targetNationality > 999) {
-      return res.status(400).json({
-        error: 'Invalid targetNationality: must be a number between 1 and 999',
-      });
-    }
-
-    const signedCredential = issuedCircuitCredentials.get(credentialId);
-    if (!signedCredential) {
-      return res.status(404).json({
-        error: 'Signed-circuit credential not found',
-      });
-    }
-
-    const proofGenStart = Date.now();
-    const { nonce, requestTimestamp } =
-      providedNonce && providedTimestamp
-        ? { nonce: providedNonce, requestTimestamp: providedTimestamp }
-        : await zkIdServer.createChallenge();
-    const requestTimestampMs = Date.parse(requestTimestamp);
-    const signatureInputs = circuitIssuer.getSignatureInputs(signedCredential);
-
-    const proof = await generateNationalityProofSigned(
-      signedCredential.credential,
-      targetNationality,
-      nonce,
-      requestTimestampMs,
-      signatureInputs,
-      NATIONALITY_SIGNED_WASM_PATH,
-      NATIONALITY_SIGNED_ZKEY_PATH
-    );
-    const proofGenTime = Date.now() - proofGenStart;
-
-    const signedRequest: SignedProofRequest = {
-      claimType: 'nationality',
-      issuer: signedCredential.issuer,
-      nonce,
-      requestTimestamp,
-      proof,
-    };
-
-    const verifyStart = Date.now();
-    const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
-    const result = await zkIdServer.verifySignedProof(
-      signedRequest,
-      clientIp,
-      getClientProtocolVersion(req)
-    );
-    const verifyTime = Date.now() - verifyStart;
-    const totalTime = Date.now() - proofGenStart;
-
-    if (result.verified) {
-      const nationalityName = getNationalityName(targetNationality);
-      res.json({
-        verified: true,
-        message: `Signed nationality verification successful! User has nationality: ${nationalityName}`,
-        timing: {
-          proofGenerationMs: proofGenTime,
-          verificationMs: verifyTime,
-          totalMs: totalTime,
-        },
-        privacy: {
-          revealed: [`Nationality = ${nationalityName} (${targetNationality})`],
-          hidden: ['Birth year', 'Age', 'Other attributes'],
-        },
-        proofDetails: {
-          system: 'Groth16',
-          curve: 'BN128',
-          proofSize: `${JSON.stringify(proof.proof).length} bytes`,
-          issuerVerification: 'In-circuit (BabyJub EdDSA)',
-        },
-      });
-    } else {
-      res.json({
-        verified: false,
-        message: result.error || 'Signed nationality verification failed',
-        timing: {
-          proofGenerationMs: proofGenTime,
-          verificationMs: verifyTime,
-          totalMs: totalTime,
-        },
-      });
-    }
-  } catch (error) {
-    console.error('Error in demo signed nationality verification:', error);
-    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-    const isAssertionFailure = errorMsg.includes('Assert Failed');
-
-    res.status(400).json({
-      verified: false,
-      message: isAssertionFailure
-        ? `Signed nationality verification failed: User does not meet the target nationality requirement`
-        : `Failed to generate or verify signed proof: ${errorMsg}`,
-    });
-  }
-});
-
 // Helper function to get nationality name
 function getNationalityName(code: number): string {
   const names: { [key: number]: string } = {
@@ -929,18 +297,16 @@ app.post('/api/revoke-credential', apiLimiter, async (req, res) => {
     }
 
     const signedCredential = issuedCredentials.get(credentialId);
-    const circuitCredential = issuedCircuitCredentials.get(credentialId);
-    const credential = signedCredential?.credential || circuitCredential?.credential;
-    if (!credential) {
+    if (!signedCredential) {
       return res.status(404).json({
         error: 'Credential not found',
       });
     }
 
-    await revocationStore.revoke(credential.commitment);
+    await revocationStore.revoke(signedCredential.credential.commitment);
 
     // Remove from valid credential tree for revocable proofs
-    await validCredentialTree.remove(credential.commitment);
+    await validCredentialTree.remove(signedCredential.credential.commitment);
 
     res.json({
       success: true,
@@ -987,21 +353,16 @@ app.get('/api/health', (req, res) => {
   app.listen(PORT, () => {
     console.log(`\n🚀 ZK-ID Demo Web App running at http://localhost:${PORT}`);
     console.log(`\nFeatures:`);
+    console.log(`  ✓ Client-side ZK proof generation in browser`);
     console.log(`  ✓ Credential issuance with Ed25519 signatures`);
     console.log(`  ✓ Zero-knowledge age and nationality verification`);
     console.log(`  ✓ Credential revocation support`);
     console.log(`  ✓ Real-time telemetry and logging`);
-    console.log(`  ✓ Signed-circuit verification (issuer signatures in-circuit)`);
     console.log(`\nEndpoints:`);
     console.log(`  POST /api/issue-credential`);
-    console.log(`  POST /api/issue-credential-signed`);
     console.log(`  GET  /api/challenge`);
     console.log(`  POST /api/verify-age`);
     console.log(`  POST /api/verify-nationality`);
-    console.log(`  POST /api/demo/verify-age`);
-    console.log(`  POST /api/demo/verify-nationality`);
-    console.log(`  POST /api/demo/verify-age-signed`);
-    console.log(`  POST /api/demo/verify-nationality-signed`);
     console.log(`  POST /api/revoke-credential`);
     console.log(`  GET  /api/revocation/root`);
     console.log(`  GET  /api/health\n`);
