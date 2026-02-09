@@ -8,7 +8,7 @@
     "examples/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces",
+    "build": "npm run build --workspace=@zk-id/circuits && npm run build --workspace=@zk-id/core && npm run build --workspace=@zk-id/sdk && npm run build --workspace=@zk-id/issuer && npm run build --workspace=@zk-id/redis && npm run build --workspace=@zk-id/example-web-app",
     "test": "npm run test --workspaces",
     "compile:circuits": "npm run compile --workspace=@zk-id/circuits",
     "verify:hashes": "npm run verify-hashes --workspace=@zk-id/circuits"
