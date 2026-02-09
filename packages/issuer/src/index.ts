@@ -10,3 +10,5 @@ export * from './key-management';
 export * from './managed-issuer';
 export * from './format';
 export * from './circuit-issuer';
+export * from './kms';
+export * from './policy';
