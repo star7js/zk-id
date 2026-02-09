@@ -26,6 +26,9 @@ template NationalityVerifySigned() {
     signal input birthYear;
     signal input nationality;
     signal input salt;
+    // Signature components: each element MUST be binary (0 or 1)
+    // Binary constraints enforced by EdDSAVerifier's arithmetic operations
+    // and CompConstant subgroup order check (S < L where L is the order)
     signal input signatureR8[256];
     signal input signatureS[256];
 

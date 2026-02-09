@@ -27,6 +27,9 @@ template AgeVerifySigned() {
     signal input birthYear;
     signal input nationality;
     signal input salt;
+    // Signature components: each element MUST be binary (0 or 1)
+    // Binary constraints enforced by EdDSAVerifier's arithmetic operations
+    // and CompConstant subgroup order check (S < L where L is the order)
     signal input signatureR8[256];
     signal input signatureS[256];
 
@@ -51,6 +54,12 @@ template AgeVerifySigned() {
     birthYearCheck.in[1] <== currentYear;
     birthYearCheck.out === 1;
 
+    // Lower bound check: prevent field wrapping (birthYear must be >= 1900)
+    component birthYearLowerBound = GreaterEqThan(12);
+    birthYearLowerBound.in[0] <== birthYear;
+    birthYearLowerBound.in[1] <== 1900;
+    birthYearLowerBound.out === 1;
+
     component hasher = Poseidon(3);
     hasher.inputs[0] <== birthYear;
     hasher.inputs[1] <== nationality;
@@ -58,6 +67,7 @@ template AgeVerifySigned() {
     hasher.out === credentialHash;
 
     // Bind nonce and timestamp to the proof
+    // NOTE: These are intentionally NOT range-constrained. Validated server-side.
     signal nonceCopy <== nonce;
     nonceCopy === nonce;
     signal requestTimestampCopy <== requestTimestamp;

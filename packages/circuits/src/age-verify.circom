@@ -49,6 +49,12 @@ template AgeVerify() {
     birthYearCheck.in[1] <== currentYear;
     birthYearCheck.out === 1; // Birth year must be <= current year
 
+    // Lower bound check: prevent field wrapping (birthYear must be >= 1900)
+    component birthYearLowerBound = GreaterEqThan(12);
+    birthYearLowerBound.in[0] <== birthYear;
+    birthYearLowerBound.in[1] <== 1900;
+    birthYearLowerBound.out === 1; // Birth year must be >= 1900
+
     // Verify credential binding: compute hash from private inputs
     // and verify it matches the public credentialHash
     component hasher = Poseidon(3);
@@ -57,11 +63,17 @@ template AgeVerify() {
     hasher.inputs[2] <== salt;
     hasher.out === credentialHash;
 
-    // Bind nonce to the proof (no additional constraints)
+    // Bind nonce to the proof
+    // NOTE: Nonce is intentionally NOT range-constrained in the circuit.
+    // It serves as a replay protection mechanism validated server-side.
+    // The circuit only ensures the nonce is bound to the proof as a public signal.
     signal nonceCopy <== nonce;
     nonceCopy === nonce;
 
-    // Bind request timestamp to the proof (no additional constraints)
+    // Bind request timestamp to the proof
+    // NOTE: Timestamp is intentionally NOT range-constrained in the circuit.
+    // It's validated server-side for freshness (within maxRequestAgeMs window).
+    // The circuit only ensures the timestamp is bound to the proof as a public signal.
     signal requestTimestampCopy <== requestTimestamp;
     requestTimestampCopy === requestTimestamp;
 }

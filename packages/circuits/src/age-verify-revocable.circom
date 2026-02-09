@@ -66,6 +66,12 @@ template AgeVerifyRevocable(depth) {
     birthYearCheck.in[1] <== currentYear;
     birthYearCheck.out === 1;
 
+    // Lower bound check: prevent field wrapping (birthYear must be >= 1900)
+    component birthYearLowerBound = GreaterEqThan(12);
+    birthYearLowerBound.in[0] <== birthYear;
+    birthYearLowerBound.in[1] <== 1900;
+    birthYearLowerBound.out === 1;
+
     // Verify credential binding: hash matches public credentialHash
     component hasher = Poseidon(3);
     hasher.inputs[0] <== birthYear;
@@ -74,10 +80,12 @@ template AgeVerifyRevocable(depth) {
     hasher.out === credentialHash;
 
     // Bind nonce to the proof
+    // NOTE: Nonce is intentionally NOT range-constrained. Validated server-side.
     signal nonceCopy <== nonce;
     nonceCopy === nonce;
 
     // Bind request timestamp to the proof
+    // NOTE: Timestamp is intentionally NOT range-constrained. Validated server-side.
     signal requestTimestampCopy <== requestTimestamp;
     requestTimestampCopy === requestTimestamp;
 

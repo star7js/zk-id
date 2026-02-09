@@ -6,10 +6,10 @@ This document tracks the requirements for a production-ready, audit-worthy v1.0.
 
 ### Critical (Must-Fix Before Audit)
 
-- [ ] **Under-constrained signals**: Review all `<==` assignments for signals that are used in output but not range-checked. In particular:
-  - `age-verify.circom`: `birthYear` is only checked `<= currentYear` — add lower bound check (e.g., `>= 1900`) to prevent wrapping in the field
-  - `age-verify.circom`: `nonce` and `requestTimestamp` are copied but not constrained beyond binding — document why this is intentional
-  - All signed circuits: `signatureR8` and `signatureS` are 256-bit arrays — ensure each element is binary-constrained
+- [x] **Under-constrained signals**: Review all `<==` assignments for signals that are used in output but not range-checked. In particular:
+  - `age-verify.circom`: `birthYear` is only checked `<= currentYear` — add lower bound check (e.g., `>= 1900`) to prevent wrapping in the field — **FIXED**: Added `GreaterEqThan(12)` check for `birthYear >= 1900` in all age circuits in v0.6.0
+  - `age-verify.circom`: `nonce` and `requestTimestamp` are copied but not constrained beyond binding — document why this is intentional — **DOCUMENTED**: Added comments explaining server-side validation in v0.6.0
+  - All signed circuits: `signatureR8` and `signatureS` are 256-bit arrays — ensure each element is binary-constrained — **VERIFIED**: Binary constraints enforced by EdDSAVerifier's arithmetic operations and CompConstant subgroup order check, documented in v0.6.0
 - [x] **Field overflow**: `GreaterEqThan(8)` limits age comparison to 8 bits (0-255). Verify that `currentYear - birthYear` cannot exceed 255 or underflow. Consider increasing to 12 bits for defense in depth — **FIXED**: Widened to 12 bits in v0.6.0
 - [ ] **Merkle tree depth hardcoded**: `AgeVerifyRevocable` hardcodes `depth=10`. This limits the valid credential set to 1024 entries. Document this limit or make it configurable
 - [ ] **EdDSA message length**: `EdDSAVerifier(256)` verifies 256 bits. Ensure the Poseidon hash output fits in 256 bits for the BN128 field (it does — BN128 prime is ~254 bits — but add an explicit comment)

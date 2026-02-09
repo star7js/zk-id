@@ -2,38 +2,43 @@
   "algorithm": "SHA-256",
   "circomVersion": "0.5.46",
   "snarkjsVersion": "0.7.6",
-  "generatedAt": "2026-02-08T22:29:03Z",
-  "note": "Canonical hashes generated on Linux (ubuntu-latest) for CI verification. WASM hashes included for reference but not verified (Circom v2.x not cross-platform deterministic). Only zkey and verificationKey hashes are verified and security-critical. Local builds on macOS/Windows may produce different hashes but CI ensures Linux builds remain deterministic.",
+  "generatedAt": "2026-02-09T11:17:14Z",
+  "note": "Canonical hashes generated on macOS for local development. WASM hashes included for reference but not verified in CI (Circom v2.x not cross-platform deterministic). Only zkey and verificationKey hashes are verified and security-critical. Hashes updated in v0.6.0 for circuit changes (GreaterEqThan 8→12 bits) and new nullifier circuit.",
   "circuits": {
     "age-verify": {
-      "wasm": "f1526de4c5267fe9743b70dece85569c09d44e46bf968b259c4e5d08d0121443",
-      "zkey": "865d4196addcab5052606a55379f66825d7703154a7875e19d3ed65c62319438",
-      "verificationKey": "73edfdbc937c27a05c6c4329402e993f0608ac570a285d819284d980a976efd1"
+      "wasm": "ff16cbdf593c0b6cb9cb984fa449675dd3abc351b4d83b083c8b782dda953939",
+      "zkey": "c2e99f334c4ef2884e151856645961b35092be423afdd7dbe667643226a8b643",
+      "verificationKey": "5f33a5fdaf9ff8031b6ce71264b140db0ce1f1073ed2531f562d4cf0e997b185"
     },
     "credential-hash": {
       "wasm": "f003d83fc887b07144cc697096a9de5cad6c47ba60e26662424aac918bbc6a03",
-      "zkey": "d93cbe0128751c8746d862a32b533ba49f8bab589b867d6d5538e626d272f980",
-      "verificationKey": "2f285a0c2e61afb15cf02db1847d6805f7fd512ba322a41fb45ab784b1d92808"
+      "zkey": "152f22944e2ebe11c9d607ae64f9c32da366a994a68a4fe931b75c39650c05fb",
+      "verificationKey": "6ba8171dffa42b8840ff7c8f47eca6f726d241c4c4054e5aeeec477473746d2b"
     },
     "nationality-verify": {
       "wasm": "e9f60d0f5eca4ee86bb682490830235358cdcfddfee852951d5a697d81398016",
-      "zkey": "d9e714543017d66395c5feddb44f6d26729dcea07bf296e1492451a1b78358b1",
-      "verificationKey": "55ea7ac41421923c83079420e95b53666710c9492f1ac7560e73a7195fb7618c"
+      "zkey": "ef7e54ddf62bb8fa13fccad34418509fc63be7cdc671ae7f98dbc2ea5c91f712",
+      "verificationKey": "8dfb1965ddd0123b936cf5bcc1881eb217d0989c19451b3ea171aad3fc9e37b2"
     },
     "age-verify-signed": {
-      "wasm": "0ef467afb6b2519514b90cbe9494943c5277611bbc6b7434cf5ec234fecb2bb5",
-      "zkey": "0899fa5c1df9f56c2942f7dafd54069176c563b350533aa73d1e608b02f18f78",
-      "verificationKey": "fc9d08fac2564365163cc37144c2bbea59319731eac8babd02cb12a8b52106fd"
+      "wasm": "9c84120bf1ae08bc6a3604ceb39ea88ff4bebc3ce0c54a0caf1e0c0a7daed8e3",
+      "zkey": "dcae79c18b28498fc3a2dea8a09cee787aa00849366b997b590ce9b7725c1973",
+      "verificationKey": "fbced27c62f0cd36b6139d3086b96b17d2090c763a2c24e71c38d2882188e730"
     },
     "nationality-verify-signed": {
       "wasm": "1e4ff2418c4844736c7de27c1f73355a785362b20ad4eb47291fbd0db377a857",
-      "zkey": "ea38b45218836ed4d5e26d9615215f38e207dec05c9a9a404904726a2db86a7a",
-      "verificationKey": "9671cdb7a2ce3b80b5978dc1567aa5ad113b4c901a94a7c9b214c7b3716be420"
+      "zkey": "d1c505529af9d0ef5d236395856ee1db6520906c3f91a8652e2f61f634353c4b",
+      "verificationKey": "97a957ad4538977db5bee45bcee8d919e1071d3ce0f427250c1bf738ea95e68f"
     },
     "age-verify-revocable": {
-      "wasm": "b086b3bdfa599975097ba93b7d37777a7f722680ddb3b4396f0043e7b02058c8",
-      "zkey": "940de10d4d9da210e80549a886d5c000c8b7e2516ebb29ac3e0bf392b4c9a98c",
-      "verificationKey": "7dbfeb116f4513d59368c385b78a99fe83a98bde675fb61b406658c546ab0b05"
+      "wasm": "7c3ef092aedbbf6e09d4f1fac78514a143cceedd38be67f89e71db413f538203",
+      "zkey": "f50e6ef51912392252f2f7c09c068f3a5aa6fd5a4ea16d13eccc4baf47fa42d3",
+      "verificationKey": "31fd45aa6a48f5aaa8d6a44459d17fb007d83b0da44f5650aff122bdedbe9ea3"
+    },
+    "nullifier": {
+      "wasm": "67b5e5a5374e51fc35efba042205fa49be1279c9b60dcf4a9c494170a0d225ac",
+      "zkey": "b3361efc978be6da6898e471414889923d1d63a3bcd21ab7b301cec81faf9189",
+      "verificationKey": "d5b663c06e59b79a18e31ba25ac1ad8f07b8b50c66da08cee229bfd0494ee1ea"
     }
   }
 }
