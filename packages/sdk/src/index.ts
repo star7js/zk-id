@@ -8,3 +8,4 @@
 export * from './client';
 export * from './server';
 export * from './postgres-valid-credential-tree';
+export * from './browser-wallet';

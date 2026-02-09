@@ -30,6 +30,8 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - ✅ Security policy hardening (expanded threat model with mitigations, hardening checklist)
 - ✅ Audit log adapter interface (`AuditLogger`, `InMemoryAuditLogger`, wired into issuer + SDK server)
 - ✅ JSON schema interop tests (ajv-based validation of TS objects against published schemas)
+- ✅ Distributed tree sync (`SyncedValidCredentialTree` + `RedisTreeSyncChannel` in `@zk-id/redis`)
+- ✅ Browser wallet prototype (`BrowserWallet`, `CredentialStore`, `IndexedDBCredentialStore` in `@zk-id/sdk`)
 
 ## Now (Next 2–6 Weeks)
 
@@ -62,7 +64,7 @@ This roadmap focuses on security, interoperability, and production readiness. Da
    - ✅ Production storage for Merkle tree state and witness generation (incremental tree optimization).
    - ✅ Incremental Merkle tree updates (O(depth) mutations, O(1) reads).
    - ✅ Witness freshness helper (`isWitnessFresh()`) for client-side staleness checks.
-   - Distributed tree state management and root synchronization.
+   - ✅ Distributed tree state management and root synchronization (`SyncedValidCredentialTree` + `RedisTreeSyncChannel`).
 
 2. **Production Storage & Reliability**
    - ✅ Reference implementation for Postgres valid-credential tree (with layer caching).
@@ -71,9 +73,9 @@ This roadmap focuses on security, interoperability, and production readiness. Da
    - ✅ Audit log adapter interface.
 
 3. **Wallet Integration**
-   - Define client-side wallet flow.
-   - Minimal browser wallet prototype for proof generation.
-   - Credential backup and recovery strategy.
+   - ✅ Define client-side wallet flow (`WalletConnector`, `CredentialStore`, `BrowserWallet`).
+   - ✅ Minimal browser wallet prototype for proof generation (`BrowserWallet` in `@zk-id/sdk`).
+   - ✅ Credential backup and recovery strategy (JSON export/import for single + bulk credentials).
 
 4. **Performance & Compatibility**
    - Proof generation/verification benchmarks with targets.
@@ -124,10 +126,10 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - **v0.4.1**: Revocation-tree stability + Merkle root freshness guard (done)
 - **v0.4.2**: Protocol versioning, revocation root helpers, Postgres tree, demo rate limiting (done)
 - **v0.4.5**: Incremental Merkle tree optimization, witness freshness helper, Redis storage (done)
-- **v0.5.0**: Wallet prototype + distributed tree synchronization
+- **v0.5.0**: Wallet prototype + distributed tree synchronization (in progress)
 - **v0.6.0**: KMS/HSM integration examples + issuer policy tooling
 - **v1.0.0**: Audit-ready release
 
 ---
 
-Last updated: 2026-02-08
+Last updated: 2026-02-09

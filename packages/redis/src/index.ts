@@ -4,3 +4,13 @@ export { RedisChallengeStore, type RedisChallengeStoreOptions } from './challeng
 export { RedisRevocationStore, type RedisRevocationStoreOptions } from './revocation-store';
 export { RedisRateLimiter, type RedisRateLimiterOptions } from './rate-limiter';
 export { RedisIssuerRegistry, type RedisIssuerRegistryOptions } from './issuer-registry';
+export {
+  RedisTreeSyncChannel,
+  SyncedValidCredentialTree,
+  type RedisPubClient,
+  type RedisSubClient,
+  type TreeSyncEvent,
+  type TreeSyncHandler,
+  type RedisTreeSyncChannelOptions,
+  type SyncedValidCredentialTreeOptions,
+} from './tree-sync';
