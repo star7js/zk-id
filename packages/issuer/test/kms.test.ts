@@ -51,8 +51,8 @@ describe('KMS Integration', () => {
       expect(signed.issuer).to.equal('Managed Issuer');
       expect(signed.signature).to.be.a('string');
 
-      // Verify signature is valid
-      const payload = credentialSignaturePayload(signed.credential);
+      // Verify signature is valid (includes issuer binding)
+      const payload = credentialSignaturePayload(signed.credential, signed.issuer, signed.issuedAt);
       const sig = Buffer.from(signed.signature, 'base64');
       const valid = verify(null, Buffer.from(payload), manager.getPublicKey(), sig);
       expect(valid).to.be.true;

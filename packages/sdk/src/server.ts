@@ -1048,7 +1048,11 @@ export class ZkIdServer extends EventEmitter {
       }
     }
 
-    const payload = credentialSignaturePayload(signedCredential.credential);
+    const payload = credentialSignaturePayload(
+      signedCredential.credential,
+      signedCredential.issuer,
+      signedCredential.issuedAt
+    );
     const signature = Buffer.from(signedCredential.signature, 'base64');
     const signatureValid = cryptoVerify(null, Buffer.from(payload), issuerKey, signature);
     if (!signatureValid) {

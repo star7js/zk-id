@@ -53,6 +53,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/STANDARDS.md` documenting ISO 18013-5/7 mapping, privacy comparison, and architectural differences
 - 80+ new tests across all new modules
 
+### Security
+- **Fixed credential signature binding** — `credentialSignaturePayload` now includes issuer identity and issuance timestamp in the signed payload, preventing issuer substitution attacks where an attacker could swap the `issuer` field on a `SignedCredential` without invalidating the signature
+
 ### Changed
 - Bumped all package versions from 0.5.0 to 0.6.0
 
