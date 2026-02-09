@@ -19,3 +19,6 @@ packages/circuits/*.sym
 packages/circuits/verification_key.json
 packages/circuits/witness.wtns
 packages/circuits/pot/
+
+# Auto-generated API documentation
+docs/api/

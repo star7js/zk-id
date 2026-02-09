@@ -440,6 +440,8 @@ describe('SDK Client Tests', () => {
               claimType: req.claimType,
               proof: {} as any,
               nonce: req.nonce,
+              signedCredential: undefined,
+              requestTimestamp: new Date().toISOString(),
             };
           },
         };
@@ -472,6 +474,8 @@ describe('SDK Client Tests', () => {
             claimType: req.claimType,
             proof: {} as any,
             nonce: req.nonce,
+            signedCredential: undefined,
+            requestTimestamp: new Date().toISOString(),
           }),
         };
 
@@ -503,6 +507,8 @@ describe('SDK Client Tests', () => {
             claimType: req.claimType,
             proof: {} as any,
             nonce: req.nonce,
+            signedCredential: undefined,
+            requestTimestamp: new Date().toISOString(),
           }),
         };
 

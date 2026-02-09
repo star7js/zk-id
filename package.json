@@ -11,7 +11,8 @@
     "build": "npm run build --workspace=@zk-id/circuits && npm run build --workspace=@zk-id/core && npm run build --workspace=@zk-id/sdk && npm run build --workspace=@zk-id/issuer && npm run build --workspace=@zk-id/redis && npm run build --workspace=@zk-id/example-web-app",
     "test": "npm run test --workspaces",
     "compile:circuits": "npm run compile --workspace=@zk-id/circuits",
-    "verify:hashes": "npm run verify-hashes --workspace=@zk-id/circuits"
+    "verify:hashes": "npm run verify-hashes --workspace=@zk-id/circuits",
+    "docs": "typedoc"
   },
   "keywords": [
     "zero-knowledge",
@@ -23,9 +24,10 @@
   "author": "star7js",
   "license": "Apache-2.0",
   "devDependencies": {
-    "typescript": "^5.3.3",
+    "@types/express": "^5.0.6",
     "express": "^5.2.1",
-    "@types/express": "^5.0.6"
+    "typedoc": "^0.26.0",
+    "typescript": "^5.3.3"
   },
   "overrides": {
     "elliptic": "github:drzippie/elliptic#99a867d"

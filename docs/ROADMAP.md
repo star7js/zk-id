@@ -137,11 +137,40 @@ This roadmap focuses on security, interoperability, and production readiness. Da
    - Integrate nullifier proof with age/nationality verification (combined circuit).
    - On-chain nullifier set for trustless sybil detection.
 
-3. **Multi-Issuer Trust Framework**
+3. **Multi-Issuer Trust Framework & W3C VC/DID Interoperability**
    - Trust scoring, federation, and cross-jurisdiction policies.
    - Multi-issuer credentials and threshold issuance.
-   - W3C Verifiable Credentials Data Model alignment.
-   - DID method for issuer identifiers.
+
+   **W3C Verifiable Credentials & DID Interoperability Roadmap:**
+
+   **Current State (v1.0.0):**
+   - `ExternalCredential` format is VC-inspired but **not W3C compliant**
+   - Missing: standard `@context`, non-standard proof type (`zkProof` instead of Data Integrity proof suite)
+   - Core value: ZK proof verification (cryptographically sound)
+   - Envelope formatting is an interop concern, not a security concern
+
+   **Short-Term (v1.1 - Q2 2026):**
+   - Add W3C VC Data Model v2.0 `@context` and `type` fields to `ExternalCredential`
+   - Document the gap explicitly in `PROTOCOL.md` and API reference
+   - Maintain backward compatibility (non-breaking addition)
+
+   **Medium-Term (v1.2-v1.3 - Q3-Q4 2026):**
+   - **DID identifiers for issuers:** `did:key` or `did:web` instead of string names
+   - **JSON-LD `@context` alignment:** Embed zk-id-specific context URL
+   - **VC Data Integrity proof suite:** Define `zkProof2026` proof type with Groth16 verification method
+   - **Presentation Exchange:** Support DIF Presentation Exchange v2.0 for proof requests
+
+   **Long-Term (v2.0+ - 2027+):**
+   - **Full W3C VC v2.0 compliance:** Credential envelope passes VC validators
+   - **DID resolution:** Support `did:web`, `did:key`, and `did:ion` for issuer identifiers
+   - **Interoperability testing:** Participate in W3C VC-WG interop events
+   - **Cross-ecosystem integration:** Wallets supporting both traditional VCs and zk-id ZK proofs
+
+   **Why deferred:**
+   - ZK proof verification is the **core security value** — envelope formatting does not affect cryptographic soundness
+   - W3C VC compliance is an **interoperability feature**, not a security requirement
+   - Early focus on correctness, performance, and security audit readiness
+   - W3C VC ecosystem adoption is ongoing; standards are stabilizing (VC Data Model v2.0 finalized 2024)
 
 4. **Enterprise Scale**
    - SLA-grade monitoring, alerts, and compliance tooling.

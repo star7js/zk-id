@@ -1,0 +1,53 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": [
+    "packages/core/src/index.ts",
+    "packages/sdk/src/index.ts",
+    "packages/issuer/src/index.ts",
+    "packages/redis/src/index.ts"
+  ],
+  "out": "docs/api",
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/test/**",
+    "**/tests/**",
+    "**/__tests__/**"
+  ],
+  "excludePrivate": true,
+  "excludeProtected": false,
+  "excludeInternal": true,
+  "readme": "none",
+  "plugin": [],
+  "name": "zk-id API Reference",
+  "includeVersion": true,
+  "sort": ["source-order"],
+  "kindSortOrder": [
+    "Function",
+    "Class",
+    "Interface",
+    "TypeAlias",
+    "Variable",
+    "Enum"
+  ],
+  "categorizeByGroup": true,
+  "categoryOrder": [
+    "Core",
+    "SDK",
+    "Issuer",
+    "Redis",
+    "*"
+  ],
+  "navigation": {
+    "includeCategories": true,
+    "includeGroups": true
+  },
+  "searchInComments": true,
+  "validation": {
+    "notExported": true,
+    "invalidLink": false,
+    "notDocumented": false
+  },
+  "tsconfig": "tsconfig.base.json",
+  "skipErrorChecking": true
+}

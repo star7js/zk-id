@@ -207,8 +207,8 @@ export interface ProofResponse {
   claimType: string;
   /** The zero-knowledge proof (use proof.proofType to discriminate) */
   proof: ZkProof;
-  /** Signed credential (binds issuer and commitment) */
-  signedCredential: SignedCredential;
+  /** Signed credential (binds issuer and commitment). Optional when requireSignedCredentials is false. */
+  signedCredential?: SignedCredential;
   /** Nonce from the request (for replay protection) */
   nonce: string;
   /** Request timestamp (ISO 8601) */
@@ -288,7 +288,7 @@ export interface AuditEntry {
   /** ISO 8601 timestamp */
   timestamp: string;
   /** Action that occurred */
-  action: 'issue' | 'revoke' | 'verify' | 'suspend' | 'reactivate' | 'deactivate';
+  action: 'issue' | 'revoke' | 'verify' | 'suspend' | 'reactivate' | 'deactivate' | 'grace_period_accept';
   /** Actor (issuer name, verifier identifier) */
   actor: string;
   /** Target identifier (credential ID, commitment, issuer name) */
