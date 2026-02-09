@@ -213,16 +213,6 @@ export interface RevocationRootInfo {
   source?: string;
 }
 
-export interface RevocationAccumulator {
-  /** Current Merkle root */
-  getRoot(): Promise<string>;
-  /** Check if a credential commitment is revoked */
-  isRevoked(commitment: string): Promise<boolean>;
-  /** Add a revoked commitment */
-  revoke(commitment: string): Promise<void>;
-  /** Generate Merkle witness for a revoked commitment */
-  getWitness(commitment: string): Promise<RevocationWitness | null>;
-}
 
 // ---------------------------------------------------------------------------
 // Audit Logging

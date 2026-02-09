@@ -17,6 +17,7 @@ import {
   generateNationalityProof,
   generateAgeProofRevocable,
   RevocationRootInfo,
+  RevocationWitness,
   PROTOCOL_VERSION,
   isProtocolCompatible,
 } from '@zk-id/core';
@@ -176,6 +177,18 @@ export class ZkIdClient {
     }
 
     return info;
+  }
+
+  /**
+   * Check if a stored witness is still valid against the current root.
+   *
+   * @param witness - The revocation witness to check
+   * @returns true if the witness root matches the current root, false otherwise
+   * @throws Error if revocationRootEndpoint is not configured
+   */
+  async isWitnessFresh(witness: RevocationWitness): Promise<boolean> {
+    const currentRootInfo = await this.fetchRevocationRootInfo();
+    return witness.root === currentRootInfo.root;
   }
 
   /**

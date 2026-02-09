@@ -360,14 +360,45 @@ Each attribute can be selectively disclosed using separate ZK proof circuits.
 
 ### Revocation
 
-**Current Implementation**: `InMemoryRevocationStore`
-- Tracks revoked credential commitments in memory
-- Verifiers check revocation status during proof verification
-- Issuers can revoke credentials by commitment hash
+ZK-ID implements a **two-layer revocation model** for privacy-preserving credential lifecycle management:
 
-**Future Approaches:**
-1. **Accumulator-based**: Include credential in a cryptographic accumulator for improved privacy
-2. **Persistent store**: Database-backed revocation store for production deployments
+#### 1. Simple Blacklist (`RevocationStore`)
+- Tracks revoked credential commitments in a traditional key-value store
+- Implementations: `InMemoryRevocationStore`, `PostgresRevocationStore`, `RedisRevocationStore`
+- Used by issuers for administrative revocation checks
+- Does **not** appear in ZK proofs
+
+#### 2. ZK Merkle Whitelist (`ValidCredentialTree`)
+- Sparse Merkle tree (depth 10, 1024 leaves) of **valid** (non-revoked) credential commitments
+- Provers generate a **Merkle inclusion witness** at credential issuance time
+- The circuit (`age-verify-revocable.circom`) proves the credential commitment is **in** the valid-set tree
+- Verifiers only see the Merkle root, not the credential position — privacy-preserving
+- Implementations: `InMemoryValidCredentialTree`, `PostgresValidCredentialTree`
+
+#### Circuit Integration
+The `age-verify-revocable` circuit accepts:
+- Public input: Merkle root of the valid-set tree
+- Private inputs: credential commitment, Merkle witness (siblings + path indices)
+- Constraints: Verify Merkle path from commitment to root AND age threshold proof
+
+Verifiers accept proofs referencing a recent root (TTL-based), rejecting stale witnesses.
+
+#### Root Distribution & Freshness
+- **Root info** includes: root hash, monotonic version, updatedAt timestamp, optional expiresAt/TTL
+- Issuers publish root updates via REST API (GET `/revocation/root`)
+- Clients cache witnesses and check freshness via `isWitnessFresh()` helper
+- **Staleness guard**: Verifiers reject proofs with roots older than TTL (e.g., 7 days)
+
+#### Production Storage
+- **Postgres**: Persistent, ACID-compliant storage for revocation state and tree leaves
+- **Redis**: High-throughput caching layer for root distribution and read-heavy workloads
+- Both implementations maintain root versioning and atomic tree updates
+
+#### Privacy Properties
+- **Verifier learns**: Only the Merkle root (timestamp via version)
+- **Verifier does NOT learn**: Which credential was used, position in tree, or total valid credential count
+- **Issuer learns**: Revocation events (unavoidable for lifecycle management)
+- **Prover learns**: Current root, witness for their credential (obtained at issuance)
 
 ## Production Deployment Checklist
 

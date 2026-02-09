@@ -5,10 +5,11 @@ const DEFAULT_TREE_DEPTH = 10;
 const MAX_TREE_DEPTH = 20;
 
 /**
- * In-memory Merkle tree for valid credential set (demo scaffold).
+ * In-memory Merkle tree for valid credential set with incremental updates.
  *
- * This builds the full tree on each query and is not optimized.
- * Do not use as-is in production.
+ * Maintains cached layers and only recomputes the affected path on mutations,
+ * reducing complexity from O(2^depth) per query to O(depth) per mutation
+ * and O(1) per read.
  */
 export class InMemoryValidCredentialTree implements ValidCredentialTree {
   private leaves: bigint[] = [];
@@ -18,14 +19,45 @@ export class InMemoryValidCredentialTree implements ValidCredentialTree {
   private rootVersion = 0;
   private updatedAt = new Date().toISOString();
 
+  // Incremental tree optimization
+  private layers: bigint[][] = [];
+  private zeroHashes: bigint[] = [];
+  private ready: Promise<void>;
+
   constructor(depth: number = DEFAULT_TREE_DEPTH) {
     if (depth < 1 || depth > MAX_TREE_DEPTH) {
       throw new Error(`Invalid Merkle depth ${depth}. Use 1..${MAX_TREE_DEPTH}.`);
     }
     this.depth = depth;
+    this.ready = this.initialize();
+  }
+
+  private async initialize(): Promise<void> {
+    // Pre-compute zero hashes for empty subtrees at each level
+    this.zeroHashes = [0n]; // Level 0: empty leaf
+    for (let i = 0; i < this.depth; i++) {
+      const prevZero = this.zeroHashes[i];
+      this.zeroHashes.push(await poseidonHash([prevZero, prevZero]));
+    }
+
+    // Initialize layers array filled with zero hashes
+    const totalLeaves = 1 << this.depth;
+    this.layers = [new Array(totalLeaves).fill(0n)];
+
+    for (let level = 0; level < this.depth; level++) {
+      const prevLayerSize = this.layers[level].length;
+      const nextLayerSize = prevLayerSize / 2;
+      this.layers.push(new Array(nextLayerSize).fill(this.zeroHashes[level + 1]));
+    }
+  }
+
+  private async ensureReady(): Promise<void> {
+    await this.ready;
   }
 
   async add(commitment: string): Promise<void> {
+    await this.ensureReady();
+
     const normalized = this.normalizeCommitment(commitment);
     if (this.indexByCommitment.has(normalized)) {
       return;
@@ -45,10 +77,17 @@ export class InMemoryValidCredentialTree implements ValidCredentialTree {
       this.leaves[index] = leaf;
     }
     this.indexByCommitment.set(normalized, index);
+
+    // Update cached layers along the path
+    this.layers[0][index] = leaf;
+    await this.updatePath(index);
+
     this.bumpVersion();
   }
 
   async remove(commitment: string): Promise<void> {
+    await this.ensureReady();
+
     const normalized = this.normalizeCommitment(commitment);
     const index = this.indexByCommitment.get(normalized);
     if (index === undefined) {
@@ -58,6 +97,11 @@ export class InMemoryValidCredentialTree implements ValidCredentialTree {
     this.leaves[index] = 0n;
     this.indexByCommitment.delete(normalized);
     this.freeIndices.push(index);
+
+    // Update cached layers along the path
+    this.layers[0][index] = 0n;
+    await this.updatePath(index);
+
     this.bumpVersion();
   }
 
@@ -67,8 +111,8 @@ export class InMemoryValidCredentialTree implements ValidCredentialTree {
   }
 
   async getRoot(): Promise<string> {
-    const layers = await this.buildLayers();
-    return layers[layers.length - 1][0].toString();
+    await this.ensureReady();
+    return this.layers[this.depth][0].toString();
   }
 
   async getRootInfo(): Promise<RevocationRootInfo> {
@@ -81,25 +125,26 @@ export class InMemoryValidCredentialTree implements ValidCredentialTree {
   }
 
   async getWitness(commitment: string): Promise<RevocationWitness | null> {
+    await this.ensureReady();
+
     const normalized = this.normalizeCommitment(commitment);
     const index = this.indexByCommitment.get(normalized);
     if (index === undefined) {
       return null;
     }
 
-    const layers = await this.buildLayers();
     const siblings: string[] = [];
     const pathIndices: number[] = [];
     let cursor = index;
 
     for (let level = 0; level < this.depth; level++) {
       const siblingIndex = cursor ^ 1;
-      siblings.push(layers[level][siblingIndex].toString());
+      siblings.push(this.layers[level][siblingIndex].toString());
       pathIndices.push(cursor % 2);
       cursor = Math.floor(cursor / 2);
     }
 
-    const root = layers[layers.length - 1][0].toString();
+    const root = this.layers[this.depth][0].toString();
     return { root, pathIndices, siblings };
   }
 
@@ -107,27 +152,25 @@ export class InMemoryValidCredentialTree implements ValidCredentialTree {
     return this.indexByCommitment.size;
   }
 
-  private async buildLayers(): Promise<bigint[][]> {
-    const totalLeaves = 1 << this.depth;
-    const baseLayer = this.leaves.slice();
-    while (baseLayer.length < totalLeaves) {
-      baseLayer.push(0n);
-    }
+  /**
+   * Update the Merkle path from a leaf index to the root.
+   * Only recomputes hashes along the affected path (O(depth) operations).
+   */
+  private async updatePath(index: number): Promise<void> {
+    let cursor = index;
 
-    const layers: bigint[][] = [baseLayer];
     for (let level = 0; level < this.depth; level++) {
-      const prev = layers[level];
-      const next: bigint[] = [];
-      for (let i = 0; i < prev.length; i += 2) {
-        const left = prev[i];
-        const right = prev[i + 1];
-        const hash = await poseidonHash([left, right]);
-        next.push(hash);
-      }
-      layers.push(next);
-    }
+      const parent = Math.floor(cursor / 2);
+      const leftIndex = cursor & ~1;
+      const rightIndex = cursor | 1;
 
-    return layers;
+      const left = this.layers[level][leftIndex];
+      const right = this.layers[level][rightIndex];
+      const hash = await poseidonHash([left, right]);
+
+      this.layers[level + 1][parent] = hash;
+      cursor = parent;
+    }
   }
 
   private normalizeCommitment(commitment: string): string {

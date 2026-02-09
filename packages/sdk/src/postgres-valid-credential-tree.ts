@@ -21,12 +21,13 @@ const DEFAULT_TREE_DEPTH = 10;
 const MAX_TREE_DEPTH = 20;
 
 /**
- * Postgres-backed valid credential Merkle tree.
+ * Postgres-backed valid credential Merkle tree with incremental updates.
  *
  * Notes:
- * - Stores active commitments with stable indices.
+ * - Stores active commitments with stable indices in Postgres.
  * - Reuses inactive indices when available.
- * - Computes Merkle root/witnesses on demand (not optimized).
+ * - Maintains in-memory layer cache for O(1) reads and O(depth) writes.
+ * - Invalidates cache on external mutations (root version mismatch).
  */
 export class PostgresValidCredentialTree implements ValidCredentialTree {
   private client: SqlClient;
@@ -35,6 +36,12 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
   private table: string;
   private metaTable: string;
   private initPromise?: Promise<void>;
+
+  // Incremental tree optimization
+  private layers: bigint[][] | null = null;
+  private zeroHashes: bigint[] = [];
+  private cacheVersion: number = -1;
+  private zeroHashesReady: Promise<void> | null = null;
 
   constructor(client: SqlClient, options: PostgresValidCredentialTreeOptions = {}) {
     this.client = client;
@@ -47,6 +54,16 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
     this.metaTable = this.validateIdentifier(options.metaTable ?? 'zkid_valid_root_meta', 'meta table');
     if (options.autoInit !== false) {
       this.initPromise = this.init();
+    }
+    // Pre-compute zero hashes lazily
+    this.zeroHashesReady = this.initializeZeroHashes();
+  }
+
+  private async initializeZeroHashes(): Promise<void> {
+    this.zeroHashes = [0n];
+    for (let i = 0; i < this.depth; i++) {
+      const prevZero = this.zeroHashes[i];
+      this.zeroHashes.push(await poseidonHash([prevZero, prevZero]));
     }
   }
 
@@ -116,6 +133,8 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
             [row.idx]
           );
           await this.bumpVersion();
+          // Update cache if available
+          await this.updateCachePath(row.idx, BigInt(normalized));
         }
         await this.client.query('COMMIT');
         return;
@@ -138,6 +157,8 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
           [normalized, idx]
         );
         await this.bumpVersion();
+        // Update cache if available
+        await this.updateCachePath(idx, BigInt(normalized));
         await this.client.query('COMMIT');
         return;
       }
@@ -156,6 +177,8 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
         [nextIdx, normalized]
       );
       await this.bumpVersion();
+      // Update cache if available
+      await this.updateCachePath(nextIdx, BigInt(normalized));
       await this.client.query('COMMIT');
     } catch (error) {
       await this.client.query('ROLLBACK');
@@ -185,6 +208,8 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
         [rows[0].idx]
       );
       await this.bumpVersion();
+      // Update cache if available
+      await this.updateCachePath(rows[0].idx, 0n);
       await this.client.query('COMMIT');
     } catch (error) {
       await this.client.query('ROLLBACK');
@@ -207,13 +232,20 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
 
   async getRoot(): Promise<string> {
     await this.ensureInit();
-    const layers = await this.buildLayers();
-    return layers[layers.length - 1][0].toString();
+    await this.ensureCache();
+    if (!this.layers) {
+      throw new Error('Cache not initialized');
+    }
+    return this.layers[this.depth][0].toString();
   }
 
   async getRootInfo(): Promise<RevocationRootInfo> {
     await this.ensureInit();
-    const root = await this.getRoot();
+    await this.ensureCache();
+    if (!this.layers) {
+      throw new Error('Cache not initialized');
+    }
+    const root = this.layers[this.depth][0].toString();
     const { rows } = await this.client.query<{ version: string; updated_at: string }>(
       `SELECT version, updated_at FROM ${this.qualifiedMetaTable()} WHERE id = 1;`
     );
@@ -226,6 +258,11 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
 
   async getWitness(commitment: string): Promise<RevocationWitness | null> {
     await this.ensureInit();
+    await this.ensureCache();
+    if (!this.layers) {
+      throw new Error('Cache not initialized');
+    }
+
     const normalized = this.normalizeCommitment(commitment);
     const { rows } = await this.client.query<{ idx: number }>(
       `SELECT idx FROM ${this.qualifiedTable()}
@@ -237,19 +274,18 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
     }
 
     const index = rows[0].idx;
-    const layers = await this.buildLayers();
     const siblings: string[] = [];
     const pathIndices: number[] = [];
     let cursor = index;
 
     for (let level = 0; level < this.depth; level++) {
       const siblingIndex = cursor ^ 1;
-      siblings.push(layers[level][siblingIndex].toString());
+      siblings.push(this.layers[level][siblingIndex].toString());
       pathIndices.push(cursor % 2);
       cursor = Math.floor(cursor / 2);
     }
 
-    const root = layers[layers.length - 1][0].toString();
+    const root = this.layers[this.depth][0].toString();
     return { root, pathIndices, siblings };
   }
 
@@ -268,7 +304,33 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
     await this.initPromise;
   }
 
-  private async buildLayers(): Promise<bigint[][]> {
+  /**
+   * Ensure the layer cache is initialized and up-to-date.
+   * Invalidates cache if the root version has changed externally.
+   */
+  private async ensureCache(): Promise<void> {
+    await this.ensureInit();
+    if (this.zeroHashesReady) {
+      await this.zeroHashesReady;
+    }
+
+    const { rows } = await this.client.query<{ version: string }>(
+      `SELECT version FROM ${this.qualifiedMetaTable()} WHERE id = 1;`
+    );
+    const currentVersion = rows[0]?.version ? Number(rows[0].version) : 0;
+
+    if (this.layers === null || this.cacheVersion !== currentVersion) {
+      // Rebuild cache from Postgres
+      await this.rebuildCache();
+      this.cacheVersion = currentVersion;
+    }
+  }
+
+  /**
+   * Rebuild the entire layer cache from Postgres.
+   * Called on first access or when external mutations are detected.
+   */
+  private async rebuildCache(): Promise<void> {
     const totalLeaves = 1 << this.depth;
     const baseLayer: bigint[] = Array.from({ length: totalLeaves }, () => 0n);
     const { rows } = await this.client.query<{ idx: number; commitment: string }>(
@@ -280,9 +342,9 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
       }
     }
 
-    const layers: bigint[][] = [baseLayer];
+    this.layers = [baseLayer];
     for (let level = 0; level < this.depth; level++) {
-      const prev = layers[level];
+      const prev = this.layers[level];
       const next: bigint[] = [];
       for (let i = 0; i < prev.length; i += 2) {
         const left = prev[i];
@@ -290,10 +352,43 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
         const hash = await poseidonHash([left, right]);
         next.push(hash);
       }
-      layers.push(next);
+      this.layers.push(next);
     }
-    return layers;
   }
+
+  /**
+   * Update the cached layers along a single path from leaf to root.
+   * Only called when cache is already initialized.
+   */
+  private async updateCachePath(index: number, leafValue: bigint): Promise<void> {
+    if (!this.layers) {
+      // Cache not initialized yet, skip update
+      return;
+    }
+
+    this.layers[0][index] = leafValue;
+    let cursor = index;
+
+    for (let level = 0; level < this.depth; level++) {
+      const parent = Math.floor(cursor / 2);
+      const leftIndex = cursor & ~1;
+      const rightIndex = cursor | 1;
+
+      const left = this.layers[level][leftIndex];
+      const right = this.layers[level][rightIndex];
+      const hash = await poseidonHash([left, right]);
+
+      this.layers[level + 1][parent] = hash;
+      cursor = parent;
+    }
+
+    // Update cache version to match Postgres after successful update
+    const { rows } = await this.client.query<{ version: string }>(
+      `SELECT version FROM ${this.qualifiedMetaTable()} WHERE id = 1;`
+    );
+    this.cacheVersion = rows[0]?.version ? Number(rows[0].version) : 0;
+  }
+
 
   private async bumpVersion(): Promise<void> {
     await this.client.query(
