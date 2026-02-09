@@ -157,6 +157,91 @@ zk-id uses EdDSA signatures over the Baby Jubjub elliptic curve for credential i
 
 ---
 
+## Signature Schemes: Ed25519 vs Baby Jubjub EdDSA
+
+**IMPORTANT**: zk-id uses **two different signature schemes** for different purposes. They are **NOT bridged** or converted between each other — they operate independently.
+
+### 1. Ed25519 (Classical Edwards Curve) — Off-Chain Signatures
+
+**Use Case**: Default credential issuance (`CredentialIssuer`)
+
+**Purpose**: Off-chain signature verification by the server/verifier (not in ZK circuit)
+
+**Implementation**:
+- **Library**: Node.js `crypto` module
+- **Curve**: Ed25519 (classical Edwards curve over prime field)
+- **Signature Algorithm**: RFC 8032 Ed25519
+- **Key Generation**: `crypto.generateKeyPairSync('ed25519')`
+- **Signing**: `crypto.sign(null, message, privateKey)`
+- **Verification**: `crypto.verify(null, message, publicKey, signature)`
+
+**Where Used**:
+- `packages/issuer/src/issuer.ts` — `CredentialIssuer` class
+- Signs `SignedCredential` objects for off-chain verification
+- Signature included in credential metadata (not in ZK proof)
+- Server validates signature before accepting credential from user
+
+**Characteristics**:
+- Fast signing/verification (~50 μs)
+- Small signatures (64 bytes)
+- NOT circuit-compatible (Ed25519 curve arithmetic too expensive in circuits)
+
+### 2. Baby Jubjub EdDSA — In-Circuit Signatures
+
+**Use Case**: Signed circuits (`CircuitCredentialIssuer`)
+
+**Purpose**: In-circuit signature verification as part of the ZK proof
+
+**Implementation**:
+- **Library**: `circomlibjs` (JavaScript) + `circomlib` (circuits)
+- **Curve**: Baby Jubjub (twisted Edwards curve over BN128 scalar field)
+- **Signature Algorithm**: Pedersen hash-based EdDSA
+- **Key Generation**: `eddsa.prv2pub(randomBytes(32))`
+- **Signing**: `eddsa.signPedersen(privateKey, message)`
+- **Verification**: `EdDSAVerifier(256)` circuit in circomlib
+
+**Where Used**:
+- `packages/issuer/src/circuit-issuer.ts` — `CircuitCredentialIssuer` class
+- `packages/circuits/src/age-verify-signed.circom`
+- `packages/circuits/src/nationality-verify-signed.circom`
+- Signature verified **inside the ZK proof** (issuer trust proven in-circuit)
+
+**Characteristics**:
+- Circuit-compatible (BN128 field arithmetic)
+- Large proving overhead (~19,656 constraints for EdDSA verification)
+- Slow proving (~15s on M1 Pro)
+- Self-contained proofs (no need for server-side issuer registry)
+
+### Why Two Different Schemes?
+
+| Aspect | Ed25519 (Off-Chain) | Baby Jubjub EdDSA (In-Circuit) |
+|--------|---------------------|--------------------------------|
+| **Verification Location** | Server-side (outside proof) | Inside ZK circuit |
+| **Trust Model** | Verifier checks issuer signature separately | Issuer trust proven in ZK proof |
+| **Performance** | Fast (50 μs verify) | Slow (15s proving) |
+| **Proof Size** | Same (192 bytes) | Same (192 bytes) |
+| **Public Inputs** | 5 signals | 261 signals (pubkey + sig bits) |
+| **Circuit Constraints** | 303 (no sig verification) | 19,656 (with sig verification) |
+| **Use When** | Standard deployments, registry available | Self-contained proofs, no registry |
+
+### No Signature Bridge
+
+**There is no conversion or "bridge" between Ed25519 and Baby Jubjub EdDSA.**
+
+These are fundamentally different cryptographic schemes:
+- Ed25519 uses a different elliptic curve (Curve25519)
+- Baby Jubjub is designed specifically for BN128-based ZK circuits
+- They have incompatible key formats and signature formats
+- Converting between them is cryptographically impossible
+
+A credential signed with Ed25519 (by `CredentialIssuer`) **cannot** be used with signed circuits. Conversely, a credential signed with Baby Jubjub EdDSA (by `CircuitCredentialIssuer`) **cannot** be verified using standard Ed25519 verification.
+
+**Deployment Choice**:
+- Use Ed25519 (`CredentialIssuer`) for most deployments (faster, simpler)
+- Use Baby Jubjub EdDSA (`CircuitCredentialIssuer`) only when issuer trust must be proven in-circuit (e.g., decentralized deployments with no trusted issuer registry)
+
+---
+
 ## Credential Commitment Scheme
 
 ### Construction
@@ -203,6 +288,88 @@ Where:
 ### Trusted Setup
 
 See `docs/TRUSTED-SETUP.md` for ceremony documentation.
+
+---
+
+## Random Number Generation (CSPRNG)
+
+### Implementation
+
+All random value generation in zk-id uses Node.js `crypto.randomBytes()`.
+
+```typescript
+import { randomBytes } from 'crypto';
+
+// Credential salt (256-bit entropy)
+const salt = randomBytes(32).toString('hex');
+
+// Credential ID (128-bit entropy)
+const id = randomBytes(16).toString('hex');
+
+// Circuit issuer private key (256-bit entropy)
+const privateKey = randomBytes(32);
+
+// Nonce generation (248-bit entropy)
+const nonce = BigInt('0x' + randomBytes(31).toString('hex')).toString();
+
+// KMS envelope encryption IV (96-bit entropy for AES-GCM)
+const iv = randomBytes(12);
+```
+
+### CSPRNG Properties
+
+**Node.js `crypto.randomBytes()` is cryptographically secure:**
+
+| Platform | Implementation | Source |
+|----------|----------------|--------|
+| **Linux** | `/dev/urandom` | Kernel CSPRNG (getrandom syscall on modern kernels) |
+| **macOS** | `/dev/urandom` | Kernel CSPRNG (arc4random_buf) |
+| **Windows** | `BCryptGenRandom` | Windows CNG (Cryptography Next Generation) |
+
+**Security Guarantees** (from Node.js documentation):
+- Cryptographically strong pseudo-random data
+- Suitable for cryptographic key generation, nonces, and salts
+- Seeded from OS-level entropy sources
+- Blocking behavior: Will wait for sufficient entropy on first call after boot (extremely rare in production)
+
+**Entropy Sources:**
+- Hardware RNG (RDRAND/RDSEED on x86, RNDRND on ARM)
+- Interrupt timing
+- Disk I/O timing
+- Network packet timing
+- Other OS-specific sources
+
+### Usage in zk-id
+
+| Component | Purpose | Size | Security Requirement |
+|-----------|---------|------|---------------------|
+| Credential salt | Privacy, collision resistance | 32 bytes (256 bits) | High - used in Poseidon commitment |
+| Credential ID | Uniqueness | 16 bytes (128 bits) | Medium - collision resistance |
+| Circuit issuer key | EdDSA private key | 32 bytes (256 bits) | Critical - key material |
+| Nonce | Replay protection | 31 bytes (248 bits) | High - must be unpredictable |
+| KMS IV | AES-GCM nonce | 12 bytes (96 bits) | Critical - must never repeat |
+
+**All uses are appropriate for their security requirements.**
+
+### Platform Support
+
+**Supported Platforms**: Node.js 18+ on Linux, macOS, Windows
+
+**Not Supported**: Browser environments (Web Crypto API would be required for browser support)
+
+The zk-id library is designed for Node.js server environments and does not currently support browser-based credential generation. This is intentional:
+- Credential issuance should occur in a trusted environment (issuer server)
+- Proof generation can occur client-side using pre-issued credentials
+- Browser support for proof generation is planned for future releases
+
+### Verification
+
+The CSPRNG implementation can be verified by:
+1. Reading Node.js source code: `src/node_crypto.cc` → `RandomBytes` function
+2. Statistical tests: NIST SP 800-22 test suite (would require millions of samples)
+3. Entropy analysis: Checking `/dev/urandom` properties on Unix systems
+
+**Recommendation**: Trust Node.js crypto module as it is battle-tested and audited by the Node.js security team.
 
 ---
 

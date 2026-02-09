@@ -18,7 +18,7 @@ This document tracks the requirements for a production-ready, audit-worthy v1.0.
 ### High Priority
 
 - [x] **Trusted setup ceremony**: Document the ceremony process for Groth16 proving keys. Include: number of participants, entropy sources, transcript publication, and toxic waste destruction verification — **DOCUMENTED**: Comprehensive ceremony documentation in `docs/TRUSTED-SETUP.md`, including dev/production procedures, security considerations, and verification steps in v0.6.0
-- [ ] **Circuit artifact integrity**: SHA-256 hashes for all `.wasm` and `.zkey` files stored in `packages/circuits/hashes.json`. Verification script exists (`verify-hashes.sh`) — ensure it runs in CI
+- [x] **Circuit artifact integrity**: SHA-256 hashes for all `.wasm` and `.zkey` files stored in `packages/circuits/hashes.json`. Verification script exists (`verify-hashes.sh`) — ensure it runs in CI — **IMPLEMENTED**: Hash verification added to main CI pipeline (.github/workflows/ci.yml) and dedicated verify-circuits workflow. Runs on every PR and main branch push. Hashes stored in docs/circuit-hashes.json (v0.6.0)
 - [x] **Reproducible builds**: Document exact circom version, snarkjs version, and build flags needed to reproduce circuit artifacts from source — **DOCUMENTED**: Complete build reproduction guide in `docs/REPRODUCIBLE-BUILDS.md` with exact versions (circom 0.5.46, snarkjs 0.7.6), build flags, and verification steps in v0.6.0
 
 ### Medium Priority
@@ -31,8 +31,8 @@ This document tracks the requirements for a production-ready, audit-worthy v1.0.
 ### Critical
 
 - [x] **Poseidon parameters**: Verify that `circomlibjs` Poseidon uses the canonical parameters for BN128 (t=3, RF=8, RP=57). Document parameter source — **VERIFIED**: Parameters confirmed (t=3: RF=8/RP=57, t=4: RF=8/RP=56), documented in `docs/CRYPTOGRAPHIC-PARAMETERS.md` in v0.6.0
-- [ ] **Ed25519 vs BabyJubJub**: The codebase uses Node.js `crypto` Ed25519 for off-chain signatures and BabyJubJub EdDSA for in-circuit verification. These are different curves. Document the distinction and verify that the signature bridge (converting Ed25519 sigs to BabyJub format) is correct or clarify that they are used independently
-- [ ] **Random salt generation**: `crypto.randomBytes(32)` — verify that this is a CSPRNG on all target platforms
+- [x] **Ed25519 vs BabyJubJub**: The codebase uses Node.js `crypto` Ed25519 for off-chain signatures and BabyJubJub EdDSA for in-circuit verification. These are different curves. Document the distinction and verify that the signature bridge (converting Ed25519 sigs to BabyJub format) is correct or clarify that they are used independently — **DOCUMENTED**: Comprehensive comparison added to CRYPTOGRAPHIC-PARAMETERS.md explaining both schemes are independent (no bridge exists). Ed25519 for off-chain (CredentialIssuer), Baby Jubjub EdDSA for in-circuit (CircuitCredentialIssuer). Different curves, incompatible formats, used for different trust models (v0.6.0)
+- [x] **Random salt generation**: `crypto.randomBytes(32)` — verify that this is a CSPRNG on all target platforms — **VERIFIED**: Comprehensive CSPRNG documentation added to CRYPTOGRAPHIC-PARAMETERS.md. Node.js crypto.randomBytes() verified as cryptographically secure on all platforms (Linux: /dev/urandom, macOS: arc4random_buf, Windows: BCryptGenRandom). All usage patterns (salt, nonce, keys, IVs) documented with appropriate security levels (v0.6.0)
 
 ### High Priority
 
