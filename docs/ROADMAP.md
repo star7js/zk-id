@@ -32,6 +32,8 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - ✅ JSON schema interop tests (ajv-based validation of TS objects against published schemas)
 - ✅ Distributed tree sync (`SyncedValidCredentialTree` + `RedisTreeSyncChannel` in `@zk-id/redis`)
 - ✅ Browser wallet prototype (`BrowserWallet`, `CredentialStore`, `IndexedDBCredentialStore` in `@zk-id/sdk`)
+- ✅ Performance benchmarks with targets (`BenchmarkResult`, `PERFORMANCE_TARGETS`, `runBenchmark` in `@zk-id/core`)
+- ✅ Protocol deprecation policy (`DEPRECATION_SCHEDULE`, `getVersionStatus`, `isVersionDeprecated`, `buildDeprecationHeaders`)
 
 ## Now (Next 2–6 Weeks)
 
@@ -78,8 +80,8 @@ This roadmap focuses on security, interoperability, and production readiness. Da
    - ✅ Credential backup and recovery strategy (JSON export/import for single + bulk credentials).
 
 4. **Performance & Compatibility**
-   - Proof generation/verification benchmarks with targets.
-   - Protocol versioning and deprecation policy.
+   - ✅ Proof generation/verification benchmarks with targets.
+   - ✅ Protocol versioning and deprecation policy.
    - ✅ Interop tests for SDK input schemas.
 
 ## Mid Term (Q3 2026)
@@ -126,7 +128,7 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - **v0.4.1**: Revocation-tree stability + Merkle root freshness guard (done)
 - **v0.4.2**: Protocol versioning, revocation root helpers, Postgres tree, demo rate limiting (done)
 - **v0.4.5**: Incremental Merkle tree optimization, witness freshness helper, Redis storage (done)
-- **v0.5.0**: Wallet prototype + distributed tree synchronization (in progress)
+- **v0.5.0**: Wallet prototype + distributed tree synchronization + benchmarks + deprecation policy (done)
 - **v0.6.0**: KMS/HSM integration examples + issuer policy tooling
 - **v1.0.0**: Audit-ready release
 
