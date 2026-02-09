@@ -220,9 +220,7 @@ zk-id/
 │   ├── issuer/            # Credential issuance with Ed25519 signatures
 │   └── sdk/               # Server SDK with telemetry & revocation checking
 ├── examples/
-│   ├── age-gate/          # CLI demo with proof generation
-│   ├── credential-format-demo/ # Optional format conversion demo
-│   └── web-app/           # Full web integration example
+│   └── web-app/           # Full web integration example with credential issuance and verification
 └── docs/                  # Architecture and protocol documentation
 ```
 
@@ -380,8 +378,7 @@ See `NOTICE` for attribution details.
 
 - [Architecture Documentation](./docs/ARCHITECTURE.md)
 - [Protocol Specification](./docs/PROTOCOL.md)
-- [Example: Age Verification Demo](./examples/age-gate/)
-- [Example: Credential Format Demo](./examples/credential-format-demo/)
+- [Example: Web Application Demo](./examples/web-app/)
 - [Circom Circuits](./packages/circuits/)
 
 ## Comparison to Standards
