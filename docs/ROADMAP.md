@@ -45,6 +45,9 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - ✅ v1.0.0 audit checklist (`docs/AUDIT.md`)
 - ✅ BBS selective disclosure (`generateBBSKeyPair`, `deriveBBSDisclosureProof`, `verifyBBSDisclosureProof` in `@zk-id/core`)
 - ✅ BBS credential issuer (`BBSCredentialIssuer` in `@zk-id/issuer`)
+- ✅ Unified revocation manager (`UnifiedRevocationManager` coordinating blacklist + whitelist)
+- ✅ Proof type discriminators (`ZkProof` discriminated union, `proofType` on all proof interfaces)
+- ✅ Boundary and concurrency tests (tree edge cases, concurrent operations, Poseidon hash boundaries)
 
 ## Now (Next 2–6 Weeks)
 

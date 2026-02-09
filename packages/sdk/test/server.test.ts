@@ -23,6 +23,7 @@ function makeAgeProof(
   requestTimestamp: number
 ): AgeProof {
   return {
+    proofType: 'age',
     proof: {
       pi_a: ['1', '2'],
       pi_b: [
@@ -51,6 +52,7 @@ function makeAgeProofRevocable(
   requestTimestamp: number
 ): AgeProofRevocable {
   return {
+    proofType: 'age-revocable',
     proof: {
       pi_a: ['1', '2'],
       pi_b: [
@@ -285,6 +287,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
       credentialId: signedCredential.credential.id,
       claimType: 'nationality',
       proof: {
+        proofType: 'nationality' as const,
         proof: {
           pi_a: ['1', '2'],
           pi_b: [

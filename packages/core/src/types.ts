@@ -29,6 +29,8 @@ export interface SignedCredential {
 }
 
 export interface AgeProof {
+  /** Discriminator for TypeScript discriminated unions */
+  proofType: 'age';
   /** The zero-knowledge proof data (Groth16 format) */
   proof: {
     pi_a: string[];
@@ -48,6 +50,8 @@ export interface AgeProof {
 }
 
 export interface NationalityProof {
+  /** Discriminator for TypeScript discriminated unions */
+  proofType: 'nationality';
   /** The zero-knowledge proof data (Groth16 format) */
   proof: {
     pi_a: string[];
@@ -66,6 +70,8 @@ export interface NationalityProof {
 }
 
 export interface AgeProofRevocable {
+  /** Discriminator for TypeScript discriminated unions */
+  proofType: 'age-revocable';
   /** The zero-knowledge proof data (Groth16 format) */
   proof: {
     pi_a: string[];
@@ -95,6 +101,8 @@ export interface CircuitSignatureInputs {
 }
 
 export interface AgeProofSigned {
+  /** Discriminator for TypeScript discriminated unions */
+  proofType: 'age-signed';
   proof: {
     pi_a: string[];
     pi_b: string[][];
@@ -113,6 +121,8 @@ export interface AgeProofSigned {
 }
 
 export interface NationalityProofSigned {
+  /** Discriminator for TypeScript discriminated unions */
+  proofType: 'nationality-signed';
   proof: {
     pi_a: string[];
     pi_b: string[][];
@@ -128,6 +138,17 @@ export interface NationalityProofSigned {
     issuerPublicKey: string[];
   };
 }
+
+/** Discriminated union of all ZK proof types */
+export type ZkProof =
+  | AgeProof
+  | NationalityProof
+  | AgeProofRevocable
+  | AgeProofSigned
+  | NationalityProofSigned;
+
+/** String literal type for all proof type discriminators */
+export type ProofType = ZkProof['proofType'];
 
 export interface VerificationKey {
   protocol: string;
@@ -159,8 +180,8 @@ export interface ProofResponse {
   credentialId: string;
   /** The type of claim */
   claimType: string;
-  /** The zero-knowledge proof */
-  proof: AgeProof | NationalityProof | AgeProofRevocable;
+  /** The zero-knowledge proof (use proof.proofType to discriminate) */
+  proof: ZkProof;
   /** Signed credential (binds issuer and commitment) */
   signedCredential: SignedCredential;
   /** Nonce from the request (for replay protection) */
