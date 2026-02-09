@@ -54,128 +54,121 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 
 ## Now (Next 2–6 Weeks)
 
-1. **Revocation Root Distribution (MVP)**
-   - ✅ Define root versioning + TTL policy.
-   - ✅ Document witness refresh rules for clients/verifiers.
-   - ✅ Standardize a public root info endpoint and caching guidance.
+**Priority 1: On-Chain Verification (NEW - Critical for Web3 adoption)**
+1. **On-Chain Groth16 Verifier (Solidity)**
+   - Implement BN128 pairing-based verifier contract for on-chain proof verification
+   - Support age and nationality proof verification in smart contracts
+   - Add deployment scripts and integration tests
+   - Document use cases: DeFi KYC, DAO voting, NFT minting, compliant token transfers
 
-2. **Security Readiness**
-   - ✅ Maintain security policy and disclosure process.
-   - ✅ Expand threat model and limitations with concrete mitigations.
-   - ✅ Add circuit artifact hashes and integrity checks.
-   - ✅ Reproducible circuit builds and verification-key provenance (signing + CI checks).
+**Priority 2: W3C VC/DID Interoperability (Moved up from Q3-Q4)**
+2. **W3C VC Data Model v2.0 Compliance**
+   - Add `@context` and `type` fields to `ExternalCredential`
+   - Support DID identifiers for issuers (`did:key` / `did:web`)
+   - Document compliance gaps explicitly in `PROTOCOL.md`
+   - Maintain backward compatibility (non-breaking additions)
 
-3. **Issuer Trust & Key Lifecycle**
-   - ✅ Formalize issuer registry spec (rotation, validity windows, suspension).
-   - ✅ Add issuer metadata (jurisdiction, attestation policy, audit references).
-   - ✅ Document issuer onboarding and deactivation workflow.
+**Priority 3: Developer Experience**
+3. **Compliance Regulation Mapping**
+   - UK Online Safety Act compliance documentation
+   - EU Digital Services Act and Age Verification Regulation mapping
+   - eIDAS 2.0 alignment documentation
+   - Regulatory requirement checklist for deployers
 
-4. **API & Protocol Clarity**
-   - ✅ Finalize REST contracts for verification flows.
-   - ✅ Add JSON schema or OpenAPI for SDK inputs.
-   - ✅ Add versioned protocol identifiers and compatibility notes.
+**Previous "Now" items (completed)**
+- ✅ Revocation Root Distribution (MVP): root versioning, TTL policy, witness refresh rules, endpoint caching
+- ✅ Security Readiness: security policy, threat model, circuit artifact hashes, reproducible builds
+- ✅ Issuer Trust & Key Lifecycle: registry spec, metadata, onboarding/deactivation workflow
+- ✅ API & Protocol Clarity: REST contracts, JSON schemas, OpenAPI, protocol versioning
 
 ## Near Term (Q2 2026)
 
-1. **Revocation Lifecycle & Root Distribution**
-   - ✅ Root versioning and witness refresh policy.
-   - ✅ Root dissemination channel and expiry strategy.
-   - ✅ Production storage for Merkle tree state and witness generation (incremental tree optimization).
-   - ✅ Incremental Merkle tree updates (O(depth) mutations, O(1) reads).
-   - ✅ Witness freshness helper (`isWitnessFresh()`) for client-side staleness checks.
-   - ✅ Distributed tree state management and root synchronization (`SyncedValidCredentialTree` + `RedisTreeSyncChannel`).
+**Mobile & Cross-Platform (Moved up from Q4+)**
+1. **Mobile SDK (React Native)**
+   - React Native wrapper around core TypeScript libraries
+   - Proof generation on iOS and Android
+   - Secure credential storage (Keychain/Keystore integration)
+   - Example mobile app demonstrating age verification flow
 
-2. **Production Storage & Reliability**
-   - ✅ Reference implementation for Postgres valid-credential tree (with layer caching).
-   - ✅ Reference implementation for Redis store (@zk-id/redis package).
-   - ✅ Rate limiting + abuse prevention modules (demo server).
-   - ✅ Audit log adapter interface.
+2. **Credential Exchange Protocol**
+   - DIF Presentation Exchange v2.0 support
+   - OpenID4VP (OpenID for Verifiable Presentations) integration
+   - Standardized request/response flow for wallets
+   - Interoperability with existing VC/VP ecosystems
 
-3. **Wallet Integration**
-   - ✅ Define client-side wallet flow (`WalletConnector`, `CredentialStore`, `BrowserWallet`).
-   - ✅ Minimal browser wallet prototype for proof generation (`BrowserWallet` in `@zk-id/sdk`).
-   - ✅ Credential backup and recovery strategy (JSON export/import for single + bulk credentials).
+3. **Developer Portal & Playground**
+   - Interactive documentation and tutorials
+   - "Verify your first proof in 5 minutes" quick start
+   - Live sandbox environment for testing
+   - API reference with code examples in multiple languages
 
-4. **Performance & Compatibility**
-   - ✅ Proof generation/verification benchmarks with targets.
-   - ✅ Protocol versioning and deprecation policy.
-   - ✅ Interop tests for SDK input schemas.
+**Previous Near Term items (completed)**
+- ✅ Revocation Lifecycle & Root Distribution: versioning, dissemination, incremental tree optimization, distributed sync
+- ✅ Production Storage & Reliability: Postgres tree, Redis store, rate limiting, audit logging
+- ✅ Wallet Integration: browser wallet prototype, credential backup/recovery
+- ✅ Performance & Compatibility: benchmarks, protocol versioning, interop tests
 
 ## Mid Term (Q3 2026)
 
-1. **Standards Alignment**
-   - ✅ Optional mappings to ISO 18013-5/7 and related age-verification standards.
-   - ✅ Formalize external credential formats and conversions.
+1. **Multi-Language SDK Support**
+   - Python SDK for server-side verification
+   - Go SDK for enterprise backends
+   - Java/.NET consideration for regulated industries
+   - Consistent API surface across languages
 
-2. **Cryptography Improvements**
-   - ✅ Multi-claim proof types and request/response bundling.
-   - ✅ Proving system abstraction layer (Groth16 + PLONK scaffold).
-   - ✅ Recursive proof aggregation scaffold (LogicalAggregator + RecursiveAggregator interface).
-   - ✅ Nullifier system for sybil resistance (Poseidon-based, scope-isolated).
-   - ✅ BBS selective disclosure (BLS12-381-SHA-256, per IETF draft-irtf-cfrg-bbs-signatures).
-   - ✅ BBS credential issuer (field-level BBS signing for per-field disclosure).
-   - ✅ Sparse Merkle tree with non-membership proofs (hash-addressed, O(n×depth) storage).
-   - Recursive proofs: actual circuit implementation (Groth16-in-Groth16, Nova, or Halo2).
-   - Non-membership circuit: Circom circuit verifying sparse Merkle non-membership witness inside SNARK.
-   - PLONK: generate universal SRS and PLONK-compatible zkeys for all circuits.
-   - BBS+SNARK hybrid: prove predicates (age >= 18) over BBS-signed messages inside a SNARK circuit.
+2. **Trusted Setup Ceremony Service**
+   - Hosted, auditable trusted setup ceremonies
+   - Multi-party computation (MPC) for production Groth16 parameters
+   - Transparency logs and public verification
+   - Integration with ceremony coordination tools (e.g., perpetual powers of tau)
 
-3. **Operational Tooling**
-   - ✅ Issuer dashboard prototype.
-   - ✅ Key rotation helpers and policy enforcement.
-   - ✅ KMS/HSM integration examples (envelope encryption, file-based keys).
+**Previous Mid Term items (completed or deprioritized)**
+- ✅ Standards Alignment: ISO 18013-5/7 mappings, external credential formats
+- ✅ Completed cryptography: Multi-claim proofs, proving system abstraction, nullifiers, BBS disclosure, sparse Merkle tree
+- ✅ Operational Tooling: issuer dashboard, key rotation, KMS/HSM examples
+
+**Deprioritized (moved to Long Term or deferred)**
+- Recursive proof circuit implementation (Groth16-in-Groth16 / Nova / Halo2) - interesting but low near-term impact
+- PLONK SRS generation - flexibility improvement, not critical for current use cases
+- BBS+SNARK hybrid - niche cryptography, defer until demand proven
+- Non-membership circuit - sparse Merkle tree is complete, circuit integration can wait
 
 ## Long Term (Q4 2026+)
 
 1. **Formal Verification + Audits**
-   - Third-party audit of circuits and SDK (see `docs/AUDIT.md` for scope).
-   - Formal verification of core constraints.
-   - Trusted setup ceremony for production Groth16 keys.
+   - Third-party audit of circuits and SDK (see `docs/AUDIT.md` for scope)
+   - Formal verification of core constraints
+   - Production-ready trusted setup (coordinated via MPC ceremony)
 
-2. **Nullifier Circuit** ✅ *Partially Complete (v0.6.0)*
-   - ✅ Circom circuit that computes `Poseidon(commitment, scopeHash)` and exposes the nullifier as a public signal.
-   - Integrate nullifier proof with age/nationality verification (combined circuit).
-   - On-chain nullifier set for trustless sybil detection.
+2. **Nullifier Circuit Integration** ✅ *Partially Complete (v0.6.0)*
+   - ✅ Circom circuit that computes `Poseidon(commitment, scopeHash)` and exposes the nullifier as a public signal
+   - Integrate nullifier proof with age/nationality verification (combined circuit)
+   - On-chain nullifier set for trustless sybil detection
 
-3. **Multi-Issuer Trust Framework & W3C VC/DID Interoperability**
-   - Trust scoring, federation, and cross-jurisdiction policies.
-   - Multi-issuer credentials and threshold issuance.
+3. **Multi-Issuer Trust Framework**
+   - Trust scoring, federation, and cross-jurisdiction policies
+   - Multi-issuer credentials and threshold issuance
+   - Cross-border identity verification agreements
 
-   **W3C Verifiable Credentials & DID Interoperability Roadmap:**
-
-   **Current State (v1.0.0):**
-   - `ExternalCredential` format is VC-inspired but **not W3C compliant**
-   - Missing: standard `@context`, non-standard proof type (`zkProof` instead of Data Integrity proof suite)
-   - Core value: ZK proof verification (cryptographically sound)
-   - Envelope formatting is an interop concern, not a security concern
-
-   **Short-Term (v1.1 - Q2 2026):**
-   - Add W3C VC Data Model v2.0 `@context` and `type` fields to `ExternalCredential`
-   - Document the gap explicitly in `PROTOCOL.md` and API reference
-   - Maintain backward compatibility (non-breaking addition)
-
-   **Medium-Term (v1.2-v1.3 - Q3-Q4 2026):**
-   - **DID identifiers for issuers:** `did:key` or `did:web` instead of string names
+4. **Advanced W3C VC/DID Interoperability** (Initial items moved to "Now")
+   - **Full W3C VC v2.0 compliance:** Credential envelope passes VC validators
    - **JSON-LD `@context` alignment:** Embed zk-id-specific context URL
    - **VC Data Integrity proof suite:** Define `zkProof2026` proof type with Groth16 verification method
-   - **Presentation Exchange:** Support DIF Presentation Exchange v2.0 for proof requests
-
-   **Long-Term (v2.0+ - 2027+):**
-   - **Full W3C VC v2.0 compliance:** Credential envelope passes VC validators
    - **DID resolution:** Support `did:web`, `did:key`, and `did:ion` for issuer identifiers
    - **Interoperability testing:** Participate in W3C VC-WG interop events
    - **Cross-ecosystem integration:** Wallets supporting both traditional VCs and zk-id ZK proofs
 
-   **Why deferred:**
-   - ZK proof verification is the **core security value** — envelope formatting does not affect cryptographic soundness
-   - W3C VC compliance is an **interoperability feature**, not a security requirement
-   - Early focus on correctness, performance, and security audit readiness
-   - W3C VC ecosystem adoption is ongoing; standards are stabilizing (VC Data Model v2.0 finalized 2024)
+5. **Enterprise Scale & Acceleration**
+   - SLA-grade monitoring, alerts, and compliance tooling
+   - Hardware acceleration options (rapidsnark, GPU proving)
+   - Cloud-native deployment patterns (Kubernetes, serverless)
+   - Enterprise support and training programs
 
-4. **Enterprise Scale**
-   - SLA-grade monitoring, alerts, and compliance tooling.
-   - Hardware acceleration options (rapidsnark, GPU proving).
-   - Mobile SDK (React Native / Flutter) for proof generation.
+6. **Advanced Cryptography** (Deprioritized from Q3)
+   - Recursive proof aggregation: actual circuit implementation (Groth16-in-Groth16 / Nova / Halo2)
+   - Non-membership circuit: Circom circuit verifying sparse Merkle non-membership witness inside SNARK
+   - PLONK: generate universal SRS and PLONK-compatible zkeys for all circuits
+   - BBS+SNARK hybrid: prove predicates (age >= 18) over BBS-signed messages inside a SNARK circuit
 
 ## Open Questions
 
@@ -195,7 +188,32 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - **v0.4.5**: Incremental Merkle tree optimization, witness freshness helper, Redis storage (done)
 - **v0.5.0**: Wallet prototype + distributed tree synchronization + benchmarks + deprecation policy (done)
 - **v0.6.0**: KMS/HSM + policy + dashboard + standards + multi-claim + proving abstraction + nullifiers + recursive scaffold + BBS selective disclosure + unified revocation + sparse Merkle tree + type safety (done)
-- **v1.0.0**: Audit-ready release
+- **v1.0.0**: Audit-ready release (completed)
+- **v1.1.0** (Q2 2026): On-chain verifier + W3C VC compliance + compliance docs
+- **v1.2.0** (Q3 2026): Mobile SDK + credential exchange protocol + developer portal
+- **v1.3.0** (Q4 2026): Multi-language SDKs + trusted setup ceremony + third-party audit
+- **v2.0.0** (2027+): Full W3C VC compliance + advanced cryptography + enterprise scale
+
+---
+
+**Priority Strategy Notes (February 2026):**
+
+The roadmap has been reordered to prioritize **ecosystem integration** over **cryptographic enhancements**. Rationale:
+
+1. **On-chain verification** is table stakes for Web3 adoption. Without it, zk-id cannot compete with Polygon ID, Semaphore, or Worldcoin in the DeFi/DAO space.
+
+2. **W3C VC compliance** (moved from 2027 to now) is required for enterprise and government adoption. The "envelope formatting is not a security concern" argument is technically correct but strategically wrong — interoperability drives adoption.
+
+3. **Mobile SDK** is critical for real-world identity use cases. Desktop-only verification limits applicability to a shrinking market.
+
+4. **Compliance documentation** (UK/EU regulations) transforms zk-id from a "tech project" to a "compliance solution" — this drives enterprise demand.
+
+Advanced cryptography (recursive proofs, PLONK, BBS+SNARK hybrid) has been deprioritized to Q4 2026+ because:
+- Current Groth16 implementation works well for the core use case
+- Ecosystem gaps (on-chain, mobile, W3C) are more critical than marginal cryptographic improvements
+- Resources are better spent on adoption (developer experience, standards compliance) than optimization
+
+**Competitive positioning:** The gap between zk-id and funded competitors (Polygon ID, Worldcoin) is not in cryptography — it's in ecosystem integration. Closing that gap is the strategic priority for 2026.
 
 ---
 

@@ -862,16 +862,103 @@ Useful for:
 See `docs/openapi.yaml` for the demo/server REST API schema.
 - Different trust models
 
+## W3C Verifiable Credentials Interoperability
+
+**Status:** v1.1.0 (February 2026) - Production-ready with limitations
+
+zk-id supports W3C Verifiable Credentials Data Model v2.0 for interoperability with the W3C VC ecosystem.
+
+### W3C VC Format
+
+zk-id credentials can be wrapped in W3C VC format:
+
+```json
+{
+  "@context": [
+    "https://www.w3.org/ns/credentials/v2",
+    "https://w3id.org/zk-id/credentials/v1"
+  ],
+  "type": ["VerifiableCredential", "ZkIdCredential"],
+  "id": "urn:uuid:123e4567-e89b-12d3-a456-426614174000",
+  "issuer": "did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK",
+  "issuanceDate": "2026-02-09T01:00:00.000Z",
+  "credentialSubject": {
+    "zkCredential": {
+      "commitment": "12345678901234567890",
+      "createdAt": "2026-02-09T00:00:00.000Z"
+    }
+  },
+  "proof": {
+    "type": "Ed25519Signature2020",
+    "created": "2026-02-09T01:00:00.000Z",
+    "verificationMethod": "did:key:z6Mk...#key-1",
+    "proofPurpose": "assertionMethod",
+    "proofValue": "base64-encoded-signature"
+  }
+}
+```
+
+### Key Differences from Traditional W3C VCs
+
+**Traditional W3C VC:**
+- Reveals all credential attributes
+- Signature proves authenticity
+- Holder shares full credential to prove claims
+
+**zk-id W3C VC:**
+- Only reveals the commitment (Poseidon hash)
+- Signature proves authenticity of commitment
+- Holder generates **ZK proofs** to prove claims without revealing commitment or attributes
+
+### DID Support
+
+- **did:key** - Fully supported for Ed25519 keys (v1.1.0)
+- **did:web** - Planned (v1.2.0)
+- **did:ion** - Planned (v2.0.0)
+
+### Current Gaps (v1.1.0)
+
+1. **zk-id `@context` is placeholder** - `https://w3id.org/zk-id/credentials/v1` does not resolve yet. Full JSON-LD vocabulary planned for v1.2.
+
+2. **Proof type is standard Ed25519, not ZK-specific** - `Ed25519Signature2020` signs the commitment. Custom `zkProof2026` proof suite planned for v1.2.
+
+3. **No W3C Credential Status support** - Revocation uses zk-id Merkle trees, not RevocationList2020. Integration planned for v1.3.
+
+### Usage
+
+```typescript
+import { toW3CVerifiableCredential, fromW3CVerifiableCredential } from '@zk-id/core';
+
+// Convert to W3C VC
+const vc = toW3CVerifiableCredential(signedCredential, {
+  issuerDID: 'did:key:z6Mk...',
+  subjectDID: 'did:key:z6Mk...',
+  expirationDate: '2027-02-09T00:00:00.000Z',
+});
+
+// Convert back to zk-id format
+const zkCredential = fromW3CVerifiableCredential(vc);
+```
+
+**Full documentation:** See `docs/W3C-VC-INTEROPERABILITY.md`
+
 ## Future Work
 
-- Standardize JSON schemas for interoperability
-- Define DID method for issuers (`did:zkid:...`)
-- Implement mobile wallet specification
+- ~~Standardize JSON schemas for interoperability~~ **Done** (v1.0.0)
+- ~~W3C VC Data Model v2.0 compliance~~ **Done** (v1.1.0)
+- Define zk-id JSON-LD `@context` vocabulary (v1.2.0)
+- Custom W3C Data Integrity proof suite (`zkProof2026`) (v1.2.0)
+- Implement mobile wallet specification (React Native SDK, v1.2.0)
+- DIF Presentation Exchange v2.0 support (v1.2.0)
+- `did:web` and `did:ion` support (v1.2-v2.0)
 - Add accumulator-based revocation for improved privacy
 - Browser extension implementation
+- W3C RevocationList2020 integration (v1.3.0)
+- Full W3C VC v2.0 compliance (passes VC validators) (v2.0.0)
 
 ## Optional Signed Circuits
 
-This repo includes optional circuits that verify issuer signatures inside the proof.\nUse these for stronger, fully in-circuit issuer binding at the cost of larger public inputs and slower proving.
-- Define browser extension APIs
-- Add support for anonymous credentials
+This repo includes optional circuits that verify issuer signatures inside the proof.
+Use these for stronger, fully in-circuit issuer binding at the cost of larger public inputs and slower proving.
+
+See `docs/SIGNED-CIRCUITS.md` for details.
