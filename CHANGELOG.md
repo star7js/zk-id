@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — v0.5.0 Preview
+
+### Added
+- **Distributed tree sync** — `RedisTreeSyncChannel` and `SyncedValidCredentialTree` in `@zk-id/redis`
+  - Redis pub/sub channel for broadcasting tree mutation events across server nodes
+  - `SyncedValidCredentialTree` wrapper that publishes root updates on `add()`/`remove()` and notifies on remote changes
+  - Self-notification deduplication via per-node `nodeId`
+  - `onRemoteUpdate` callback for cache invalidation when remote nodes mutate the tree
+- **Browser wallet** — `BrowserWallet`, `CredentialStore`, `IndexedDBCredentialStore`, `InMemoryCredentialStore` in `@zk-id/sdk`
+  - `CredentialStore` interface for pluggable persistent credential storage
+  - `IndexedDBCredentialStore` for real browser environments
+  - `InMemoryCredentialStore` for testing and Node.js
+  - `BrowserWallet` implementing `WalletConnector` with credential lifecycle management (add, remove, list, get)
+  - Auto-select most recently issued credential, or user-provided `onProofRequest` callback for consent UI
+  - JSON export/import for single credential backup and full wallet backup/restore
+  - Support for age, nationality, and age-revocable proof generation
+- 43 new tests (15 for distributed tree sync, 28 for browser wallet)
+
 ## [0.4.5] - 2026-02-09
 
 ### Added
