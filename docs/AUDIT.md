@@ -59,7 +59,7 @@ This document tracks the requirements for a production-ready, audit-worthy v1.0.
 
 - [x] Fix pre-existing TypeScript strict mode errors (currently bypassed by `transpile-only`) — **FIXED**: Removed all `transpile-only` and `typeCheck: false` flags from tsconfig/package.json files. Fixed all type errors in test files (missing `proofType` fields, incomplete publicSignals overrides, return type mismatches). All 311 tests passing with full type checking enabled (v0.6.0)
 - [ ] Add integration tests that exercise the full prove-verify flow (requires circuit artifacts)
-- [ ] Remove all `any` type assertions from proof formatting code (`prover.ts`, `verifier.ts`)
+- [x] Remove all `any` type assertions from proof formatting code (`prover.ts`, `verifier.ts`) — **VERIFIED**: No `any` type assertions found in prover.ts or verifier.ts. Only `any` types exist in .d.ts files for external libraries (circomlibjs, snarkjs) which is appropriate, and in test files for mocking (acceptable). Production code is fully typed (v0.6.0)
 - [ ] Add comprehensive JSDoc to all public API functions
 - [x] Ensure all crypto operations use constant-time comparisons where applicable (signature verification) — **FIXED**: Added timing-safe.ts with constant-time comparisons in v0.6.0
 
@@ -71,7 +71,7 @@ This document tracks the requirements for a production-ready, audit-worthy v1.0.
 
 ## Documentation
 
-- [ ] `SECURITY.md` — vulnerability disclosure policy
+- [x] `SECURITY.md` — vulnerability disclosure policy — **COMPLETE**: Comprehensive security policy exists with vulnerability reporting, response timeline, supported versions (0.6.x), scope, and security hardening checklist (v0.6.0)
 - [ ] `THREAT-MODEL.md` — enumerate all trust assumptions, threat actors, and mitigations
 - [ ] Circuit diagrams (signal flow for each `.circom` file)
 - [ ] Deployment guide (minimum Node.js version, recommended infrastructure, key management)
@@ -79,9 +79,9 @@ This document tracks the requirements for a production-ready, audit-worthy v1.0.
 
 ## Infrastructure
 
-- [ ] CI pipeline running all tests on every PR
-- [ ] Circuit artifact hash verification in CI
-- [ ] Automated dependency vulnerability scanning
+- [x] CI pipeline running all tests on every PR — **IMPLEMENTED**: GitHub Actions workflow runs all tests on every PR and main branch push (v0.6.0)
+- [x] Circuit artifact hash verification in CI — **IMPLEMENTED**: Hash verification added to main CI pipeline (.github/workflows/ci.yml) and dedicated verify-circuits workflow. Runs on every PR and main branch push. Hashes stored in docs/circuit-hashes.json (v0.6.0)
+- [x] Automated dependency vulnerability scanning — **IMPLEMENTED**: npm audit runs in main CI pipeline (fails on high/critical). Dedicated dependency-audit.yml workflow runs weekly and on package.json changes. Uploads audit reports for review (v0.6.0)
 - [ ] Release signing (GPG-signed tags for all version releases)
 
 ---

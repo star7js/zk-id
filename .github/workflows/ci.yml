@@ -42,8 +42,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Audit dependencies (warn only)
-        run: npm audit --audit-level=high || true
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
 
       - name: Compile circuits
         if: steps.cache-circuits.outputs.cache-hit != 'true'
