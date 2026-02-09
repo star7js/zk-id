@@ -1262,8 +1262,15 @@ export class ZkIdServer extends EventEmitter {
       if (issuerRecord.validFrom && Date.parse(issuerRecord.validFrom) > now) {
         return { valid: false, error: this.sanitizeError('Issuer key not yet valid') };
       }
-      if (issuerRecord.validTo && Date.parse(issuerRecord.validTo) < now) {
-        return { valid: false, error: this.sanitizeError('Issuer key expired') };
+      if (issuerRecord.validTo) {
+        const validToMs = Date.parse(issuerRecord.validTo);
+        if (validToMs < now) {
+          const graceMs = issuerRecord.rotationGracePeriodMs ?? 0;
+          const withinGrace = graceMs > 0 && now - validToMs <= graceMs;
+          if (!withinGrace) {
+            return { valid: false, error: this.sanitizeError('Issuer key expired') };
+          }
+        }
       }
     }
 
@@ -1534,8 +1541,27 @@ export interface VerificationResult {
  * Simple in-memory nonce store (for demo)
  * Production should use Redis or database
  */
+export interface InMemoryNonceStoreOptions {
+  /** TTL for nonce entries in ms (default: 5 minutes). */
+  ttlMs?: number;
+  /** Prune interval in ms. Set to 0 to disable background pruning. */
+  pruneIntervalMs?: number;
+}
+
 export class InMemoryNonceStore implements NonceStore {
   private nonces: Map<string, number> = new Map();
+  private ttlMs: number;
+  private pruneIntervalMs: number;
+  private pruneTimer?: NodeJS.Timeout;
+
+  constructor(options: InMemoryNonceStoreOptions = {}) {
+    this.ttlMs = options.ttlMs ?? 5 * 60 * 1000;
+    this.pruneIntervalMs = options.pruneIntervalMs ?? 60 * 1000;
+    if (this.pruneIntervalMs > 0) {
+      this.pruneTimer = setInterval(() => this.prune(), this.pruneIntervalMs);
+      this.pruneTimer.unref?.();
+    }
+  }
 
   async has(nonce: string): Promise<boolean> {
     const expiresAtMs = this.nonces.get(nonce);
@@ -1552,7 +1578,7 @@ export class InMemoryNonceStore implements NonceStore {
   }
 
   async add(nonce: string): Promise<void> {
-    const expiresAtMs = Date.now() + 5 * 60 * 1000;
+    const expiresAtMs = Date.now() + this.ttlMs;
     this.nonces.set(nonce, expiresAtMs);
   }
 
@@ -1566,6 +1592,16 @@ export class InMemoryNonceStore implements NonceStore {
       if (now > expiresAtMs) {
         this.nonces.delete(nonce);
       }
+    }
+  }
+
+  /**
+   * Stop background pruning (if enabled).
+   */
+  stop(): void {
+    if (this.pruneTimer) {
+      clearInterval(this.pruneTimer);
+      this.pruneTimer = undefined;
     }
   }
 }

@@ -17,6 +17,8 @@ import {
   validateRequestTimestamp,
   validateNationality,
   validateHexString,
+  validateBigIntString,
+  validateFieldElement,
 } from './validation';
 
 /**
@@ -574,6 +576,9 @@ export async function generateNullifierProof(
   zkeyPath: string
 ): Promise<NullifierProof> {
   validateHexString(credential.salt, 'credential.salt');
+  validateBigIntString(scopeHash, 'scopeHash');
+  const scopeHashBigInt = BigInt(scopeHash);
+  validateFieldElement(scopeHashBigInt, 'scopeHash');
 
   // Compute the credential hash (commitment)
   const credentialHash = await poseidonHash([
@@ -585,7 +590,7 @@ export async function generateNullifierProof(
   // Compute the nullifier = Poseidon(credentialHash, scopeHash)
   const nullifier = await poseidonHash([
     credentialHash,
-    BigInt(scopeHash),
+    scopeHashBigInt,
   ]);
 
   // Prepare circuit inputs
@@ -594,7 +599,7 @@ export async function generateNullifierProof(
     nationality: credential.nationality,
     salt: BigInt('0x' + credential.salt).toString(),
     credentialHash: credentialHash.toString(),
-    scopeHash: scopeHash,
+    scopeHash: scopeHashBigInt.toString(),
     nullifier: nullifier.toString(),
   };
 
