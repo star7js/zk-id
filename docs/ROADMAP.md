@@ -45,8 +45,11 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - ✅ v1.0.0 audit checklist (`docs/AUDIT.md`)
 - ✅ BBS selective disclosure (`generateBBSKeyPair`, `deriveBBSDisclosureProof`, `verifyBBSDisclosureProof` in `@zk-id/core`)
 - ✅ BBS credential issuer (`BBSCredentialIssuer` in `@zk-id/issuer`)
-- ✅ Unified revocation manager (`UnifiedRevocationManager` coordinating blacklist + whitelist)
+- ✅ Unified revocation manager (`UnifiedRevocationManager` with three-store architecture: tree + issued index + audit logger)
+- ✅ `IssuedCredentialIndex` interface and `InMemoryIssuedCredentialIndex` (append-only, distinguishes revoked from never-issued)
 - ✅ Proof type discriminators (`ZkProof` discriminated union, `proofType` on all proof interfaces)
+- ✅ Input validation module and `any` type elimination across all packages
+- ✅ Sparse Merkle tree (`SparseMerkleTree` with hash-addressed leaves, O(n×depth) storage, non-membership proofs)
 - ✅ Boundary and concurrency tests (tree edge cases, concurrent operations, Poseidon hash boundaries)
 
 ## Now (Next 2–6 Weeks)
@@ -111,7 +114,9 @@ This roadmap focuses on security, interoperability, and production readiness. Da
    - ✅ Nullifier system for sybil resistance (Poseidon-based, scope-isolated).
    - ✅ BBS selective disclosure (BLS12-381-SHA-256, per IETF draft-irtf-cfrg-bbs-signatures).
    - ✅ BBS credential issuer (field-level BBS signing for per-field disclosure).
+   - ✅ Sparse Merkle tree with non-membership proofs (hash-addressed, O(n×depth) storage).
    - Recursive proofs: actual circuit implementation (Groth16-in-Groth16, Nova, or Halo2).
+   - Non-membership circuit: Circom circuit verifying sparse Merkle non-membership witness inside SNARK.
    - PLONK: generate universal SRS and PLONK-compatible zkeys for all circuits.
    - BBS+SNARK hybrid: prove predicates (age >= 18) over BBS-signed messages inside a SNARK circuit.
 
@@ -145,11 +150,11 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 
 ## Open Questions
 
-- ~~Should revocation be exclusion proof (non-membership) or inclusion proof of revoked list?~~ **Resolved**: Valid-set inclusion for v0.3.0 (simple Merkle tree). Sparse Merkle exclusion proofs deferred to future version for better scalability.
+- ~~Should revocation be exclusion proof (non-membership) or inclusion proof of revoked list?~~ **Resolved**: Valid-set inclusion for v0.3.0 (dense Merkle tree). `SparseMerkleTree` added in v0.6.0 with `getNonMembershipWitness()` for exclusion proofs. Circuit integration (non-membership verification inside SNARK) is next.
 - Should issuer identity be a DID or a more constrained identifier? **Leaning DID**: W3C DID Core is a recommendation; `did:web` or `did:key` would provide interop with the VC ecosystem.
 - ~~Which universal setup should be supported first (PLONK, Marlin, or Halo2)?~~ **Resolved**: PLONK (via snarkjs) is scaffolded first since it shares the BN128 curve and circom toolchain. Halo2 deferred to post-v1.0 due to circuit rewrite requirements.
 - What privacy budget is acceptable for metadata leakage (issuer, issuance time)?
-- When should we migrate from valid-set inclusion to revocation-list exclusion proofs?
+- ~~When should we migrate from valid-set inclusion to revocation-list exclusion proofs?~~ **Resolved**: `SparseMerkleTree` supports both models. Valid-set inclusion remains the primary approach; non-membership proofs are available for scenarios that need exclusion proof (e.g., proving a revoked credential is no longer valid). Circuit integration is the remaining step.
 
 ## Version Targets (Tentative)
 
@@ -160,7 +165,7 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - **v0.4.2**: Protocol versioning, revocation root helpers, Postgres tree, demo rate limiting (done)
 - **v0.4.5**: Incremental Merkle tree optimization, witness freshness helper, Redis storage (done)
 - **v0.5.0**: Wallet prototype + distributed tree synchronization + benchmarks + deprecation policy (done)
-- **v0.6.0**: KMS/HSM + policy + dashboard + standards + multi-claim + proving abstraction + nullifiers + recursive scaffold + BBS selective disclosure (done)
+- **v0.6.0**: KMS/HSM + policy + dashboard + standards + multi-claim + proving abstraction + nullifiers + recursive scaffold + BBS selective disclosure + unified revocation + sparse Merkle tree + type safety (done)
 - **v1.0.0**: Audit-ready release
 
 ---

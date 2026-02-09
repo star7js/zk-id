@@ -62,10 +62,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Holders can derive selective disclosure proofs without issuer interaction
   - Full audit logging with signature scheme metadata
 - **Unified revocation manager** — `UnifiedRevocationManager` in `@zk-id/core`
-  - Coordinates both blacklist (`RevocationStore`) and whitelist (`ValidCredentialTree`) into a single API
-  - `addCredential()`, `revokeCredential()`, `reactivateCredential()` with consistent state
-  - `isRevoked()` uses valid-credential tree as source of truth, falls back to blacklist for audit
-  - Tree accessors: `getRoot()`, `getRootInfo()`, `getWitness()`, `validCount()`, `revokedCount()`
+  - Three cleanly separated stores: `ValidCredentialTree` (Merkle tree), `IssuedCredentialIndex` (append-only), `AuditLogger` (external)
+  - `addCredential()` writes to both tree and issued index; `revokeCredential()` removes from tree only (issued index is append-only)
+  - Three-way `CredentialStatus`: `'valid'` (in tree), `'revoked'` (was issued, removed from tree), `'unknown'` (never issued)
+  - `getStatus()`, `isValid()`, `isRevoked()`, `reactivateCredential()` with precise lifecycle semantics
+  - Tree accessors: `getRoot()`, `getRootInfo()`, `getWitness()`, `validCount()`, `issuedCount()`
+  - `InMemoryIssuedCredentialIndex` reference implementation; production should use persistent store
+- **Sparse Merkle tree** — `SparseMerkleTree` in `@zk-id/core`
+  - Hash-addressed leaves (`poseidonHash(commitment) mod 2^depth`) — deterministic, reproducible across nodes
+  - Sparse storage: O(n × depth) nodes instead of O(2^depth) pre-allocation
+  - Non-membership proofs via `getNonMembershipWitness()` — proves a commitment is NOT in the tree
+  - Drop-in `ValidCredentialTree` implementation, works with `UnifiedRevocationManager`
+  - Configurable depth 1–254 (BN128 field); default 20
 - **Proof type discriminators** — `proofType` field on all 5 proof interfaces
   - `AgeProof.proofType: 'age'`, `NationalityProof.proofType: 'nationality'`
   - `AgeProofRevocable.proofType: 'age-revocable'`, `AgeProofSigned.proofType: 'age-signed'`, `NationalityProofSigned.proofType: 'nationality-signed'`
@@ -78,12 +86,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Poseidon hash edge cases, credential creation boundary values
 - **v1.0.0 audit checklist** — `docs/AUDIT.md` covering circuits, crypto primitives, API security, code quality
 - `docs/STANDARDS.md` documenting ISO 18013-5/7 mapping, privacy comparison, and architectural differences
-- 100+ new tests across all new modules
+- 130+ new tests across all new modules
 
 ### Security
 - **Fixed credential signature binding** — `credentialSignaturePayload` now includes issuer identity and issuance timestamp in the signed payload, preventing issuer substitution attacks where an attacker could swap the `issuer` field on a `SignedCredential` without invalidating the signature
 
 ### Changed
+- **Revocation model** — replaced dual blacklist+whitelist with three-store architecture (tree + issued index + audit logger); `RevocationStore` kept as standalone for consumers who need it
+- **`verifyBatch()`** now dispatches on `proof.proofType` discriminated union (no separate `type` parameter needed)
+- Eliminated all `any` types across core, issuer, SDK, and redis packages
+- Added input validation module with domain-specific validators (birth year, nationality, commitment format)
 - Bumped all package versions from 0.5.0 to 0.6.0
 
 ## [0.5.0] - 2026-02-09
