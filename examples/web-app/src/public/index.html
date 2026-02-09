@@ -695,6 +695,9 @@
             <div class="form-group">
                 <label class="form-label" for="minAge">Minimum Age Required</label>
                 <input type="number" id="minAge" class="form-input" value="18" min="0" max="150">
+                <div style="margin-top: 8px; font-size: 13px; color: var(--text-muted); font-family: var(--font-mono);">
+                    ⓘ Note: Proofs can only be generated if your actual age meets the requirement
+                </div>
             </div>
 
             <button class="btn btn-primary" id="verifyAgeBtn" onclick="verifyAge()" disabled>
@@ -727,6 +730,9 @@
                     <option value="250">France (250)</option>
                     <option value="392">Japan (392)</option>
                 </select>
+                <div style="margin-top: 8px; font-size: 13px; color: var(--text-muted); font-family: var(--font-mono);">
+                    ⓘ Note: Proofs can only be generated if your actual nationality matches
+                </div>
             </div>
 
             <button class="btn btn-primary" id="verifyNationalityBtn" onclick="verifyNationality()" disabled>
@@ -1100,9 +1106,19 @@
                 }
             } catch (error) {
                 console.error('Age verification error:', error);
+
+                // Provide user-friendly error messages for common circuit failures
+                let errorMessage = error.message;
+                if (error.message && error.message.includes('Assert Failed') && error.message.includes('AgeVerify')) {
+                    const birthYear = state.credential.credential.birthYear;
+                    const currentYear = new Date().getFullYear();
+                    const actualAge = currentYear - birthYear;
+                    errorMessage = `Cannot generate proof: Your age (${actualAge}) does not meet the minimum requirement (${minAge}). Zero-knowledge proofs can only prove true statements.`;
+                }
+
                 showResult('verifyResult', 'error', `
-                    <div class="result-title">✗ Error</div>
-                    <p>${escapeHtml(error.message)}</p>
+                    <div class="result-title">✗ Proof Generation Failed</div>
+                    <p>${escapeHtml(errorMessage)}</p>
                 `);
             } finally {
                 btn.disabled = false;
@@ -1319,9 +1335,18 @@
                 }
             } catch (error) {
                 console.error('Nationality verification error:', error);
+
+                // Provide user-friendly error messages for common circuit failures
+                let errorMessage = error.message;
+                if (error.message && error.message.includes('Assert Failed') && error.message.includes('NationalityVerify')) {
+                    const actualNationality = state.credential.credential.nationality;
+                    const targetNationalityName = document.getElementById('targetNationality').selectedOptions[0].text;
+                    errorMessage = `Cannot generate proof: Your nationality (${actualNationality}) does not match the target (${targetNationalityName}). Zero-knowledge proofs can only prove true statements.`;
+                }
+
                 showResult('verifyNationalityResult', 'error', `
-                    <div class="result-title">✗ Error</div>
-                    <p>${escapeHtml(error.message)}</p>
+                    <div class="result-title">✗ Proof Generation Failed</div>
+                    <p>${escapeHtml(errorMessage)}</p>
                 `);
             } finally {
                 btn.disabled = false;

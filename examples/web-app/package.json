@@ -4,9 +4,10 @@
   "description": "Web application example demonstrating zk-id integration",
   "private": true,
   "scripts": {
-    "prestart": "npm run build --workspace=@zk-id/sdk",
+    "setup:deps": "npm run build --workspace=@zk-id/core && npm run build --workspace=@zk-id/sdk && npm run build --workspace=@zk-id/issuer",
+    "prestart": "npm run setup:deps",
     "start": "ts-node src/server.ts",
-    "predev": "npm run build --workspace=@zk-id/sdk",
+    "predev": "npm run setup:deps",
     "dev": "nodemon --exec ts-node src/server.ts",
     "build": "tsc",
     "test": "echo 'No tests for examples'"

@@ -20,21 +20,34 @@ Interactive web demonstration of zero-knowledge identity verification with age a
 
 ## Quick Start
 
-### Prerequisites
+### First-Time Setup
 
-1. **Compile circuits** (required for proof generation):
-   ```bash
-   # From repository root
-   npm run compile:circuits
-   npm run --workspace=@zk-id/circuits setup
-   ```
+Run these commands from the **repository root** (`zk-id/`):
 
-2. **Install dependencies**:
+1. **Install dependencies**:
    ```bash
    npm install
    ```
 
+2. **Compile circuits and perform trusted setup** (required for proof generation):
+   ```bash
+   npm run compile:circuits
+   npm run --workspace=@zk-id/circuits setup
+   ```
+
+   This downloads Powers of Tau files (~86 MB) and generates proving/verification keys. Takes 1-2 minutes.
+
 ### Running the Demo
+
+The web app automatically builds all required packages (core, SDK, issuer) before starting.
+
+From the **repository root**:
+
+```bash
+npm start --workspace=@zk-id/example-web-app
+```
+
+Or from the **web-app directory** (`examples/web-app/`):
 
 ```bash
 npm start
@@ -47,7 +60,21 @@ Then open your browser to `http://localhost:3000`
 For auto-reload during development:
 
 ```bash
-npm run dev
+npm run dev --workspace=@zk-id/example-web-app
+```
+
+### Manual Package Builds (Optional)
+
+If you need to manually build packages:
+
+```bash
+# From repository root
+npm run build --workspace=@zk-id/core
+npm run build --workspace=@zk-id/sdk
+npm run build --workspace=@zk-id/issuer
+
+# Or from web-app directory
+npm run setup:deps
 ```
 
 ## How It Works
@@ -195,11 +222,19 @@ Try these scenarios:
 
 ### "Circuit artifacts not found"
 
-Compile the circuits first:
+Compile the circuits and run setup from the repository root:
 ```bash
-cd ../../packages/circuits
-npm run compile
-npm run setup
+npm run compile:circuits
+npm run --workspace=@zk-id/circuits setup
+```
+
+### "Cannot find module '@zk-id/core'" or similar build errors
+
+Build the required packages from the repository root:
+```bash
+npm run build --workspace=@zk-id/core
+npm run build --workspace=@zk-id/sdk
+npm run build --workspace=@zk-id/issuer
 ```
 
 ### "Hash verification failed"
