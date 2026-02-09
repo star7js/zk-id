@@ -18,7 +18,7 @@ runs:
   steps:
     - name: Cache Circom
       id: cache-circom
-      uses: actions/cache@v5
+      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5
       with:
         path: /usr/local/bin/circom
         key: circom-${{ runner.os }}-${{ inputs.version }}
@@ -26,11 +26,17 @@ runs:
     - name: Install Circom
       if: steps.cache-circom.outputs.cache-hit != 'true'
       shell: bash
+      env:
+        CIRCOM_VERSION: ${{ inputs.version }}
       run: |
-        curl -L https://github.com/iden3/circom/releases/download/${{ inputs.version }}/circom-linux-amd64 -o /tmp/circom
+        curl -L "https://github.com/iden3/circom/releases/download/${CIRCOM_VERSION}/circom-linux-amd64" -o /tmp/circom
 
     - name: Verify Circom checksum
       shell: bash
+      env:
+        CIRCOM_VERSION: ${{ inputs.version }}
+        CIRCOM_SHA256: ${{ inputs.sha256 }}
+        CIRCOM_CHECKSUM_URL: ${{ inputs.checksum_url }}
       run: |
         set -euo pipefail
 
@@ -45,15 +51,15 @@ runs:
         fi
 
         EXPECTED_HASH=""
-        if [ -n "${{ inputs.sha256 }}" ]; then
-          EXPECTED_HASH="${{ inputs.sha256 }}"
+        if [ -n "$CIRCOM_SHA256" ]; then
+          EXPECTED_HASH="$CIRCOM_SHA256"
         else
           CHECKSUM_URLS=()
-          if [ -n "${{ inputs.checksum_url }}" ]; then
-            CHECKSUM_URLS+=("${{ inputs.checksum_url }}")
+          if [ -n "$CIRCOM_CHECKSUM_URL" ]; then
+            CHECKSUM_URLS+=("$CIRCOM_CHECKSUM_URL")
           else
-            CHECKSUM_URLS+=("https://github.com/iden3/circom/releases/download/${{ inputs.version }}/circom-linux-amd64.sha256")
-            CHECKSUM_URLS+=("https://github.com/iden3/circom/releases/download/${{ inputs.version }}/circom-linux-amd64.sha256sum")
+            CHECKSUM_URLS+=("https://github.com/iden3/circom/releases/download/${CIRCOM_VERSION}/circom-linux-amd64.sha256")
+            CHECKSUM_URLS+=("https://github.com/iden3/circom/releases/download/${CIRCOM_VERSION}/circom-linux-amd64.sha256sum")
           fi
 
           for url in "${CHECKSUM_URLS[@]}"; do

@@ -6,7 +6,7 @@ on:
       - 'v*'
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release-${{ github.ref }}
@@ -16,9 +16,11 @@ jobs:
   release:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
@@ -28,16 +30,18 @@ jobs:
 
       - name: Extract changelog for this version
         id: changelog
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
+          GITHUB_REPO: ${{ github.repository }}
         run: |
           # Extract the section for this version from CHANGELOG.md
-          VERSION="${{ steps.version.outputs.VERSION }}"
 
           # Get content between this version and the next version heading
           CHANGELOG=$(awk "/## \[$VERSION\]/,/## \[/" CHANGELOG.md | sed '$d' | tail -n +2)
 
           # If empty, use a default message
           if [ -z "$CHANGELOG" ]; then
-            CHANGELOG="See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details."
+            CHANGELOG="See [CHANGELOG.md](https://github.com/${GITHUB_REPO}/blob/main/CHANGELOG.md) for details."
           fi
 
           # Write to output file (handles multiline)
@@ -45,7 +49,7 @@ jobs:
           echo "CHANGELOG_FILE=/tmp/changelog.txt" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2
         with:
           body_path: ${{ steps.changelog.outputs.CHANGELOG_FILE }}
           draft: false
