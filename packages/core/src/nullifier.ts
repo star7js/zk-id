@@ -75,6 +75,9 @@ export interface NullifierStore {
  *
  * The scope string is hashed to produce a field element suitable for
  * circuit inputs.
+ *
+ * @param scopeId - Human-readable scope identifier (e.g., "election-2026")
+ * @returns A NullifierScope with hashed scope value
  */
 export async function createNullifierScope(scopeId: string): Promise<NullifierScope> {
   validateScopeId(scopeId);
@@ -163,11 +166,24 @@ export async function consumeNullifier(
 export class InMemoryNullifierStore implements NullifierStore {
   private used: Map<string, Set<string>> = new Map();
 
+  /**
+   * Check if a nullifier has been used in the given scope
+   *
+   * @param nullifier - The nullifier to check
+   * @param scopeId - The scope identifier
+   * @returns true if the nullifier has been used, false otherwise
+   */
   async hasBeenUsed(nullifier: string, scopeId: string): Promise<boolean> {
     const scopeSet = this.used.get(scopeId);
     return scopeSet?.has(nullifier) ?? false;
   }
 
+  /**
+   * Mark a nullifier as used in the given scope
+   *
+   * @param nullifier - The nullifier to mark as used
+   * @param scopeId - The scope identifier
+   */
   async markUsed(nullifier: string, scopeId: string): Promise<void> {
     let scopeSet = this.used.get(scopeId);
     if (!scopeSet) {
@@ -177,6 +193,12 @@ export class InMemoryNullifierStore implements NullifierStore {
     scopeSet.add(nullifier);
   }
 
+  /**
+   * Get the count of used nullifiers in a scope
+   *
+   * @param scopeId - The scope identifier
+   * @returns The number of nullifiers used in this scope
+   */
   async getUsedCount(scopeId: string): Promise<number> {
     return this.used.get(scopeId)?.size ?? 0;
   }

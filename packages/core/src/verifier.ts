@@ -53,6 +53,9 @@ export async function verifyAgeProof(
 
 /**
  * Additional validation checks beyond cryptographic verification
+ *
+ * @param proof - The age proof to validate
+ * @returns Object containing validation result and any error messages
  */
 export function validateProofConstraints(proof: AgeProof): {
   valid: boolean;
@@ -134,6 +137,10 @@ export async function verifyNationalityProof(
 
 /**
  * Verifies a signed age proof (includes issuer public key bits in public signals)
+ *
+ * @param proof - The signed age proof to verify
+ * @param verificationKey - The circuit's verification key (public)
+ * @returns true if the proof is valid, false otherwise
  */
 export async function verifyAgeProofSigned(
   proof: AgeProofSigned,
@@ -167,6 +174,11 @@ export async function verifyAgeProofSigned(
 
 /**
  * Verifies a signed age proof and checks the issuer public key matches the trusted key
+ *
+ * @param proof - The signed age proof to verify
+ * @param verificationKey - The circuit's verification key (public)
+ * @param issuerPublicKeyBits - Trusted issuer public key bits to verify against
+ * @returns true if the proof is valid and issuer matches, false otherwise
  */
 export async function verifyAgeProofSignedWithIssuer(
   proof: AgeProofSigned,
@@ -181,6 +193,10 @@ export async function verifyAgeProofSignedWithIssuer(
 
 /**
  * Verifies a signed nationality proof (includes issuer public key bits in public signals)
+ *
+ * @param proof - The signed nationality proof to verify
+ * @param verificationKey - The circuit's verification key (public)
+ * @returns true if the proof is valid, false otherwise
  */
 export async function verifyNationalityProofSigned(
   proof: NationalityProofSigned,
@@ -213,6 +229,11 @@ export async function verifyNationalityProofSigned(
 
 /**
  * Verifies a signed nationality proof and checks the issuer public key matches the trusted key
+ *
+ * @param proof - The signed nationality proof to verify
+ * @param verificationKey - The circuit's verification key (public)
+ * @param issuerPublicKeyBits - Trusted issuer public key bits to verify against
+ * @returns true if the proof is valid and issuer matches, false otherwise
  */
 export async function verifyNationalityProofSignedWithIssuer(
   proof: NationalityProofSigned,
@@ -227,6 +248,9 @@ export async function verifyNationalityProofSignedWithIssuer(
 
 /**
  * Additional validation checks for nationality proofs
+ *
+ * @param proof - The nationality proof to validate
+ * @returns Object containing validation result and any error messages
  */
 export function validateNationalityProofConstraints(proof: NationalityProof): {
   valid: boolean;
@@ -311,6 +335,9 @@ export async function verifyAgeProofRevocable(
 
 /**
  * Additional validation checks for revocable age proofs
+ *
+ * @param proof - The revocable age proof to validate
+ * @returns Object containing validation result and any error messages
  */
 export function validateAgeProofRevocableConstraints(proof: AgeProofRevocable): {
   valid: boolean;
@@ -360,6 +387,9 @@ export function validateAgeProofRevocableConstraints(proof: AgeProofRevocable): 
 
 /**
  * Load verification key from JSON file
+ *
+ * @param path - Filesystem path to the verification key JSON file
+ * @returns The parsed verification key object
  */
 export async function loadVerificationKey(path: string): Promise<VerificationKey> {
   const fs = require('fs').promises;

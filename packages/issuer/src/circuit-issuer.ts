@@ -41,6 +41,16 @@ interface EdDSA {
   babyJub: { packPoint(point: [Uint8Array, Uint8Array]): Uint8Array };
 }
 
+/**
+ * Circuit-compatible credential issuer using EdDSA (BabyJub) signatures.
+ *
+ * This issuer creates credentials that can be verified inside zk-SNARK circuits.
+ * Unlike standard Ed25519 signatures (used by ManagedCredentialIssuer), EdDSA on
+ * the BabyJub curve is zk-friendly and can be efficiently verified in circuits.
+ *
+ * Use this for generating test credentials or when you need circuit-verified signatures.
+ * For production issuance with KMS/HSM support, use ManagedCredentialIssuer instead.
+ */
 export class CircuitCredentialIssuer {
   private issuerName: string;
   private eddsa: EdDSA;
@@ -57,20 +67,54 @@ export class CircuitCredentialIssuer {
     this.publicKeyBits = bytesToBitsLE(packed);
   }
 
+  /**
+   * Create a new issuer with a randomly generated EdDSA key pair.
+   *
+   * This is a factory method for testing and development environments.
+   * The private key is generated in-memory and is not suitable for production.
+   *
+   * @param name - Issuer identifier (e.g., "test-issuer" or "gov-id-test")
+   * @returns A new CircuitCredentialIssuer instance
+   */
   static async createTestIssuer(name: string): Promise<CircuitCredentialIssuer> {
     const eddsa = await buildEddsa();
     const privateKey = randomBytes(32);
     return new CircuitCredentialIssuer(name, eddsa, privateKey);
   }
 
+  /**
+   * Get the issuer's identifier.
+   *
+   * @returns The issuer name
+   */
   getIssuerName(): string {
     return this.issuerName;
   }
 
+  /**
+   * Get the issuer's public key as bit array for circuit verification.
+   *
+   * The public key is returned as an array of bit strings ("0" or "1") in
+   * little-endian order. This format is suitable for use as a public input
+   * to zk-SNARK circuits that verify EdDSA signatures.
+   *
+   * @returns Public key encoded as bit array (256 bits)
+   */
   getIssuerPublicKeyBits(): string[] {
     return this.publicKeyBits;
   }
 
+  /**
+   * Issue a new credential with a circuit-compatible EdDSA signature.
+   *
+   * Creates a credential commitment from the birth year and nationality, then
+   * signs it with the issuer's EdDSA private key. The signature is compatible
+   * with in-circuit verification using circomlib's EdDSAPoseidonVerifier.
+   *
+   * @param birthYear - The credential holder's birth year (e.g., 1990)
+   * @param nationality - ISO 3166-1 numeric nationality code (e.g., 840 for USA)
+   * @returns A signed credential with circuit-compatible signature
+   */
   async issueCredential(
     birthYear: number,
     nationality: number
@@ -98,6 +142,15 @@ export class CircuitCredentialIssuer {
     };
   }
 
+  /**
+   * Extract signature components for circuit witness generation.
+   *
+   * Extracts the R8 point and S scalar from a signed credential and returns
+   * them in the format expected by zk-SNARK circuit inputs.
+   *
+   * @param signed - A circuit-signed credential
+   * @returns Signature inputs for circuit witness (issuerPublicKey, R8, S)
+   */
   getSignatureInputs(signed: CircuitSignedCredential): CircuitSignatureInputs {
     return {
       issuerPublicKey: signed.issuerPublicKey,

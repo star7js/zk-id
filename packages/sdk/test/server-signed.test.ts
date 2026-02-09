@@ -18,6 +18,7 @@ describe('ZkIdServer - signed proofs', () => {
       issuerPublicKeyBits: {
         Trusted: ['0', '1'],
       },
+      verboseErrors: true,
     });
 
     const tsMs = Date.now();

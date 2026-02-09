@@ -24,6 +24,8 @@ import {
  *
  * @param credential - The user's credential (private)
  * @param minAge - The minimum age requirement (public)
+ * @param nonce - Nonce for replay protection (public)
+ * @param requestTimestampMs - Request timestamp in milliseconds (public)
  * @param wasmPath - Path to the compiled circuit WASM file
  * @param zkeyPath - Path to the proving key
  * @returns An AgeProof that can be verified without revealing the birth year
@@ -96,6 +98,12 @@ export async function generateAgeProof(
 /**
  * Generates proof with automatic path resolution
  * (assumes standard build directory structure)
+ *
+ * @param credential - The user's credential (private)
+ * @param minAge - The minimum age requirement (public)
+ * @param nonce - Nonce for replay protection (public)
+ * @param requestTimestampMs - Request timestamp in milliseconds (public)
+ * @returns An AgeProof that can be verified without revealing the birth year
  */
 export async function generateAgeProofAuto(
   credential: Credential,
@@ -115,6 +123,8 @@ export async function generateAgeProofAuto(
  *
  * @param credential - The user's credential (private)
  * @param targetNationality - The nationality to verify (public)
+ * @param nonce - Nonce for replay protection (public)
+ * @param requestTimestampMs - Request timestamp in milliseconds (public)
  * @param wasmPath - Path to the compiled circuit WASM file
  * @param zkeyPath - Path to the proving key
  * @returns A NationalityProof that can be verified without revealing the birth year
@@ -183,6 +193,12 @@ export async function generateNationalityProof(
 /**
  * Generates nationality proof with automatic path resolution
  * (assumes standard build directory structure)
+ *
+ * @param credential - The user's credential (private)
+ * @param targetNationality - The nationality to verify (public)
+ * @param nonce - Nonce for replay protection (public)
+ * @param requestTimestampMs - Request timestamp in milliseconds (public)
+ * @returns A NationalityProof that can be verified without revealing the birth year
  */
 export async function generateNationalityProofAuto(
   credential: Credential,
@@ -206,6 +222,15 @@ export async function generateNationalityProofAuto(
 
 /**
  * Generates a zero-knowledge proof that includes on-circuit issuer signature verification
+ *
+ * @param credential - The user's credential (private)
+ * @param minAge - The minimum age requirement (public)
+ * @param nonce - Nonce for replay protection (public)
+ * @param requestTimestampMs - Request timestamp in milliseconds (public)
+ * @param signatureInputs - Issuer signature components for circuit verification
+ * @param wasmPath - Path to the compiled circuit WASM file
+ * @param zkeyPath - Path to the proving key
+ * @returns A signed AgeProof with embedded issuer public key bits
  */
 export async function generateAgeProofSigned(
   credential: Credential,
@@ -277,6 +302,13 @@ export async function generateAgeProofSigned(
 
 /**
  * Generates age proof with signature verification using default circuit paths
+ *
+ * @param credential - The user's credential (private)
+ * @param minAge - The minimum age requirement (public)
+ * @param nonce - Nonce for replay protection (public)
+ * @param requestTimestampMs - Request timestamp in milliseconds (public)
+ * @param signatureInputs - Issuer signature components for circuit verification
+ * @returns A signed AgeProof with embedded issuer public key bits
  */
 export async function generateAgeProofSignedAuto(
   credential: Credential,
@@ -303,6 +335,15 @@ export async function generateAgeProofSignedAuto(
 
 /**
  * Generates nationality proof with on-circuit issuer signature verification
+ *
+ * @param credential - The user's credential (private)
+ * @param targetNationality - The nationality to verify (public)
+ * @param nonce - Nonce for replay protection (public)
+ * @param requestTimestampMs - Request timestamp in milliseconds (public)
+ * @param signatureInputs - Issuer signature components for circuit verification
+ * @param wasmPath - Path to the compiled circuit WASM file
+ * @param zkeyPath - Path to the proving key
+ * @returns A signed NationalityProof with embedded issuer public key bits
  */
 export async function generateNationalityProofSigned(
   credential: Credential,
@@ -370,6 +411,13 @@ export async function generateNationalityProofSigned(
 
 /**
  * Generates nationality proof with signature verification using default circuit paths
+ *
+ * @param credential - The user's credential (private)
+ * @param targetNationality - The nationality to verify (public)
+ * @param nonce - Nonce for replay protection (public)
+ * @param requestTimestampMs - Request timestamp in milliseconds (public)
+ * @param signatureInputs - Issuer signature components for circuit verification
+ * @returns A signed NationalityProof with embedded issuer public key bits
  */
 export async function generateNationalityProofSignedAuto(
   credential: Credential,
@@ -481,6 +529,13 @@ export async function generateAgeProofRevocable(
 /**
  * Generates revocable age proof with automatic path resolution
  * (assumes standard build directory structure)
+ *
+ * @param credential - The user's credential (private)
+ * @param minAge - The minimum age requirement (public)
+ * @param nonce - Nonce for replay protection (public)
+ * @param requestTimestampMs - Request timestamp in milliseconds (public)
+ * @param revocationWitness - Merkle witness proving credential is in the valid credential tree
+ * @returns An AgeProofRevocable that includes Merkle root verification
  */
 export async function generateAgeProofRevocableAuto(
   credential: Credential,
@@ -573,6 +628,12 @@ export async function generateNullifierProof(
 /**
  * Generates nullifier proof with automatic path resolution
  * (assumes standard build directory structure)
+ *
+ * @param credential - The user's credential (private)
+ * @param scope - The nullifier scope defining the context
+ * @param nonce - Nonce for replay protection (public)
+ * @param requestTimestampMs - Request timestamp in milliseconds (public)
+ * @returns A NullifierProof proving credential ownership without revealing identity
  */
 export async function generateNullifierProofAuto(
   credential: Credential,

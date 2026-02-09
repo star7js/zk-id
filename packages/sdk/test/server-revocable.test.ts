@@ -42,6 +42,7 @@ describe('ZkIdServer - revocable proof support', () => {
     const server = new ZkIdServer({
       verificationKeyPath: getVerificationKeyPath(),
       requireSignedCredentials: false,
+      verboseErrors: true,
     });
 
     const timestamp = Date.now();
@@ -63,6 +64,7 @@ describe('ZkIdServer - revocable proof support', () => {
       verificationKeyPath: getVerificationKeyPath(),
       requireSignedCredentials: false,
       requiredMinAge: 21,
+      verboseErrors: true,
     });
 
     const timestamp = Date.now();
@@ -83,6 +85,7 @@ describe('ZkIdServer - revocable proof support', () => {
     const server = new ZkIdServer({
       verificationKeyPath: getVerificationKeyPath(),
       requireSignedCredentials: false,
+      verboseErrors: true,
     });
 
     const timestamp = Date.now();
@@ -118,6 +121,7 @@ describe('ZkIdServer - revocable proof support', () => {
         getWitness: async () => null,
         size: async () => 0,
       },
+      verboseErrors: true,
     });
 
     const proofResponse: ProofResponse = {

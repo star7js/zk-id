@@ -109,6 +109,7 @@ describe('ZkIdServer - protocol enforcement', () => {
       verificationKeyPath: getVerificationKeyPath(),
       requireSignedCredentials: false,
       protocolVersionPolicy: 'strict',
+      verboseErrors: true,
     });
 
     const proofResponse: ProofResponse = {
@@ -129,6 +130,7 @@ describe('ZkIdServer - protocol enforcement', () => {
       verificationKeyPath: getVerificationKeyPath(),
       requireSignedCredentials: false,
       protocolVersionPolicy: 'strict',
+      verboseErrors: true,
     });
 
     const proofResponse: ProofResponse = {
@@ -170,6 +172,7 @@ describe('ZkIdServer - protocol enforcement', () => {
       verificationKeyPath: getVerificationKeyPath(),
       requireSignedCredentials: false,
       protocolVersionPolicy: 'strict',
+      verboseErrors: true,
     });
 
     const signedRequest = {
@@ -191,6 +194,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
     const server = new ZkIdServer({
       verificationKeyPath: getVerificationKeyPath(),
       issuerPublicKeys: {},
+      verboseErrors: true,
     });
 
     const proofResponse = {
@@ -213,6 +217,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
     const server = new ZkIdServer({
       verificationKeyPath: getVerificationKeyPath(),
       issuerPublicKeys: { TestIssuer: publicKey },
+      verboseErrors: true,
     });
 
     const proofResponse: ProofResponse = {
@@ -235,6 +240,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
     const server = new ZkIdServer({
       verificationKeyPath: getVerificationKeyPath(),
       issuerPublicKeys: { TestIssuer: publicKey },
+      verboseErrors: true,
     });
 
     const proofResponse: ProofResponse = {
@@ -258,6 +264,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
       verificationKeyPath: getVerificationKeyPath(),
       issuerPublicKeys: { TestIssuer: publicKey },
       requiredMinAge: 21,
+      verboseErrors: true,
     });
 
     const proofResponse: ProofResponse = {
@@ -281,6 +288,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
       verificationKeyPath: getVerificationKeyPath(),
       issuerPublicKeys: { TestIssuer: publicKey },
       requiredPolicy: { nationality: 840 },
+      verboseErrors: true,
     });
 
     const proofResponse: ProofResponse = {
@@ -321,6 +329,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
     const server = new ZkIdServer({
       verificationKeyPath: getVerificationKeyPath(),
       issuerPublicKeys: { TestIssuer: publicKey },
+      verboseErrors: true,
     });
 
     const proofResponse: ProofResponse = {
@@ -354,6 +363,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
     const server = new ZkIdServer({
       verificationKeyPath: getVerificationKeyPath(),
       issuerRegistry: registry,
+      verboseErrors: true,
     });
 
     const proofResponse: ProofResponse = {
@@ -386,6 +396,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
     const server = new ZkIdServer({
       verificationKeyPath: getVerificationKeyPath(),
       issuerRegistry: registry,
+      verboseErrors: true,
     });
 
     const proofResponse: ProofResponse = {
@@ -409,6 +420,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
       verificationKeyPath: getVerificationKeyPath(),
       issuerPublicKeys: { TestIssuer: publicKey },
       maxRequestAgeMs: 1000,
+      verboseErrors: true,
     });
 
     const oldMs = Date.now() - 10_000;
@@ -433,6 +445,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
       verificationKeyPath: getVerificationKeyPath(),
       issuerPublicKeys: { TestIssuer: publicKey },
       maxFutureSkewMs: 1000, // Allow 1 second of clock skew
+      verboseErrors: true,
     });
 
     // Create a timestamp 10 seconds in the future (beyond the 1 second skew)
@@ -621,6 +634,7 @@ describe('ZkIdServer - revocation root staleness', () => {
       },
       validCredentialTree: tree as any,
       maxRevocationRootAgeMs: 60_000, // 1 min max
+      verboseErrors: true,
     });
 
     const timestamp = Date.now();
@@ -874,6 +888,7 @@ describe('InMemoryIssuerRegistry', () => {
         verificationKeys: { age: {} as any },
         requireSignedCredentials: true,
         issuerRegistry: registry,
+        verboseErrors: true,
       });
 
       const commitment = '12345';
@@ -1050,6 +1065,7 @@ describe('ZkIdServer - validatePayloads integration', () => {
     const server = new ZkIdServer({
       verificationKeys: { age: {} as any },
       validatePayloads: true,
+      verboseErrors: true,
     });
 
     const result = await server.verifyProof({} as any);
@@ -1096,3 +1112,238 @@ function makeValidProofResponse(): ProofResponse {
     requestTimestamp: new Date().toISOString(),
   };
 }
+
+// ---------------------------------------------------------------------------
+// sanitizeError tests (Fix 4a)
+// ---------------------------------------------------------------------------
+
+describe('ZkIdServer - sanitizeError', () => {
+  it('returns generic error in non-verbose mode for signature errors', async () => {
+    const server = new ZkIdServer({
+      verificationKeys: { age: {} as any },
+      verboseErrors: false,
+      requireSignedCredentials: false,
+    });
+
+    const timestamp = Date.now();
+    const proofResponse: ProofResponse = {
+      credentialId: 'cred-1',
+      claimType: 'age',
+      proof: makeAgeProof('hash-1', 18, 'nonce-sig', timestamp),
+      nonce: 'nonce-sig',
+      requestTimestamp: new Date(timestamp).toISOString(),
+    } as ProofResponse;
+
+    const result = await server.verifyProof(proofResponse);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.equal('Verification failed');
+  });
+
+  it('returns generic error in non-verbose mode for timestamp errors', async () => {
+    const server = new ZkIdServer({
+      verificationKeys: { age: {} as any },
+      verboseErrors: false,
+      requireSignedCredentials: false,
+      maxRequestAgeMs: 1000,
+    });
+
+    const timestamp = Date.now() - 5000; // 5 seconds ago (stale)
+    const proofResponse: ProofResponse = {
+      credentialId: 'cred-1',
+      claimType: 'age',
+      proof: makeAgeProof('hash-1', 18, 'nonce-ts', timestamp),
+      nonce: 'nonce-ts',
+      requestTimestamp: new Date(timestamp).toISOString(),
+    } as ProofResponse;
+
+    const result = await server.verifyProof(proofResponse);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.equal('Request expired or invalid');
+  });
+
+  it('returns generic error in non-verbose mode for nonce errors', async () => {
+    const server = new ZkIdServer({
+      verificationKeys: { age: {} as any },
+      verboseErrors: false,
+      requireSignedCredentials: false,
+    });
+
+    const timestamp = Date.now();
+    const proofResponse: ProofResponse = {
+      credentialId: 'cred-1',
+      claimType: 'age',
+      proof: makeAgeProof('hash-1', 18, 'wrong-nonce', timestamp),
+      nonce: 'different-nonce',
+      requestTimestamp: new Date(timestamp).toISOString(),
+    } as ProofResponse;
+
+    const result = await server.verifyProof(proofResponse);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.equal('Request expired or invalid');
+  });
+
+  it('returns generic error in non-verbose mode for payload errors', async () => {
+    const server = new ZkIdServer({
+      verificationKeys: { age: {} as any },
+      verboseErrors: false,
+      validatePayloads: true,
+    });
+
+    const result = await server.verifyProof({} as any);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.equal('Invalid request format');
+  });
+
+  it('returns original error in verbose mode', async () => {
+    const server = new ZkIdServer({
+      verificationKeys: { age: {} as any },
+      verboseErrors: true,
+      requireSignedCredentials: false,
+      maxRequestAgeMs: 1000,
+    });
+
+    const timestamp = Date.now() - 5000; // 5 seconds ago (stale)
+    const proofResponse: ProofResponse = {
+      credentialId: 'cred-1',
+      claimType: 'age',
+      proof: makeAgeProof('hash-1', 18, 'nonce-verbose', timestamp),
+      nonce: 'nonce-verbose',
+      requestTimestamp: new Date(timestamp).toISOString(),
+    } as ProofResponse;
+
+    const result = await server.verifyProof(proofResponse);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.include('Request timestamp is too old');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// rotationGracePeriodMs tests (Fix 4b)
+// ---------------------------------------------------------------------------
+
+describe('InMemoryIssuerRegistry - rotationGracePeriodMs', () => {
+  function makeKeyPair() {
+    return generateKeyPairSync('ed25519');
+  }
+
+  it('accepts key within validity window (baseline)', async () => {
+    const { publicKey } = makeKeyPair();
+    const now = new Date();
+    const past = new Date(now.getTime() - 86400_000); // 1 day ago
+    const future = new Date(now.getTime() + 86400_000); // 1 day from now
+
+    const registry = new InMemoryIssuerRegistry([
+      {
+        issuer: 'grace-baseline',
+        publicKey,
+        status: 'active',
+        validFrom: past.toISOString(),
+        validTo: future.toISOString(),
+      },
+    ]);
+
+    const record = await registry.getIssuer('grace-baseline');
+    expect(record).to.not.be.null;
+    expect(record!.publicKey).to.equal(publicKey);
+  });
+
+  it('expired key with no grace period falls through to fallback', async () => {
+    const { publicKey: expiredKey } = makeKeyPair();
+    const now = new Date();
+    const past = new Date(now.getTime() - 86400_000); // 1 day ago
+    const justExpired = new Date(now.getTime() - 1000); // 1 second ago
+
+    const registry = new InMemoryIssuerRegistry([
+      {
+        issuer: 'grace-nograce',
+        publicKey: expiredKey,
+        status: 'active',
+        validFrom: past.toISOString(),
+        validTo: justExpired.toISOString(),
+        // No rotationGracePeriodMs set
+      },
+    ]);
+
+    const record = await registry.getIssuer('grace-nograce');
+    // Falls back to first record (the expired one)
+    expect(record).to.not.be.null;
+    expect(record!.publicKey).to.equal(expiredKey);
+  });
+
+  it('expired key within grace period is accepted', async () => {
+    const { publicKey } = makeKeyPair();
+    const now = new Date();
+    const past = new Date(now.getTime() - 86400_000); // 1 day ago
+    const recentlyExpired = new Date(now.getTime() - 30_000); // 30 seconds ago
+
+    const registry = new InMemoryIssuerRegistry([
+      {
+        issuer: 'grace-within',
+        publicKey,
+        status: 'active',
+        validFrom: past.toISOString(),
+        validTo: recentlyExpired.toISOString(),
+        rotationGracePeriodMs: 60_000, // 1 minute grace period
+      },
+    ]);
+
+    const record = await registry.getIssuer('grace-within');
+    expect(record).to.not.be.null;
+    expect(record!.publicKey).to.equal(publicKey);
+  });
+
+  it('expired key beyond grace period falls through to fallback', async () => {
+    const { publicKey: oldKey } = makeKeyPair();
+    const now = new Date();
+    const past = new Date(now.getTime() - 86400_000); // 1 day ago
+    const longExpired = new Date(now.getTime() - 120_000); // 2 minutes ago
+
+    const registry = new InMemoryIssuerRegistry([
+      {
+        issuer: 'grace-beyond',
+        publicKey: oldKey,
+        status: 'active',
+        validFrom: past.toISOString(),
+        validTo: longExpired.toISOString(),
+        rotationGracePeriodMs: 60_000, // 1 minute grace period (expired 2 min ago, so beyond grace)
+      },
+    ]);
+
+    const record = await registry.getIssuer('grace-beyond');
+    // Falls back to first record
+    expect(record).to.not.be.null;
+    expect(record!.publicKey).to.equal(oldKey);
+  });
+
+  it('non-active key with grace period is NOT accepted', async () => {
+    const { publicKey: revokedKey } = makeKeyPair();
+    const { publicKey: fallbackKey } = makeKeyPair();
+    const now = new Date();
+    const past = new Date(now.getTime() - 86400_000);
+    const recentlyExpired = new Date(now.getTime() - 30_000); // 30 seconds ago
+
+    const registry = new InMemoryIssuerRegistry([
+      {
+        issuer: 'grace-revoked',
+        publicKey: revokedKey,
+        status: 'revoked', // Not active
+        validFrom: past.toISOString(),
+        validTo: recentlyExpired.toISOString(),
+        rotationGracePeriodMs: 60_000, // Within grace period, but status is revoked
+      },
+      {
+        issuer: 'grace-revoked',
+        publicKey: fallbackKey,
+        status: 'active',
+        validFrom: past.toISOString(),
+      },
+    ]);
+
+    const record = await registry.getIssuer('grace-revoked');
+    expect(record).to.not.be.null;
+    // Should NOT return the revoked key, even though it's within grace period
+    // Status check takes priority
+    expect(record!.publicKey).to.not.equal(revokedKey);
+    expect(record!.publicKey).to.equal(fallbackKey);
+  });
+});

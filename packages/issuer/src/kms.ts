@@ -81,14 +81,33 @@ export class EnvelopeKeyManager implements IssuerKeyManager {
     this.publicKey = publicKey;
   }
 
+  /**
+   * Get the issuer's identifier.
+   *
+   * @returns The issuer name
+   */
   getIssuerName(): string {
     return this.issuerName;
   }
 
+  /**
+   * Get the issuer's Ed25519 public verification key.
+   *
+   * @returns The public key as a Node.js KeyObject
+   */
   getPublicKey(): KeyObject {
     return this.publicKey;
   }
 
+  /**
+   * Sign a payload using the decrypted private key.
+   *
+   * The private key is decrypted on-demand for each signature operation.
+   * Uses Node.js crypto.sign with Ed25519.
+   *
+   * @param payload - The data to sign
+   * @returns Ed25519 signature
+   */
   async sign(payload: Buffer): Promise<Buffer> {
     return sign(null, payload, this.privateKey);
   }
@@ -208,14 +227,32 @@ export class FileKeyManager implements IssuerKeyManager {
     this.publicKey = publicKey;
   }
 
+  /**
+   * Get the issuer's identifier.
+   *
+   * @returns The issuer name
+   */
   getIssuerName(): string {
     return this.issuerName;
   }
 
+  /**
+   * Get the issuer's Ed25519 public verification key.
+   *
+   * @returns The public key as a Node.js KeyObject
+   */
   getPublicKey(): KeyObject {
     return this.publicKey;
   }
 
+  /**
+   * Sign a payload using the Ed25519 private key.
+   *
+   * Uses Node.js crypto.sign with Ed25519 algorithm.
+   *
+   * @param payload - The data to sign
+   * @returns Ed25519 signature
+   */
   async sign(payload: Buffer): Promise<Buffer> {
     return sign(null, payload, this.privateKey);
   }
@@ -245,6 +282,14 @@ export class FileKeyManager implements IssuerKeyManager {
 
   /**
    * Create a FileKeyManager from PEM strings (no filesystem access needed).
+   *
+   * Useful when keys are loaded from environment variables, configuration
+   * stores, or secret management systems instead of files.
+   *
+   * @param issuerName - Name of the issuer
+   * @param privateKeyPem - Ed25519 private key in PEM format
+   * @param publicKeyPem - Ed25519 public key in PEM format
+   * @returns FileKeyManager ready for signing
    */
   static fromPemStrings(
     issuerName: string,

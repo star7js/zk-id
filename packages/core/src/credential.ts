@@ -48,6 +48,9 @@ export async function createCredential(
 
 /**
  * Validates that a credential is well-formed
+ *
+ * @param credential - The credential to validate
+ * @returns true if the credential is valid, false otherwise
  */
 export function validateCredential(credential: Credential): boolean {
   if (!credential.id || !credential.salt || !credential.commitment) {
@@ -67,6 +70,11 @@ export function validateCredential(credential: Credential): boolean {
 
 /**
  * Derives the commitment from a credential (for verification)
+ *
+ * @param birthYear - The user's birth year
+ * @param nationality - The user's nationality code
+ * @param salt - The credential salt (hex string)
+ * @returns The Poseidon commitment hash as a string
  */
 export async function deriveCommitment(
   birthYear: number,

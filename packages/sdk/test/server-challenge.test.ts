@@ -42,6 +42,7 @@ describe('ZkIdServer challenge flow', () => {
       verificationKeyPath: getVerificationKeyPath(),
       challengeStore,
       requireSignedCredentials: false,
+      verboseErrors: true,
     });
 
     const requestTimestamp = new Date().toISOString();
@@ -64,6 +65,7 @@ describe('ZkIdServer challenge flow', () => {
       verificationKeyPath: getVerificationKeyPath(),
       challengeStore,
       requireSignedCredentials: false,
+      verboseErrors: true,
     });
 
     const challenge = await server.createChallenge();
