@@ -139,13 +139,28 @@ export interface NationalityProofSigned {
   };
 }
 
+export interface NullifierProof {
+  proofType: 'nullifier';
+  proof: {
+    pi_a: string[];
+    pi_b: string[][];
+    pi_c: string[];
+  };
+  publicSignals: {
+    credentialHash: string;
+    scopeHash: string;
+    nullifier: string;
+  };
+}
+
 /** Discriminated union of all ZK proof types */
 export type ZkProof =
   | AgeProof
   | NationalityProof
   | AgeProofRevocable
   | AgeProofSigned
-  | NationalityProofSigned;
+  | NationalityProofSigned
+  | NullifierProof;
 
 /** String literal type for all proof type discriminators */
 export type ProofType = ZkProof['proofType'];

@@ -57,8 +57,8 @@ Thank you for helping keep zk-id and its users secure!
 
 | Version | Supported |
 |---------|-----------|
-| 0.4.x   | Current development — security fixes applied |
-| < 0.4   | No longer supported |
+| 0.6.x   | Current development — security fixes applied |
+| < 0.6   | No longer supported |
 
 Only the latest release on the `main` branch receives security updates.
 Pre-release (`-draft`) protocol versions may change without notice.

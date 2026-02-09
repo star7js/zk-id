@@ -55,7 +55,7 @@ template AgeVerifyRevocable(depth) {
     signal age <== currentYear - birthYear;
 
     // Verify age >= minAge
-    component ageCheck = GreaterEqThan(8); // 8 bits allows ages 0-255
+    component ageCheck = GreaterEqThan(12); // 12 bits allows ages 0-4095
     ageCheck.in[0] <== age;
     ageCheck.in[1] <== minAge;
     ageCheck.out === 1;

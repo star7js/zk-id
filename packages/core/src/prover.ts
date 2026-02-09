@@ -8,6 +8,7 @@ import {
   AgeProofRevocable,
   CircuitSignatureInputs,
   RevocationWitness,
+  NullifierProof,
 } from './types';
 import { poseidonHash } from './poseidon';
 import {
@@ -500,4 +501,85 @@ export async function generateAgeProofRevocableAuto(
     wasmPath,
     zkeyPath
   );
+}
+
+/**
+ * Generates a zero-knowledge nullifier proof for sybil resistance
+ *
+ * @param credential - The user's credential (private)
+ * @param scopeHash - The scope hash (public, determines the nullifier context)
+ * @param wasmPath - Path to the compiled circuit WASM file
+ * @param zkeyPath - Path to the proving key
+ * @returns A NullifierProof that proves knowledge of the credential and computes the nullifier
+ */
+export async function generateNullifierProof(
+  credential: Credential,
+  scopeHash: string,
+  wasmPath: string,
+  zkeyPath: string
+): Promise<NullifierProof> {
+  validateHexString(credential.salt, 'credential.salt');
+
+  // Compute the credential hash (commitment)
+  const credentialHash = await poseidonHash([
+    credential.birthYear,
+    credential.nationality,
+    BigInt('0x' + credential.salt),
+  ]);
+
+  // Compute the nullifier = Poseidon(credentialHash, scopeHash)
+  const nullifier = await poseidonHash([
+    credentialHash,
+    BigInt(scopeHash),
+  ]);
+
+  // Prepare circuit inputs
+  const input = {
+    birthYear: credential.birthYear,
+    nationality: credential.nationality,
+    salt: BigInt('0x' + credential.salt).toString(),
+    credentialHash: credentialHash.toString(),
+    scopeHash: scopeHash,
+    nullifier: nullifier.toString(),
+  };
+
+  // Generate the proof using snarkjs
+  const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+    input,
+    wasmPath,
+    zkeyPath
+  );
+
+  // Format the proof
+  const formattedProof: NullifierProof = {
+    proofType: 'nullifier',
+    proof: {
+      pi_a: proof.pi_a.slice(0, 2).map((x: unknown) => String(x)),
+      pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) =>
+        arr.map((x: unknown) => String(x))
+      ),
+      pi_c: proof.pi_c.slice(0, 2).map((x: unknown) => String(x)),
+    },
+    publicSignals: {
+      credentialHash: publicSignals[0],
+      scopeHash: publicSignals[1],
+      nullifier: publicSignals[2],
+    },
+  };
+
+  return formattedProof;
+}
+
+/**
+ * Generates nullifier proof with automatic path resolution
+ * (assumes standard build directory structure)
+ */
+export async function generateNullifierProofAuto(
+  credential: Credential,
+  scopeHash: string
+): Promise<NullifierProof> {
+  const wasmPath = require.resolve('@zk-id/circuits/build/nullifier_js/nullifier.wasm');
+  const zkeyPath = require.resolve('@zk-id/circuits/build/nullifier.zkey');
+
+  return generateNullifierProof(credential, scopeHash, wasmPath, zkeyPath);
 }

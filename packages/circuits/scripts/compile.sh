@@ -76,5 +76,15 @@ echo "Compiling age-verify-revocable.circom..."
   --prime bn128 \
   -l "$ROOT_DIR/node_modules"
 
+# Compile nullifier circuit
+echo "Compiling nullifier.circom..."
+"$CIRCOM" "$SRC_DIR/nullifier.circom" \
+  --r1cs \
+  --wasm \
+  --sym \
+  -o "$BUILD_DIR" \
+  --prime bn128 \
+  -l "$ROOT_DIR/node_modules"
+
 echo "✓ Circuits compiled successfully"
 echo "Next step: Run 'npm run setup' to perform trusted setup (Powers of Tau ceremony)"

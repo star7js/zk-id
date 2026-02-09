@@ -7,11 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.6.0] - 2026-02-09
 
+### Security
+- **Constant-time comparisons** — Added `timing-safe.ts` module in `@zk-id/core`
+  - `constantTimeEqual()`: string comparison using `crypto.timingSafeEqual`
+  - `constantTimeArrayEqual()`: XOR accumulation for array comparison
+  - Applied at 6 locations: issuer public key verification (2×), merkle root checks (1×), nonce verification (3×)
+  - Prevents timing attacks on cryptographic comparisons
+
 ### Fixed
 - **Test suite failures** — Fixed 3 failing tests that were blocking CI
   - Installed missing `@digitalbazaar/bbs-signatures` optional dependency for BBS+ signature tests
   - Fixed boundary test commitment format to use BigInt-compatible numeric strings
   - Fixed integration test nonce generation to use proper numeric values for circuit compatibility
+- **Memory leak in `InMemoryNonceStore`** — Replaced `setTimeout` leak with Map-based lazy expiry
+  - Nonces now stored with expiration timestamps; expired entries cleaned up on access
+  - Added `prune()` method for optional periodic cleanup
+  - Pattern matches `InMemoryChallengeStore` for consistency
+- **GreaterEqThan bit-width inconsistency** — Widened from 8 bits to 12 bits in all age circuits
+  - Prevents age overflow (8-bit limit was 0-255, now 0-4095)
+  - Matches `LessEqThan(12)` used for `birthYearCheck`
+  - Affects `age-verify.circom`, `age-verify-signed.circom`, `age-verify-revocable.circom`
 
 ### Added
 - **KMS/HSM integration** — `EnvelopeKeyManager`, `FileKeyManager` in `@zk-id/issuer`
@@ -50,6 +65,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Scope-based isolation: actions are unlinkable across different scopes
   - `NullifierStore` interface for pluggable backend (in-memory, Redis, Postgres)
   - Follows same pattern as Worldcoin/Semaphore for sybil-resistant anonymous actions
+- **Nullifier Circom circuit** — `nullifier.circom` with `NullifierCompute` template in `@zk-id/circuits`
+  - Two Poseidon constraints: credential binding + nullifier computation
+  - Public signals: `credentialHash`, `scopeHash`, `nullifier`
+  - Private inputs: `birthYear`, `nationality`, `salt`
+  - ~792 constraints (fits in small ptau 2^12)
+  - Prover functions: `generateNullifierProof()`, `generateNullifierProofAuto()` in `@zk-id/core`
+  - Verifier function: `verifyNullifierProof()` integrated into `verifyBatch()` in `@zk-id/core`
+  - Full test coverage in `packages/circuits/test/nullifier.test.js`
 - **Recursive proof aggregation scaffold** — `LogicalAggregator`, `RecursiveAggregator`, `AggregatedProof` in `@zk-id/core`
   - `RecursiveAggregator` interface for pluggable recursive proof backends
   - `LogicalAggregator` pass-through implementation (bundles proofs without recursion)

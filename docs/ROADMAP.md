@@ -132,8 +132,8 @@ This roadmap focuses on security, interoperability, and production readiness. Da
    - Formal verification of core constraints.
    - Trusted setup ceremony for production Groth16 keys.
 
-2. **Nullifier Circuit**
-   - Circom circuit that computes `Poseidon(commitment, scopeHash)` and exposes the nullifier as a public signal.
+2. **Nullifier Circuit** ✅ *Partially Complete (v0.6.0)*
+   - ✅ Circom circuit that computes `Poseidon(commitment, scopeHash)` and exposes the nullifier as a public signal.
    - Integrate nullifier proof with age/nationality verification (combined circuit).
    - On-chain nullifier set for trustless sybil detection.
 

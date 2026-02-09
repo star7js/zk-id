@@ -22,6 +22,7 @@ CIRCUITS=(
   "age-verify-signed"
   "nationality-verify-signed"
   "age-verify-revocable"
+  "nullifier"
 )
 
 # Start JSON output

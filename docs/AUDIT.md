@@ -10,10 +10,10 @@ This document tracks the requirements for a production-ready, audit-worthy v1.0.
   - `age-verify.circom`: `birthYear` is only checked `<= currentYear` — add lower bound check (e.g., `>= 1900`) to prevent wrapping in the field
   - `age-verify.circom`: `nonce` and `requestTimestamp` are copied but not constrained beyond binding — document why this is intentional
   - All signed circuits: `signatureR8` and `signatureS` are 256-bit arrays — ensure each element is binary-constrained
-- [ ] **Field overflow**: `GreaterEqThan(8)` limits age comparison to 8 bits (0-255). Verify that `currentYear - birthYear` cannot exceed 255 or underflow. Consider increasing to 12 bits for defense in depth
+- [x] **Field overflow**: `GreaterEqThan(8)` limits age comparison to 8 bits (0-255). Verify that `currentYear - birthYear` cannot exceed 255 or underflow. Consider increasing to 12 bits for defense in depth — **FIXED**: Widened to 12 bits in v0.6.0
 - [ ] **Merkle tree depth hardcoded**: `AgeVerifyRevocable` hardcodes `depth=10`. This limits the valid credential set to 1024 entries. Document this limit or make it configurable
 - [ ] **EdDSA message length**: `EdDSAVerifier(256)` verifies 256 bits. Ensure the Poseidon hash output fits in 256 bits for the BN128 field (it does — BN128 prime is ~254 bits — but add an explicit comment)
-- [ ] **Deterministic nullifier circuit**: Add a circuit that computes `Poseidon(commitment, scopeHash)` and exposes the nullifier as a public signal. Without this, nullifiers are computed off-chain and must be trusted
+- [x] **Deterministic nullifier circuit**: Add a circuit that computes `Poseidon(commitment, scopeHash)` and exposes the nullifier as a public signal. Without this, nullifiers are computed off-chain and must be trusted — **FIXED**: Added nullifier.circom in v0.6.0
 
 ### High Priority
 
@@ -43,7 +43,7 @@ This document tracks the requirements for a production-ready, audit-worthy v1.0.
 
 ### Critical
 
-- [ ] **Nonce replay**: `InMemoryNonceStore` uses `setTimeout` for expiry — this leaks in long-running processes. Production deployments MUST use a persistent store
+- [x] **Nonce replay**: `InMemoryNonceStore` uses `setTimeout` for expiry — this leaks in long-running processes. Production deployments MUST use a persistent store — **FIXED**: Replaced with Map-based lazy expiry in v0.6.0
 - [ ] **Challenge timing**: `maxRequestAgeMs` prevents stale proofs but does not prevent time-shifted proofs (prover uses a future timestamp). Add server-side time validation
 - [ ] **Credential hash collision**: If two credentials have the same `Poseidon(birthYear, nationality, salt)`, they are indistinguishable. Salt entropy (256 bits) makes this negligible, but document the security margin
 
@@ -61,7 +61,7 @@ This document tracks the requirements for a production-ready, audit-worthy v1.0.
 - [ ] Add integration tests that exercise the full prove-verify flow (requires circuit artifacts)
 - [ ] Remove all `any` type assertions from proof formatting code (`prover.ts`, `verifier.ts`)
 - [ ] Add comprehensive JSDoc to all public API functions
-- [ ] Ensure all crypto operations use constant-time comparisons where applicable (signature verification)
+- [x] Ensure all crypto operations use constant-time comparisons where applicable (signature verification) — **FIXED**: Added timing-safe.ts with constant-time comparisons in v0.6.0
 
 ### Nice to Have
 

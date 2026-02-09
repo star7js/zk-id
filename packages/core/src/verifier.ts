@@ -8,7 +8,9 @@ import {
   VerificationKey,
   BatchVerificationResult,
   ZkProof,
+  NullifierProof,
 } from './types';
+import { constantTimeEqual, constantTimeArrayEqual } from './timing-safe';
 
 /**
  * Verifies an age proof using the verification key
@@ -171,10 +173,7 @@ export async function verifyAgeProofSignedWithIssuer(
   verificationKey: VerificationKey,
   trustedIssuerPublicKeyBits: string[]
 ): Promise<boolean> {
-  if (
-    trustedIssuerPublicKeyBits.length !== proof.publicSignals.issuerPublicKey.length ||
-    trustedIssuerPublicKeyBits.some((bit, i) => bit !== proof.publicSignals.issuerPublicKey[i])
-  ) {
+  if (!constantTimeArrayEqual(trustedIssuerPublicKeyBits, proof.publicSignals.issuerPublicKey)) {
     return false;
   }
   return verifyAgeProofSigned(proof, verificationKey);
@@ -220,10 +219,7 @@ export async function verifyNationalityProofSignedWithIssuer(
   verificationKey: VerificationKey,
   trustedIssuerPublicKeyBits: string[]
 ): Promise<boolean> {
-  if (
-    trustedIssuerPublicKeyBits.length !== proof.publicSignals.issuerPublicKey.length ||
-    trustedIssuerPublicKeyBits.some((bit, i) => bit !== proof.publicSignals.issuerPublicKey[i])
-  ) {
+  if (!constantTimeArrayEqual(trustedIssuerPublicKeyBits, proof.publicSignals.issuerPublicKey)) {
     return false;
   }
   return verifyNationalityProofSigned(proof, verificationKey);
@@ -279,7 +275,7 @@ export async function verifyAgeProofRevocable(
   expectedMerkleRoot?: string
 ): Promise<boolean> {
   // Optional server-side freshness check
-  if (expectedMerkleRoot != null && proof.publicSignals.merkleRoot !== expectedMerkleRoot) {
+  if (expectedMerkleRoot != null && !constantTimeEqual(proof.publicSignals.merkleRoot, expectedMerkleRoot)) {
     return false;
   }
 
@@ -416,6 +412,9 @@ export async function verifyBatch(
         case 'nationality-signed':
           verified = await verifyNationalityProofSigned(proof, verificationKey);
           break;
+        case 'nullifier':
+          verified = await verifyNullifierProof(proof, verificationKey);
+          break;
         default:
           throw new Error(`Unknown proof type: ${(proof as ZkProof).proofType}`);
       }
@@ -440,4 +439,40 @@ export async function verifyBatch(
     verifiedCount,
     totalCount: results.length,
   };
+}
+
+/**
+ * Verifies a nullifier proof using the verification key
+ *
+ * @param proof - The nullifier proof to verify
+ * @param verificationKey - The circuit's verification key (public)
+ * @returns true if the proof is valid, false otherwise
+ */
+export async function verifyNullifierProof(
+  proof: NullifierProof,
+  verificationKey: VerificationKey
+): Promise<boolean> {
+  // Convert proof to snarkjs format
+  const snarkProof = {
+    pi_a: proof.proof.pi_a,
+    pi_b: proof.proof.pi_b,
+    pi_c: proof.proof.pi_c,
+  };
+
+  // Convert public signals to array
+  // Order: [credentialHash, scopeHash, nullifier]
+  const publicSignals = [
+    proof.publicSignals.credentialHash,
+    proof.publicSignals.scopeHash,
+    proof.publicSignals.nullifier,
+  ];
+
+  // Verify the proof
+  const isValid = await snarkjs.groth16.verify(
+    verificationKey,
+    publicSignals,
+    snarkProof
+  );
+
+  return isValid;
 }

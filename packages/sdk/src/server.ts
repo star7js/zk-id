@@ -33,6 +33,7 @@ import {
   isProtocolCompatible,
   AuditLogger,
   ConsoleAuditLogger,
+  constantTimeEqual,
 } from '@zk-id/core';
 import { readFileSync } from 'fs';
 import { EventEmitter } from 'events';
@@ -101,6 +102,7 @@ export interface VerificationKeySet {
   signedAge?: VerificationKey;
   signedNationality?: VerificationKey;
   ageRevocable?: VerificationKey;
+  nullifier?: VerificationKey;
 }
 
 export interface VerificationKeyProvider {
@@ -570,7 +572,7 @@ export class ZkIdServer extends EventEmitter {
 
     // Nonce binding: ensure proof public nonce matches the request nonce
     const proofNonce = this.getProofNonce(proofResponse);
-    if (proofNonce !== proofResponse.nonce) {
+    if (!constantTimeEqual(proofNonce, proofResponse.nonce)) {
       const result = {
         verified: false,
         error: 'Proof nonce does not match request nonce',
@@ -726,7 +728,7 @@ export class ZkIdServer extends EventEmitter {
 
     // Bind nonce and timestamp to proof public signals
     const proofNonce = this.getSignedProofNonce(request.proof, request.claimType);
-    if (proofNonce !== request.nonce) {
+    if (!constantTimeEqual(proofNonce, request.nonce)) {
       const result = { verified: false, error: 'Proof nonce does not match request nonce' };
       this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier);
       return result;
@@ -1064,7 +1066,7 @@ export class ZkIdServer extends EventEmitter {
     }
 
     const proofCommitment = this.getCredentialCommitmentFromProof(proofResponse);
-    if (proofCommitment !== signedCredential.credential.commitment) {
+    if (!constantTimeEqual(proofCommitment, signedCredential.credential.commitment)) {
       return { valid: false, error: 'Credential commitment mismatch' };
     }
 
@@ -1312,17 +1314,38 @@ export interface VerificationResult {
  * Production should use Redis or database
  */
 export class InMemoryNonceStore implements NonceStore {
-  private nonces: Set<string> = new Set();
+  private nonces: Map<string, number> = new Map();
 
   async has(nonce: string): Promise<boolean> {
-    return this.nonces.has(nonce);
+    const expiresAtMs = this.nonces.get(nonce);
+    if (!expiresAtMs) {
+      return false;
+    }
+
+    if (Date.now() > expiresAtMs) {
+      this.nonces.delete(nonce);
+      return false;
+    }
+
+    return true;
   }
 
   async add(nonce: string): Promise<void> {
-    this.nonces.add(nonce);
+    const expiresAtMs = Date.now() + 5 * 60 * 1000;
+    this.nonces.set(nonce, expiresAtMs);
+  }
 
-    // Auto-expire after 5 minutes
-    setTimeout(() => this.nonces.delete(nonce), 5 * 60 * 1000);
+  /**
+   * Optional: Prune expired nonces
+   * Call periodically if needed to prevent unbounded growth
+   */
+  prune(): void {
+    const now = Date.now();
+    for (const [nonce, expiresAtMs] of this.nonces.entries()) {
+      if (now > expiresAtMs) {
+        this.nonces.delete(nonce);
+      }
+    }
   }
 }
 

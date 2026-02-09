@@ -41,7 +41,7 @@ template AgeVerifySigned() {
     // Compute age
     signal age <== currentYear - birthYear;
 
-    component ageCheck = GreaterEqThan(8);
+    component ageCheck = GreaterEqThan(12);
     ageCheck.in[0] <== age;
     ageCheck.in[1] <== minAge;
     ageCheck.out === 1;

@@ -143,6 +143,23 @@ $SNARKJS zkey export verificationkey \
   "$BUILD_DIR/age-verify-revocable.zkey" \
   "$BUILD_DIR/age-verify-revocable_verification_key.json"
 
+# Generate keys for nullifier
+echo "Generating keys for nullifier circuit..."
+$SNARKJS groth16 setup \
+  "$BUILD_DIR/nullifier.r1cs" \
+  "$POT_FILE_SMALL" \
+  "$BUILD_DIR/nullifier_0000.zkey"
+
+$SNARKJS zkey beacon \
+  "$BUILD_DIR/nullifier_0000.zkey" \
+  "$BUILD_DIR/nullifier.zkey" \
+  0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20 10 \
+  --name="Final beacon phase2"
+
+$SNARKJS zkey export verificationkey \
+  "$BUILD_DIR/nullifier.zkey" \
+  "$BUILD_DIR/nullifier_verification_key.json"
+
 # Cleanup intermediate files
 rm "$BUILD_DIR"/*_0000.zkey
 
@@ -160,3 +177,5 @@ echo "  - $BUILD_DIR/nationality-verify-signed.zkey"
 echo "  - $BUILD_DIR/nationality-verify-signed_verification_key.json"
 echo "  - $BUILD_DIR/age-verify-revocable.zkey"
 echo "  - $BUILD_DIR/age-verify-revocable_verification_key.json"
+echo "  - $BUILD_DIR/nullifier.zkey"
+echo "  - $BUILD_DIR/nullifier_verification_key.json"
