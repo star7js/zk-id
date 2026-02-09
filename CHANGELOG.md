@@ -61,6 +61,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each credential field (id, birthYear, nationality, salt, issuedAt, issuer) is a separate BBS message
   - Holders can derive selective disclosure proofs without issuer interaction
   - Full audit logging with signature scheme metadata
+- **Unified revocation manager** — `UnifiedRevocationManager` in `@zk-id/core`
+  - Coordinates both blacklist (`RevocationStore`) and whitelist (`ValidCredentialTree`) into a single API
+  - `addCredential()`, `revokeCredential()`, `reactivateCredential()` with consistent state
+  - `isRevoked()` uses valid-credential tree as source of truth, falls back to blacklist for audit
+  - Tree accessors: `getRoot()`, `getRootInfo()`, `getWitness()`, `validCount()`, `revokedCount()`
+- **Proof type discriminators** — `proofType` field on all 5 proof interfaces
+  - `AgeProof.proofType: 'age'`, `NationalityProof.proofType: 'nationality'`
+  - `AgeProofRevocable.proofType: 'age-revocable'`, `AgeProofSigned.proofType: 'age-signed'`, `NationalityProofSigned.proofType: 'nationality-signed'`
+  - `ZkProof` discriminated union type and `ProofType` string literal type
+  - `verifyBatch()` now dispatches on `proof.proofType` (no separate `type` parameter needed)
+  - All 5 proof types including signed variants supported in batch verification
+- **Boundary and concurrency tests** — comprehensive edge case coverage
+  - Tree boundary: depth=1 (2 leaves), full tree, empty tree, idempotent add/remove, witness round-trip verification
+  - Concurrency: parallel adds, mixed add+remove, concurrent revocations, concurrent witness generation
+  - Poseidon hash edge cases, credential creation boundary values
 - **v1.0.0 audit checklist** — `docs/AUDIT.md` covering circuits, crypto primitives, API security, code quality
 - `docs/STANDARDS.md` documenting ISO 18013-5/7 mapping, privacy comparison, and architectural differences
 - 100+ new tests across all new modules

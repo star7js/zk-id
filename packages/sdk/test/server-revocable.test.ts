@@ -11,6 +11,7 @@ function makeAgeProofRevocable(
   requestTimestamp: number
 ): AgeProofRevocable {
   return {
+    proofType: 'age-revocable',
     proof: {
       pi_a: ['1', '2'],
       pi_b: [

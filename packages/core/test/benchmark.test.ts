@@ -157,6 +157,7 @@ describe('Performance Benchmarks', function () {
 
   describe('Constraint Validation', () => {
     const mockAgeProof: AgeProof = {
+      proofType: 'age',
       proof: {
         pi_a: ['1', '2'],
         pi_b: [['3', '4'], ['5', '6']],
@@ -174,6 +175,7 @@ describe('Performance Benchmarks', function () {
     };
 
     const mockNationalityProof: NationalityProof = {
+      proofType: 'nationality',
       proof: {
         pi_a: ['1', '2'],
         pi_b: [['3', '4'], ['5', '6']],

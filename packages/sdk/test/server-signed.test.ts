@@ -22,6 +22,7 @@ describe('ZkIdServer - signed proofs', () => {
 
     const tsMs = Date.now();
     const proof: AgeProofSigned = {
+      proofType: 'age-signed',
       proof: {
         pi_a: [],
         pi_b: [],

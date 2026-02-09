@@ -7,6 +7,7 @@ import {
   AgeProofRevocable,
   VerificationKey,
   BatchVerificationResult,
+  ZkProof,
 } from './types';
 
 /**
@@ -371,16 +372,22 @@ export async function loadVerificationKey(path: string): Promise<VerificationKey
 }
 
 /**
- * Verifies multiple proofs in parallel
+ * Verifies multiple proofs in parallel.
  *
- * @param proofs - Array of proofs with their verification keys and types
+ * Each proof carries a `proofType` discriminator so the verifier can
+ * dispatch to the correct verification function automatically.
+ * A legacy `type` field is still accepted for backwards compatibility
+ * but is ignored when `proof.proofType` is present.
+ *
+ * @param proofs - Array of proofs with their verification keys
  * @returns Batch verification result with individual and aggregate outcomes
  */
 export async function verifyBatch(
   proofs: Array<{
-    proof: AgeProof | NationalityProof | AgeProofRevocable;
+    proof: ZkProof;
     verificationKey: VerificationKey;
-    type: 'age' | 'nationality' | 'age-revocable';
+    /** @deprecated Use proof.proofType discriminator instead */
+    type?: string;
   }>
 ): Promise<BatchVerificationResult> {
   // Handle empty array
@@ -394,17 +401,27 @@ export async function verifyBatch(
   }
 
   // Verify all proofs in parallel (errors caught per-promise)
-  const verificationPromises = proofs.map(async ({ proof, verificationKey, type }, index) => {
+  const verificationPromises = proofs.map(async ({ proof, verificationKey }, index) => {
     try {
       let verified: boolean;
-      if (type === 'age') {
-        verified = await verifyAgeProof(proof as AgeProof, verificationKey);
-      } else if (type === 'nationality') {
-        verified = await verifyNationalityProof(proof as NationalityProof, verificationKey);
-      } else if (type === 'age-revocable') {
-        verified = await verifyAgeProofRevocable(proof as AgeProofRevocable, verificationKey);
-      } else {
-        throw new Error(`Unknown proof type: ${type}`);
+      switch (proof.proofType) {
+        case 'age':
+          verified = await verifyAgeProof(proof, verificationKey);
+          break;
+        case 'nationality':
+          verified = await verifyNationalityProof(proof, verificationKey);
+          break;
+        case 'age-revocable':
+          verified = await verifyAgeProofRevocable(proof, verificationKey);
+          break;
+        case 'age-signed':
+          verified = await verifyAgeProofSigned(proof, verificationKey);
+          break;
+        case 'nationality-signed':
+          verified = await verifyNationalityProofSigned(proof, verificationKey);
+          break;
+        default:
+          throw new Error(`Unknown proof type: ${(proof as ZkProof).proofType}`);
       }
       return { index, verified, error: undefined };
     } catch (error) {

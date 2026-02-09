@@ -10,6 +10,7 @@ function makeAgeProof(
   requestTimestamp: number
 ): AgeProof {
   return {
+    proofType: 'age',
     proof: {
       pi_a: ['1', '2'],
       pi_b: [

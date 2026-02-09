@@ -30,6 +30,7 @@ describe('Batch Verification Tests', () => {
     it('should return correct result structure', async () => {
       // Create a mock invalid proof
       const mockProof: AgeProof = {
+        proofType: 'age',
         proof: {
           pi_a: ['1', '1'],
           pi_b: [['1', '1'], ['1', '1']],
@@ -68,6 +69,7 @@ describe('Batch Verification Tests', () => {
 
     it('should verify multiple invalid proofs and report all as failed', async () => {
       const mockAgeProof: AgeProof = {
+        proofType: 'age',
         proof: {
           pi_a: ['1', '1'],
           pi_b: [['1', '1'], ['1', '1']],
@@ -85,6 +87,7 @@ describe('Batch Verification Tests', () => {
       };
 
       const mockNationalityProof: NationalityProof = {
+        proofType: 'nationality',
         proof: {
           pi_a: ['1', '1'],
           pi_b: [['1', '1'], ['1', '1']],
@@ -123,6 +126,7 @@ describe('Batch Verification Tests', () => {
 
     it('should include index in results', async () => {
       const mockProof: AgeProof = {
+        proofType: 'age',
         proof: {
           pi_a: ['1', '1'],
           pi_b: [['1', '1'], ['1', '1']],

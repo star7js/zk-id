@@ -21,3 +21,4 @@ export * from './nullifier';
 export * from './recursive';
 export * from './bbs';
 export * from './validation';
+export * from './unified-revocation';

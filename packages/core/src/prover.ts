@@ -70,6 +70,7 @@ export async function generateAgeProof(
 
   // Format the proof
   const formattedProof: AgeProof = {
+    proofType: 'age',
     proof: {
       pi_a: proof.pi_a.slice(0, 2).map((x: unknown) => String(x)),
       pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) =>
@@ -157,6 +158,7 @@ export async function generateNationalityProof(
 
   // Format the proof
   const formattedProof: NationalityProof = {
+    proofType: 'nationality',
     proof: {
       pi_a: proof.pi_a.slice(0, 2).map((x: unknown) => String(x)),
       pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) =>
@@ -249,6 +251,7 @@ export async function generateAgeProofSigned(
   const issuerPublicKey = publicSignals.slice(5, 5 + 256);
 
   const formattedProof: AgeProofSigned = {
+    proofType: 'age-signed',
     proof: {
       pi_a: proof.pi_a.slice(0, 2).map((x: unknown) => String(x)),
       pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) =>
@@ -342,6 +345,7 @@ export async function generateNationalityProofSigned(
   const issuerPublicKey = publicSignals.slice(4, 4 + 256);
 
   const formattedProof: NationalityProofSigned = {
+    proofType: 'nationality-signed',
     proof: {
       pi_a: proof.pi_a.slice(0, 2).map((x: unknown) => String(x)),
       pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) =>
@@ -450,6 +454,7 @@ export async function generateAgeProofRevocable(
   // Format the proof
   // Public signal index mapping: [0]=currentYear, [1]=minAge, [2]=credentialHash, [3]=merkleRoot, [4]=nonce, [5]=requestTimestamp
   const formattedProof: AgeProofRevocable = {
+    proofType: 'age-revocable',
     proof: {
       pi_a: proof.pi_a.slice(0, 2).map((x: unknown) => String(x)),
       pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) =>
