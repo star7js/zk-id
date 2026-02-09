@@ -1,0 +1,49 @@
+{
+  "name": "@zk-id/redis",
+  "version": "0.4.5",
+  "description": "Redis store implementations for zk-id",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/star7js/zk-id.git",
+    "directory": "packages/redis"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "mocha -r ts-node/register/transpile-only test/**/*.test.ts --timeout 10000 --exit"
+  },
+  "dependencies": {
+    "@zk-id/core": "*",
+    "@zk-id/sdk": "*"
+  },
+  "peerDependencies": {
+    "ioredis": "^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "ioredis": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/chai": "^5.2.3",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^25.2.2",
+    "chai": "^6.2.2",
+    "ioredis": "^5.4.2",
+    "mocha": "^12.0.0-beta-8",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
