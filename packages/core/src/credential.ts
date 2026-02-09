@@ -1,6 +1,7 @@
 import { Credential } from './types';
 import { poseidonHash } from './poseidon';
 import { randomBytes } from 'crypto';
+import { validateBirthYear, validateNationality, validateHexString } from './validation';
 
 /**
  * Creates a new credential with the given birth year and nationality
@@ -13,15 +14,8 @@ export async function createCredential(
   birthYear: number,
   nationality: number
 ): Promise<Credential> {
-  // Validate birth year
-  if (birthYear < 1900 || birthYear > new Date().getFullYear()) {
-    throw new Error('Invalid birth year');
-  }
-
-  // Validate nationality (ISO 3166-1 numeric codes are 1-999)
-  if (nationality < 1 || nationality > 999) {
-    throw new Error('Invalid nationality code');
-  }
+  validateBirthYear(birthYear);
+  validateNationality(nationality);
 
   // Generate random salt (32 bytes = 256 bits of entropy)
   const salt = randomBytes(32).toString('hex');
@@ -73,6 +67,10 @@ export async function deriveCommitment(
   nationality: number,
   salt: string
 ): Promise<string> {
+  validateBirthYear(birthYear);
+  validateNationality(nationality);
+  validateHexString(salt, 'salt');
+
   const commitment = await poseidonHash([
     birthYear,
     nationality,

@@ -78,6 +78,12 @@ export function validateProofConstraints(proof: AgeProof): {
   if (!proof.publicSignals.requestTimestamp || proof.publicSignals.requestTimestamp <= 0) {
     errors.push('Invalid request timestamp');
   }
+  // Check timestamp staleness (5 minutes)
+  const nowMs = Date.now();
+  if (proof.publicSignals.requestTimestamp > 0 &&
+      nowMs - proof.publicSignals.requestTimestamp > 5 * 60 * 1000) {
+    errors.push('Request timestamp is stale (> 5 minutes old)');
+  }
 
   return {
     valid: errors.length === 0,
@@ -246,6 +252,11 @@ export function validateNationalityProofConstraints(proof: NationalityProof): {
   if (!proof.publicSignals.requestTimestamp || proof.publicSignals.requestTimestamp <= 0) {
     errors.push('Invalid request timestamp');
   }
+  const nowMs2 = Date.now();
+  if (proof.publicSignals.requestTimestamp > 0 &&
+      nowMs2 - proof.publicSignals.requestTimestamp > 5 * 60 * 1000) {
+    errors.push('Request timestamp is stale (> 5 minutes old)');
+  }
 
   return {
     valid: errors.length === 0,
@@ -337,6 +348,11 @@ export function validateAgeProofRevocableConstraints(proof: AgeProofRevocable): 
 
   if (!proof.publicSignals.requestTimestamp || proof.publicSignals.requestTimestamp <= 0) {
     errors.push('Invalid request timestamp');
+  }
+  const nowMs3 = Date.now();
+  if (proof.publicSignals.requestTimestamp > 0 &&
+      nowMs3 - proof.publicSignals.requestTimestamp > 5 * 60 * 1000) {
+    errors.push('Request timestamp is stale (> 5 minutes old)');
   }
 
   return {

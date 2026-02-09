@@ -25,6 +25,7 @@
  */
 
 import { poseidonHash } from './poseidon';
+import { validateScopeId, validateBigIntString } from './validation';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -76,9 +77,7 @@ export interface NullifierStore {
  * circuit inputs.
  */
 export async function createNullifierScope(scopeId: string): Promise<NullifierScope> {
-  if (!scopeId || scopeId.length === 0) {
-    throw new Error('Scope ID must be a non-empty string');
-  }
+  validateScopeId(scopeId);
 
   // Convert scope string to a numeric value by encoding as field element
   // Use a simple but deterministic encoding: hash the UTF-8 bytes
@@ -113,6 +112,9 @@ export async function computeNullifier(
   commitment: string,
   scope: NullifierScope
 ): Promise<NullifierOutput> {
+  validateBigIntString(commitment, 'commitment');
+  validateBigIntString(scope.scopeHash, 'scope.scopeHash');
+
   const commitmentBigInt = BigInt(commitment);
   const scopeHashBigInt = BigInt(scope.scopeHash);
 

@@ -14,7 +14,10 @@ export interface PostgresValidCredentialTreeOptions {
 }
 
 export interface SqlClient {
-  query<T = any>(text: string, params?: any[]): Promise<{ rows: T[] }>;
+  query<T = Record<string, unknown>>(
+    text: string,
+    params?: (string | number | boolean | null)[]
+  ): Promise<{ rows: T[] }>;
 }
 
 const DEFAULT_TREE_DEPTH = 10;

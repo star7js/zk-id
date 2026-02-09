@@ -25,9 +25,22 @@ export class RedisRateLimiter implements RateLimiter {
     this.keyPrefix = options.keyPrefix ?? 'zkid:rate:';
     this.limit = options.limit ?? 10;
     this.windowMs = options.windowMs ?? 60000;
+
+    if (!Number.isInteger(this.limit) || this.limit <= 0) {
+      throw new Error('limit must be a positive integer');
+    }
+    if (!Number.isInteger(this.windowMs) || this.windowMs <= 0) {
+      throw new Error('windowMs must be a positive integer');
+    }
   }
 
   async allowRequest(identifier: string): Promise<boolean> {
+    if (!identifier || identifier.length === 0) {
+      throw new Error('identifier must be a non-empty string');
+    }
+    if (identifier.length > 512) {
+      throw new Error('identifier must be at most 512 characters');
+    }
     const key = this.keyPrefix + identifier;
     const now = Date.now();
     const windowStart = now - this.windowMs;

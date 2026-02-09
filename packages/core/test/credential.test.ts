@@ -32,14 +32,14 @@ describe('Credential Tests', () => {
         await createCredential(1800, 840);
         throw new Error('Should have thrown');
       } catch (error: any) {
-        expect(error.message).to.include('Invalid birth year');
+        expect(error.message).to.include('birthYear');
       }
 
       try {
         await createCredential(2050, 840);
         throw new Error('Should have thrown');
       } catch (error: any) {
-        expect(error.message).to.include('Invalid birth year');
+        expect(error.message).to.include('birthYear');
       }
     });
 
@@ -48,14 +48,14 @@ describe('Credential Tests', () => {
         await createCredential(1990, 0);
         throw new Error('Should have thrown');
       } catch (error: any) {
-        expect(error.message).to.include('Invalid nationality code');
+        expect(error.message).to.include('nationality');
       }
 
       try {
         await createCredential(1990, 1000);
         throw new Error('Should have thrown');
       } catch (error: any) {
-        expect(error.message).to.include('Invalid nationality code');
+        expect(error.message).to.include('nationality');
       }
     });
 

@@ -121,15 +121,15 @@ export class Groth16ProvingSystem implements ProvingSystem {
     return {
       system: 'groth16',
       proof: {
-        pi_a: proof.pi_a.slice(0, 2).map((x: any) => x.toString()),
-        pi_b: proof.pi_b.slice(0, 2).map((arr: any) =>
-          arr.map((x: any) => x.toString())
+        pi_a: proof.pi_a.slice(0, 2).map((x: unknown) => String(x)),
+        pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) =>
+          arr.map((x: unknown) => String(x))
         ),
-        pi_c: proof.pi_c.slice(0, 2).map((x: any) => x.toString()),
+        pi_c: proof.pi_c.slice(0, 2).map((x: unknown) => String(x)),
         protocol: proof.protocol,
         curve: proof.curve,
       },
-      publicSignals: publicSignals.map((s: any) => s.toString()),
+      publicSignals: publicSignals.map((s: unknown) => String(s)),
     };
   }
 
@@ -184,7 +184,7 @@ export class PLONKProvingSystem implements ProvingSystem {
         protocol: proof.protocol || 'plonk',
         curve: proof.curve || 'bn128',
       },
-      publicSignals: publicSignals.map((s: any) => s.toString()),
+      publicSignals: publicSignals.map((s: unknown) => String(s)),
     };
   }
 

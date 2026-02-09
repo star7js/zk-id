@@ -20,6 +20,15 @@ export class RedisChallengeStore implements ChallengeStore {
   }
 
   async issue(nonce: string, requestTimestampMs: number, ttlMs: number): Promise<void> {
+    if (!nonce || nonce.length === 0) {
+      throw new Error('nonce must be a non-empty string');
+    }
+    if (!Number.isInteger(requestTimestampMs) || requestTimestampMs <= 0) {
+      throw new Error('requestTimestampMs must be a positive integer');
+    }
+    if (!Number.isInteger(ttlMs) || ttlMs <= 0) {
+      throw new Error('ttlMs must be a positive integer');
+    }
     const key = this.keyPrefix + nonce;
     await this.client.set(key, String(requestTimestampMs), 'PX', ttlMs);
   }

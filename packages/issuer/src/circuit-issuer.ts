@@ -34,14 +34,21 @@ function bigintToBytesLE(value: bigint, length: number): Uint8Array {
   return bytes;
 }
 
+/** Typed interface for the circomlibjs EdDSA instance. */
+interface EdDSA {
+  prv2pub(privateKey: Uint8Array): [Uint8Array, Uint8Array];
+  signPedersen(privateKey: Uint8Array, msg: Uint8Array): { R8: [Uint8Array, Uint8Array]; S: bigint };
+  babyJub: { packPoint(point: [Uint8Array, Uint8Array]): Uint8Array };
+}
+
 export class CircuitCredentialIssuer {
   private issuerName: string;
-  private eddsa: any;
+  private eddsa: EdDSA;
   private privateKey: Uint8Array;
-  private publicKey: any;
+  private publicKey: [Uint8Array, Uint8Array];
   private publicKeyBits: string[];
 
-  private constructor(issuerName: string, eddsa: any, privateKey: Uint8Array) {
+  private constructor(issuerName: string, eddsa: EdDSA, privateKey: Uint8Array) {
     this.issuerName = issuerName;
     this.eddsa = eddsa;
     this.privateKey = privateKey;
