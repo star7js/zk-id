@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.4] - 2026-02-08
+
+### Removed
+- Legacy server-side demo endpoints for proof generation (client-side generation is now the default)
+- Dead imports and unused circuit path constants from web app server
+- Signed circuit setup from build process (superseded by revocable proofs)
+
+### Docs
+- Updated README to clarify client-side proof generation workflow
+- Removed references to server-side proof endpoints from OpenAPI spec
+
+## [0.4.3] - 2026-02-08
+
+### Added
+- Browser-side ZK proof generation using snarkjs and WASM
+- Client-side proof generation UI with progress indicators
+- Circuit artifact streaming via CDN for in-browser proof generation
+
+### Changed
+- Web demo now generates all proofs client-side (browser) instead of server-side
+
 ## [0.4.2] - 2026-02-08
 
 ### Added
@@ -102,6 +123,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Full web application with issuer and verifier
 - Comprehensive documentation and README
 
+[0.4.4]: https://github.com/star7js/zk-id/compare/v0.4.3...v0.4.4
+[0.4.3]: https://github.com/star7js/zk-id/compare/v0.4.2...v0.4.3
+[0.4.2]: https://github.com/star7js/zk-id/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/star7js/zk-id/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/star7js/zk-id/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/star7js/zk-id/compare/v0.2.0...v0.3.0

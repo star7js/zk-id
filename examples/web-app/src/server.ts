@@ -12,9 +12,6 @@ import {
   ProofResponse,
   InMemoryRevocationStore,
   InMemoryValidCredentialTree,
-  generateAgeProof,
-  generateNationalityProof,
-  generateAgeProofRevocable,
   PROTOCOL_VERSION,
   isProtocolCompatible,
 } from '@zk-id/core';
@@ -23,14 +20,8 @@ async function main() {
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
 
-// Circuit paths for proof generation
+// Circuit paths for static file serving
 const CIRCUITS_BASE = join(__dirname, '../../../packages/circuits/build');
-const AGE_WASM_PATH = join(CIRCUITS_BASE, 'age-verify_js/age-verify.wasm');
-const AGE_ZKEY_PATH = join(CIRCUITS_BASE, 'age-verify.zkey');
-const NATIONALITY_WASM_PATH = join(CIRCUITS_BASE, 'nationality-verify_js/nationality-verify.wasm');
-const NATIONALITY_ZKEY_PATH = join(CIRCUITS_BASE, 'nationality-verify.zkey');
-const AGE_REVOCABLE_WASM_PATH = join(CIRCUITS_BASE, 'age-verify-revocable_js/age-verify-revocable.wasm');
-const AGE_REVOCABLE_ZKEY_PATH = join(CIRCUITS_BASE, 'age-verify-revocable.zkey');
 
 // Middleware
 app.use(express.json({ limit: '100kb' }));
@@ -269,19 +260,6 @@ app.post('/api/verify-nationality', apiLimiter, async (req, res) => {
     });
   }
 });
-
-// Helper function to get nationality name
-function getNationalityName(code: number): string {
-  const names: { [key: number]: string } = {
-    840: 'United States',
-    826: 'United Kingdom',
-    124: 'Canada',
-    276: 'Germany',
-    250: 'France',
-    392: 'Japan',
-  };
-  return names[code] || `Country ${code}`;
-}
 
 /**
  * Demo endpoint: Revoke a credential (admin only - would require auth in production)

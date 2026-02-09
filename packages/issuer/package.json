@@ -1,6 +1,6 @@
 {
   "name": "@zk-id/issuer",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "description": "Credential issuance service for zk-id",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: zk-id Demo API
-  version: 0.4.4
+  version: 0.4.5
   description: |
     Demo REST API for zk-id verification flows.
 
