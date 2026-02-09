@@ -7,6 +7,7 @@ describe('Verifier Tests', () => {
     const createMockProof = (overrides?: Partial<AgeProof>): AgeProof => {
       const currentYear = new Date().getFullYear();
       return {
+        proofType: 'age',
         proof: {
           pi_a: ['1', '2'],
           pi_b: [['3', '4'], ['5', '6']],
@@ -169,7 +170,8 @@ describe('Verifier Tests', () => {
 
   describe('validateNationalityProofConstraints', () => {
     const createMockNationalityProof = (overrides?: Partial<NationalityProof>): NationalityProof => {
-      return {
+      const defaults: NationalityProof = {
+        proofType: 'nationality',
         proof: {
           pi_a: ['1', '2'],
           pi_b: [['3', '4'], ['5', '6']],
@@ -183,7 +185,14 @@ describe('Verifier Tests', () => {
           nonce: 'nonce-1',
           requestTimestamp: Date.now(),
         },
+      };
+      return {
+        ...defaults,
         ...overrides,
+        publicSignals: {
+          ...defaults.publicSignals,
+          ...overrides?.publicSignals,
+        },
       };
     };
 
@@ -230,6 +239,8 @@ describe('Verifier Tests', () => {
         publicSignals: {
           targetNationality: 840,
           credentialHash: '',
+          nonce: 'nonce-1',
+          requestTimestamp: Date.now(),
         },
       });
 
@@ -243,6 +254,8 @@ describe('Verifier Tests', () => {
         publicSignals: {
           targetNationality: 840,
           credentialHash: '0',
+          nonce: 'nonce-1',
+          requestTimestamp: Date.now(),
         },
       });
 

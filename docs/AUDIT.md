@@ -57,7 +57,7 @@ This document tracks the requirements for a production-ready, audit-worthy v1.0.
 
 ### Before Audit
 
-- [ ] Fix pre-existing TypeScript strict mode errors (currently bypassed by `transpile-only`)
+- [x] Fix pre-existing TypeScript strict mode errors (currently bypassed by `transpile-only`) — **FIXED**: Removed all `transpile-only` and `typeCheck: false` flags from tsconfig/package.json files. Fixed all type errors in test files (missing `proofType` fields, incomplete publicSignals overrides, return type mismatches). All 311 tests passing with full type checking enabled (v0.6.0)
 - [ ] Add integration tests that exercise the full prove-verify flow (requires circuit artifacts)
 - [ ] Remove all `any` type assertions from proof formatting code (`prover.ts`, `verifier.ts`)
 - [ ] Add comprehensive JSDoc to all public API functions

@@ -10,7 +10,6 @@
     "compilerOptions": {
       "module": "commonjs"
     },
-    "files": true,
-    "transpileOnly": true
+    "files": true
   }
 }

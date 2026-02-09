@@ -7,6 +7,7 @@ describe('Revocable Verifier Tests', () => {
     const createMockProof = (overrides?: Partial<AgeProofRevocable>): AgeProofRevocable => {
       const currentYear = new Date().getFullYear();
       return {
+        proofType: 'age-revocable',
         proof: {
           pi_a: ['1', '2'],
           pi_b: [['3', '4'], ['5', '6']],
@@ -107,6 +108,7 @@ describe('Revocable Verifier Tests', () => {
     const createMockProof = (overrides?: Partial<AgeProofRevocable>): AgeProofRevocable => {
       const currentYear = new Date().getFullYear();
       return {
+        proofType: 'age-revocable',
         proof: {
           pi_a: ['1', '2'],
           pi_b: [['3', '4'], ['5', '6']],

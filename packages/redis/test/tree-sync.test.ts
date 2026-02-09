@@ -314,7 +314,7 @@ describe('SyncedValidCredentialTree', () => {
     const inner = new StubValidCredentialTree();
     const synced = new SyncedValidCredentialTree(inner, channel, {
       nodeId: 'node-A',
-      onRemoteUpdate: (event) => remoteUpdates.push(event),
+      onRemoteUpdate: (event) => { remoteUpdates.push(event); },
     });
 
     // This add will broadcast with source=node-A, which should be ignored
@@ -348,13 +348,13 @@ describe('SyncedValidCredentialTree', () => {
     const treeA = new StubValidCredentialTree();
     const syncedA = new SyncedValidCredentialTree(treeA, channelA, {
       nodeId: 'node-A',
-      onRemoteUpdate: (event) => remoteUpdatesA.push(event),
+      onRemoteUpdate: (event) => { remoteUpdatesA.push(event); },
     });
 
     const treeB = new StubValidCredentialTree();
     const syncedB = new SyncedValidCredentialTree(treeB, channelB, {
       nodeId: 'node-B',
-      onRemoteUpdate: (event) => remoteUpdatesB.push(event),
+      onRemoteUpdate: (event) => { remoteUpdatesB.push(event); },
     });
 
     // Node A adds a credential

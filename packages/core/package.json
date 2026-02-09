@@ -22,8 +22,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "mocha -r ts-node/register/transpile-only test/**/*.test.ts --timeout 10000 --exit",
-    "test:watch": "mocha -r ts-node/register/transpile-only test/**/*.test.ts --watch --watch-extensions ts"
+    "test": "mocha -r ts-node/register test/**/*.test.ts --timeout 10000 --exit",
+    "test:watch": "mocha -r ts-node/register test/**/*.test.ts --watch --watch-extensions ts"
   },
   "dependencies": {
     "@digitalbazaar/bbs-signatures": "^3.0.0",

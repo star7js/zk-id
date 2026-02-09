@@ -20,6 +20,7 @@ const dummyKey: VerificationKey = {
 describe('Signed Proof Issuer Matching', () => {
   it('should return false if issuer public key bits do not match (age)', async () => {
     const proof: AgeProofSigned = {
+      proofType: 'age-signed',
       proof: {
         pi_a: [],
         pi_b: [],
@@ -43,6 +44,7 @@ describe('Signed Proof Issuer Matching', () => {
 
   it('should return false if issuer public key bits do not match (nationality)', async () => {
     const proof: NationalityProofSigned = {
+      proofType: 'nationality-signed',
       proof: {
         pi_a: [],
         pi_b: [],

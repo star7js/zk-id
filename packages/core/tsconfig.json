@@ -10,6 +10,6 @@
     "compilerOptions": {
       "module": "commonjs"
     },
-    "typeCheck": false
+    "files": true
   }
 }

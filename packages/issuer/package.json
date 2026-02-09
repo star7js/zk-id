@@ -22,7 +22,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "mocha -r ts-node/register/transpile-only test/**/*.test.ts --timeout 10000 --exit"
+    "test": "mocha -r ts-node/register test/**/*.test.ts --timeout 10000 --exit"
   },
   "dependencies": {
     "@digitalbazaar/bbs-signatures": "^3.0.0",
