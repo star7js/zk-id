@@ -5,6 +5,7 @@ import {
   ZkIdServer,
   IssuerRegistry,
   InMemoryIssuerRegistry,
+  InMemoryNonceStore,
   validateProofResponsePayload,
   validateSignedProofRequestPayload,
 } from '../src/server';
@@ -1389,6 +1390,18 @@ describe('InMemoryIssuerRegistry - rotationGracePeriodMs', () => {
 
     const result = await server.verifyProof(proofResponse);
     expect(result).to.have.property('verified');
+  });
+});
+
+describe('InMemoryNonceStore', () => {
+  it('prunes expired nonces automatically', async () => {
+    const store = new InMemoryNonceStore({ ttlMs: 10, pruneIntervalMs: 5 });
+    await store.add('nonce-1');
+    expect((store as any).nonces.size).to.equal(1);
+
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect((store as any).nonces.size).to.equal(0);
+    store.stop();
   });
 });
 
