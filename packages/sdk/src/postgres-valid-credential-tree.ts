@@ -3,6 +3,8 @@ import {
   RevocationWitness,
   RevocationRootInfo,
   ValidCredentialTree,
+  ZkIdConfigError,
+  ZkIdValidationError,
 } from '@zk-id/core';
 
 export interface PostgresValidCredentialTreeOptions {
@@ -55,7 +57,7 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
     this.client = client;
     this.depth = options.depth ?? DEFAULT_TREE_DEPTH;
     if (this.depth < 1 || this.depth > MAX_TREE_DEPTH) {
-      throw new Error(`Invalid Merkle depth ${this.depth}. Use 1..${MAX_TREE_DEPTH}.`);
+      throw new ZkIdConfigError(`Invalid Merkle depth ${this.depth}. Use 1..${MAX_TREE_DEPTH}.`);
     }
     this.schema = this.validateIdentifier(options.schema ?? 'public', 'schema');
     this.table = this.validateIdentifier(options.table ?? 'zkid_valid_credentials', 'table');
@@ -177,7 +179,7 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
       );
       const nextIdx = (maxRows[0]?.max_idx ?? -1) + 1;
       if (nextIdx >= maxLeaves) {
-        throw new Error('Valid credential tree is full for configured depth.');
+        throw new ZkIdConfigError('Valid credential tree is full for configured depth.');
       }
 
       await this.client.query(
@@ -410,7 +412,7 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
     try {
       return BigInt(commitment).toString();
     } catch {
-      throw new Error('Invalid commitment format');
+      throw new ZkIdValidationError('Invalid commitment format', 'commitment');
     }
   }
 
@@ -424,7 +426,7 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
 
   private validateIdentifier(value: string, label: string): string {
     if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value)) {
-      throw new Error(`Invalid ${label} identifier: ${value}`);
+      throw new ZkIdValidationError(`Invalid ${label} identifier: ${value}`, label);
     }
     return value;
   }

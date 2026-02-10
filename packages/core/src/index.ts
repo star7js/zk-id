@@ -6,6 +6,7 @@
  */
 
 export * from './types';
+export * from './errors';
 export * from './credential';
 export * from './prover';
 export * from './verifier';

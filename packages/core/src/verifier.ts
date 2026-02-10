@@ -11,6 +11,7 @@ import {
   NullifierProof,
 } from './types';
 import { constantTimeEqual, constantTimeArrayEqual } from './timing-safe';
+import { ZkIdProofError } from './errors';
 
 /**
  * Verifies an age proof using the verification key
@@ -436,7 +437,7 @@ export async function verifyBatch(
           verified = await verifyNullifierProof(proof, verificationKey);
           break;
         default:
-          throw new Error(`Unknown proof type: ${(proof as ZkProof).proofType}`);
+          throw new ZkIdProofError(`Unknown proof type: ${(proof as ZkProof).proofType}`, 'UNKNOWN_PROOF_TYPE');
       }
       return { index, verified, error: undefined };
     } catch (error) {

@@ -24,6 +24,7 @@ import {
   createPrivateKey,
 } from 'crypto';
 import { IssuerKeyManager } from './key-management';
+import { ZkIdCryptoError } from '@zk-id/core';
 
 // ---------------------------------------------------------------------------
 // Envelope Key Manager
@@ -117,7 +118,7 @@ export class EnvelopeKeyManager implements IssuerKeyManager {
    */
   static async seal(issuerName: string, masterKey: Buffer): Promise<SealedKeyBundle> {
     if (masterKey.length !== 32) {
-      throw new Error('Master key must be 32 bytes (AES-256)');
+      throw new ZkIdCryptoError('Master key must be 32 bytes (AES-256)');
     }
 
     const { privateKey, publicKey } = await import('crypto').then((c) =>
@@ -149,7 +150,7 @@ export class EnvelopeKeyManager implements IssuerKeyManager {
    */
   static async unseal(bundle: SealedKeyBundle, masterKey: Buffer): Promise<EnvelopeKeyManager> {
     if (masterKey.length !== 32) {
-      throw new Error('Master key must be 32 bytes (AES-256)');
+      throw new ZkIdCryptoError('Master key must be 32 bytes (AES-256)');
     }
 
     const iv = Buffer.from(bundle.iv, 'hex');

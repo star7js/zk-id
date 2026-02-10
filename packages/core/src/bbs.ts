@@ -17,6 +17,8 @@
  *   4. Verifier checks the proof against the issuer's public key
  */
 
+import { ZkIdProofError, ZkIdCredentialError } from './errors';
+
 // ---------------------------------------------------------------------------
 // Lazy loader for ESM-only @digitalbazaar/bbs-signatures
 // ---------------------------------------------------------------------------
@@ -264,7 +266,7 @@ export async function deriveBBSDisclosureProof(
     .sort((a, b) => a - b);
 
   if (disclosedIndexes.length === 0) {
-    throw new Error('No valid fields specified for disclosure');
+    throw new ZkIdProofError('No valid fields specified for disclosure');
   }
 
   const presentationHeader = request.nonce ? encoder.encode(request.nonce) : new Uint8Array();
@@ -386,7 +388,7 @@ export function credentialFieldsToBBSMessages(fields: Record<string, string | nu
   const messages = BBS_CREDENTIAL_FIELDS.map((name) => {
     const value = fields[name];
     if (value === undefined) {
-      throw new Error(`Missing required credential field: ${name}`);
+      throw new ZkIdCredentialError(`Missing required credential field: ${name}`);
     }
     return encodeBBSMessage(value);
   });

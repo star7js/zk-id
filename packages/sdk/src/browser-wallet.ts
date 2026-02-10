@@ -15,6 +15,9 @@ import {
   generateAgeProof,
   generateNationalityProof,
   generateAgeProofRevocable,
+  ZkIdCredentialError,
+  ZkIdConfigError,
+  ZkIdProofError,
 } from '@zk-id/core';
 import type { WalletConnector } from './client';
 
@@ -252,7 +255,7 @@ export class BrowserWallet implements WalletConnector {
   async requestProof(request: ProofRequest): Promise<ProofResponse> {
     const credentials = await this.config.credentialStore.getAll();
     if (credentials.length === 0) {
-      throw new Error('No credentials stored in wallet');
+      throw new ZkIdCredentialError('No credentials stored in wallet', 'CREDENTIAL_NOT_FOUND');
     }
 
     // Credential selection
@@ -261,12 +264,12 @@ export class BrowserWallet implements WalletConnector {
       : this.autoSelectCredential(credentials);
 
     if (selectedId === null) {
-      throw new Error('Proof request was rejected by user');
+      throw new ZkIdProofError('Proof request was rejected by user');
     }
 
     const signedCredential = credentials.find((c) => c.credential.id === selectedId);
     if (!signedCredential) {
-      throw new Error(`Credential ${selectedId} not found in wallet`);
+      throw new ZkIdCredentialError(`Credential ${selectedId} not found in wallet`, 'CREDENTIAL_NOT_FOUND');
     }
 
     const credential = signedCredential.credential;
@@ -274,7 +277,7 @@ export class BrowserWallet implements WalletConnector {
 
     if (request.claimType === 'age') {
       if (!request.minAge) {
-        throw new Error('minAge is required for age proof');
+        throw new ZkIdConfigError('minAge is required for age proof');
       }
       const proof = await generateAgeProof(
         credential,
@@ -296,10 +299,10 @@ export class BrowserWallet implements WalletConnector {
 
     if (request.claimType === 'nationality') {
       if (!request.targetNationality) {
-        throw new Error('targetNationality is required for nationality proof');
+        throw new ZkIdConfigError('targetNationality is required for nationality proof');
       }
       if (!this.config.circuitPaths.nationalityWasm || !this.config.circuitPaths.nationalityZkey) {
-        throw new Error('Nationality circuit paths not configured');
+        throw new ZkIdConfigError('Nationality circuit paths not configured');
       }
       const proof = await generateNationalityProof(
         credential,
@@ -321,13 +324,13 @@ export class BrowserWallet implements WalletConnector {
 
     if (request.claimType === 'age-revocable') {
       if (!request.minAge) {
-        throw new Error('minAge is required for age-revocable proof');
+        throw new ZkIdConfigError('minAge is required for age-revocable proof');
       }
       if (
         !this.config.circuitPaths.ageRevocableWasm ||
         !this.config.circuitPaths.ageRevocableZkey
       ) {
-        throw new Error('Age-revocable circuit paths not configured');
+        throw new ZkIdConfigError('Age-revocable circuit paths not configured');
       }
 
       const witness = await this.fetchWitness(credential);
@@ -350,7 +353,7 @@ export class BrowserWallet implements WalletConnector {
       };
     }
 
-    throw new Error(`Unsupported claim type: ${request.claimType}`);
+    throw new ZkIdProofError(`Unsupported claim type: ${request.claimType}`, 'UNKNOWN_PROOF_TYPE');
   }
 
   // -- Credential management -------------------------------------------------
@@ -390,7 +393,7 @@ export class BrowserWallet implements WalletConnector {
   async exportCredential(id: string): Promise<string> {
     const credential = await this.config.credentialStore.get(id);
     if (!credential) {
-      throw new Error(`Credential ${id} not found`);
+      throw new ZkIdCredentialError(`Credential ${id} not found`, 'CREDENTIAL_NOT_FOUND');
     }
     return JSON.stringify(credential);
   }
@@ -412,7 +415,7 @@ export class BrowserWallet implements WalletConnector {
       !parsed.issuer ||
       !parsed.signature
     ) {
-      throw new Error('Invalid credential format');
+      throw new ZkIdCredentialError('Invalid credential format', 'INVALID_CREDENTIAL_FORMAT');
     }
 
     await this.config.credentialStore.put(parsed);
@@ -433,7 +436,7 @@ export class BrowserWallet implements WalletConnector {
   async importAll(json: string): Promise<number> {
     const parsed = JSON.parse(json) as SignedCredential[];
     if (!Array.isArray(parsed)) {
-      throw new Error('Expected a JSON array of credentials');
+      throw new ZkIdCredentialError('Expected a JSON array of credentials', 'INVALID_CREDENTIAL_FORMAT');
     }
     for (const credential of parsed) {
       await this.config.credentialStore.put(credential);
@@ -462,7 +465,7 @@ export class BrowserWallet implements WalletConnector {
    */
   private async fetchWitness(credential: Credential): Promise<RevocationWitness> {
     if (!this.config.revocationRootEndpoint) {
-      throw new Error('revocationRootEndpoint is required for revocable proofs');
+      throw new ZkIdConfigError('revocationRootEndpoint is required for revocable proofs');
     }
 
     const witnessUrl = this.config.revocationRootEndpoint.replace(/\/root\/?$/, '/witness');
@@ -470,7 +473,7 @@ export class BrowserWallet implements WalletConnector {
 
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`Failed to fetch witness: ${response.statusText}`);
+      throw new ZkIdProofError(`Failed to fetch witness: ${response.statusText}`);
     }
 
     return (await response.json()) as RevocationWitness;

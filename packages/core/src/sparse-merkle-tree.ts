@@ -22,6 +22,7 @@
 
 import { poseidonHash } from './poseidon';
 import { ValidCredentialTree, RevocationWitness, RevocationRootInfo } from './types';
+import { ZkIdConfigError, ZkIdValidationError, ZkIdCryptoError } from './errors';
 
 const DEFAULT_SMT_DEPTH = 20;
 const MAX_SMT_DEPTH = 254; // BN128 field ≈ 254 bits
@@ -49,7 +50,7 @@ export class SparseMerkleTree implements ValidCredentialTree {
 
   constructor(depth: number = DEFAULT_SMT_DEPTH) {
     if (depth < 1 || depth > MAX_SMT_DEPTH) {
-      throw new Error(`Invalid SMT depth ${depth}. Use 1..${MAX_SMT_DEPTH}.`);
+      throw new ZkIdConfigError(`Invalid SMT depth ${depth}. Use 1..${MAX_SMT_DEPTH}.`);
     }
     this.depth = depth;
     this.ready = this.initialize();
@@ -108,7 +109,7 @@ export class SparseMerkleTree implements ValidCredentialTree {
     try {
       return BigInt(commitment).toString();
     } catch {
-      throw new Error('Invalid commitment format');
+      throw new ZkIdValidationError('Invalid commitment format', 'commitment');
     }
   }
 
@@ -127,7 +128,7 @@ export class SparseMerkleTree implements ValidCredentialTree {
     // Check for collision: different commitment mapped to same leaf
     const existing = this.getNode(0, index);
     if (existing !== 0n && existing !== leaf) {
-      throw new Error('Leaf collision in sparse Merkle tree');
+      throw new ZkIdCryptoError('Leaf collision in sparse Merkle tree');
     }
 
     this.commitments.set(normalized, index);

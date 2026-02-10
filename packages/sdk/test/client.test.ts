@@ -92,7 +92,7 @@ describe('SDK Client Tests', () => {
 
         const mockWallet: WalletConnector = {
           isAvailable: async () => true,
-          requestProof: async (_req) => {
+          requestProof: async (req) => {
             capturedRequest = req;
             return {
               credentialId: 'test-cred',
@@ -143,7 +143,7 @@ describe('SDK Client Tests', () => {
         };
 
         // Mock fetch
-        (global as any).fetch = async (_url: string, _options: any) => {
+        (global as any).fetch = async (url: string, options: any) => {
           capturedUrl = url;
           capturedBody = JSON.parse(options.body);
           return {
@@ -433,7 +433,7 @@ describe('SDK Client Tests', () => {
 
         const mockWallet: WalletConnector = {
           isAvailable: async () => true,
-          requestProof: async (_req) => {
+          requestProof: async (req) => {
             capturedRequest = req;
             return {
               credentialId: 'test-cred',
@@ -554,7 +554,7 @@ describe('SDK Client Tests', () => {
           updatedAt: new Date().toISOString(),
         };
 
-        (global as any).fetch = async (_url: string, _options: any) => {
+        (global as any).fetch = async (url: string, options: any) => {
           expect(url).to.equal('http://localhost:3000/api/revocation/root');
           expect(options.method).to.equal('GET');
           return {

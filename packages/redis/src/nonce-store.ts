@@ -1,5 +1,6 @@
 import type { NonceStore } from '@zk-id/sdk';
 import type { RedisClient } from './types';
+import { ZkIdValidationError } from '@zk-id/core';
 
 export interface RedisNonceStoreOptions {
   /** Key prefix for nonce keys (default: "zkid:nonce:") */
@@ -23,7 +24,7 @@ export class RedisNonceStore implements NonceStore {
     this.ttlSeconds = options.ttlSeconds ?? 300;
 
     if (!Number.isInteger(this.ttlSeconds) || this.ttlSeconds <= 0) {
-      throw new Error('ttlSeconds must be a positive integer');
+      throw new ZkIdValidationError('ttlSeconds must be a positive integer', 'ttlSeconds');
     }
   }
 

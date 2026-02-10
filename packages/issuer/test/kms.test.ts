@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { generateKeyPairSync, randomBytes, KeyObject, sign as _sign, verify } from 'crypto';
+import { generateKeyPairSync, randomBytes, KeyObject, verify } from 'crypto';
 import { EnvelopeKeyManager, FileKeyManager, SealedKeyBundle } from '../src/kms';
 import { ManagedCredentialIssuer } from '../src/managed-issuer';
 import { CredentialIssuer } from '../src/issuer';
@@ -34,7 +34,7 @@ describe('KMS Integration', () => {
       const payload = Buffer.from('test message');
       const _signature = await manager.sign(payload);
 
-      const isValid = verify(null, payload, manager.getPublicKey(), sign as _signature);
+      const isValid = verify(null, payload, manager.getPublicKey(), _signature);
       expect(isValid).to.be.true;
     });
 
@@ -111,7 +111,7 @@ describe('KMS Integration', () => {
       const payload = Buffer.from('hello world');
       const _signature = await manager.sign(payload);
 
-      const isValid = verify(null, payload, manager.getPublicKey(), sign as _signature);
+      const isValid = verify(null, payload, manager.getPublicKey(), _signature);
       expect(isValid).to.be.true;
     });
 
@@ -244,7 +244,7 @@ describe('KMS Integration', () => {
 
         const payload = Buffer.from(`message-${i}`);
         const _signature = await manager.sign(payload);
-        const isValid = verify(null, payload, manager.getPublicKey(), sign as _signature);
+        const isValid = verify(null, payload, manager.getPublicKey(), _signature);
         expect(isValid).to.be.true;
       }
     });

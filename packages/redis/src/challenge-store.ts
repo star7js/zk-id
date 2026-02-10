@@ -1,5 +1,6 @@
 import type { ChallengeStore } from '@zk-id/sdk';
 import type { RedisClient } from './types';
+import { ZkIdValidationError } from '@zk-id/core';
 
 export interface RedisChallengeStoreOptions {
   /** Key prefix for challenge keys (default: "zkid:challenge:") */
@@ -21,13 +22,13 @@ export class RedisChallengeStore implements ChallengeStore {
 
   async issue(nonce: string, requestTimestampMs: number, ttlMs: number): Promise<void> {
     if (!nonce || nonce.length === 0) {
-      throw new Error('nonce must be a non-empty string');
+      throw new ZkIdValidationError('nonce must be a non-empty string', 'nonce');
     }
     if (!Number.isInteger(requestTimestampMs) || requestTimestampMs <= 0) {
-      throw new Error('requestTimestampMs must be a positive integer');
+      throw new ZkIdValidationError('requestTimestampMs must be a positive integer', 'requestTimestampMs');
     }
     if (!Number.isInteger(ttlMs) || ttlMs <= 0) {
-      throw new Error('ttlMs must be a positive integer');
+      throw new ZkIdValidationError('ttlMs must be a positive integer', 'ttlMs');
     }
     const key = this.keyPrefix + nonce;
     await this.client.set(key, String(requestTimestampMs), 'PX', ttlMs);

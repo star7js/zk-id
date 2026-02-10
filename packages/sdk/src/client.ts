@@ -20,6 +20,9 @@ import {
   RevocationWitness,
   PROTOCOL_VERSION,
   isProtocolCompatible,
+  ZkIdConfigError,
+  ZkIdCredentialError,
+  ZkIdProofError,
 } from '@zk-id/core';
 
 export interface ZkIdClientConfig {
@@ -152,7 +155,7 @@ export class ZkIdClient {
    */
   async fetchRevocationRootInfo(): Promise<RevocationRootInfo> {
     if (!this.config.revocationRootEndpoint) {
-      throw new Error('revocationRootEndpoint not configured');
+      throw new ZkIdConfigError('revocationRootEndpoint not configured');
     }
 
     const response = await fetch(this.config.revocationRootEndpoint, {
@@ -161,7 +164,7 @@ export class ZkIdClient {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch revocation root: ${response.statusText}`);
+      throw new ZkIdProofError(`Failed to fetch revocation root: ${response.statusText}`);
     }
 
     const info = (await response.json()) as RevocationRootInfo;
@@ -204,7 +207,7 @@ export class ZkIdClient {
     }
 
     // Otherwise, show UI to guide user to get a credential
-    throw new Error('No credential wallet found. Please obtain a credential first.');
+    throw new ZkIdCredentialError('No credential wallet found. Please obtain a credential first.', 'CREDENTIAL_NOT_FOUND');
   }
 
   /**
@@ -221,7 +224,7 @@ export class ZkIdClient {
     });
 
     if (!response.ok) {
-      throw new Error(`Verification failed: ${response.statusText}`);
+      throw new ZkIdProofError(`Verification failed: ${response.statusText}`);
     }
 
     // Check protocol version compatibility
@@ -328,14 +331,14 @@ export class InMemoryWallet implements WalletConnector {
     // Find a stored credential (use first available)
     const signedCredential = Array.from(this.credentials.values())[0];
     if (!signedCredential) {
-      throw new Error('No credentials stored in wallet');
+      throw new ZkIdCredentialError('No credentials stored in wallet', 'CREDENTIAL_NOT_FOUND');
     }
     const credential = signedCredential.credential;
 
     // Generate proof based on claim type
     if (request.claimType === 'age') {
       if (!request.minAge) {
-        throw new Error('minAge is required for age proof');
+        throw new ZkIdConfigError('minAge is required for age proof');
       }
 
       const proof = await generateAgeProof(
@@ -357,11 +360,11 @@ export class InMemoryWallet implements WalletConnector {
       };
     } else if (request.claimType === 'nationality') {
       if (!request.targetNationality) {
-        throw new Error('targetNationality is required for nationality proof');
+        throw new ZkIdConfigError('targetNationality is required for nationality proof');
       }
 
       if (!this.config.circuitPaths.nationalityWasm || !this.config.circuitPaths.nationalityZkey) {
-        throw new Error('Nationality circuit paths not configured');
+        throw new ZkIdConfigError('Nationality circuit paths not configured');
       }
 
       const proof = await generateNationalityProof(
@@ -383,23 +386,23 @@ export class InMemoryWallet implements WalletConnector {
       };
     } else if (request.claimType === 'age-revocable') {
       if (!request.minAge) {
-        throw new Error('minAge is required for age-revocable proof');
+        throw new ZkIdConfigError('minAge is required for age-revocable proof');
       }
 
       if (
         !this.config.circuitPaths.ageRevocableWasm ||
         !this.config.circuitPaths.ageRevocableZkey
       ) {
-        throw new Error('Age-revocable circuit paths not configured');
+        throw new ZkIdConfigError('Age-revocable circuit paths not configured');
       }
 
       if (!this.config.validCredentialTree) {
-        throw new Error('Valid credential tree not configured for revocable proofs');
+        throw new ZkIdConfigError('Valid credential tree not configured for revocable proofs');
       }
 
       const witness = await this.config.validCredentialTree.getWitness(credential.commitment);
       if (!witness) {
-        throw new Error('Credential not found in valid credential tree');
+        throw new ZkIdCredentialError('Credential not found in valid credential tree', 'CREDENTIAL_NOT_FOUND');
       }
 
       const proof = await generateAgeProofRevocable(
@@ -421,12 +424,12 @@ export class InMemoryWallet implements WalletConnector {
         requestTimestamp: request.timestamp,
       };
     } else {
-      throw new Error(`Unsupported claim type: ${request.claimType}`);
+      throw new ZkIdProofError(`Unsupported claim type: ${request.claimType}`, 'UNKNOWN_PROOF_TYPE');
     }
   }
 
   addCredential(_credential: Credential): void {
-    throw new Error('addCredential is deprecated. Use addSignedCredential instead.');
+    throw new ZkIdConfigError('addCredential is deprecated. Use addSignedCredential instead.');
   }
 
   addSignedCredential(signedCredential: SignedCredential): void {

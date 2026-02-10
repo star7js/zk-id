@@ -34,6 +34,7 @@ import {
   AuditLogger,
   ConsoleAuditLogger,
   constantTimeEqual,
+  ZkIdConfigError,
 } from '@zk-id/core';
 import { readFileSync } from 'fs';
 import { EventEmitter } from 'events';
@@ -398,7 +399,7 @@ export class ZkIdServer extends EventEmitter {
     } else if (config.verificationKeyPath) {
       this.verificationKey = this.loadVerificationKey(config.verificationKeyPath);
     } else {
-      throw new Error('verificationKeyPath or verificationKeys.age is required');
+      throw new ZkIdConfigError('verificationKeyPath or verificationKeys.age is required');
     }
 
     if (config.verificationKeys?.nationality) {

@@ -1,5 +1,6 @@
 import type { RateLimiter } from '@zk-id/sdk';
 import type { RedisClient } from './types';
+import { ZkIdValidationError, ZkIdConfigError } from '@zk-id/core';
 
 export interface RedisRateLimiterOptions {
   /** Key prefix for rate limit keys (default: "zkid:rate:") */
@@ -27,19 +28,19 @@ export class RedisRateLimiter implements RateLimiter {
     this.windowMs = options.windowMs ?? 60000;
 
     if (!Number.isInteger(this.limit) || this.limit <= 0) {
-      throw new Error('limit must be a positive integer');
+      throw new ZkIdConfigError('limit must be a positive integer');
     }
     if (!Number.isInteger(this.windowMs) || this.windowMs <= 0) {
-      throw new Error('windowMs must be a positive integer');
+      throw new ZkIdConfigError('windowMs must be a positive integer');
     }
   }
 
   async allowRequest(identifier: string): Promise<boolean> {
     if (!identifier || identifier.length === 0) {
-      throw new Error('identifier must be a non-empty string');
+      throw new ZkIdValidationError('identifier must be a non-empty string', 'identifier');
     }
     if (identifier.length > 512) {
-      throw new Error('identifier must be at most 512 characters');
+      throw new ZkIdValidationError('identifier must be at most 512 characters', 'identifier');
     }
     const key = this.keyPrefix + identifier;
     const now = Date.now();
@@ -57,7 +58,7 @@ export class RedisRateLimiter implements RateLimiter {
 
       const results = await pipeline.exec();
       if (!results) {
-        throw new Error('Pipeline execution failed');
+        throw new ZkIdConfigError('Pipeline execution failed');
       }
 
       const count = results[2]?.[1] as number;

@@ -9,6 +9,7 @@
 
 import { AgeProof, NationalityProof, AgeProofRevocable, ProofRequest } from './types';
 import { validateNonce, validateMinAge, validateNationality } from './validation';
+import { ZkIdValidationError } from './errors';
 
 // ---------------------------------------------------------------------------
 // Multi-Claim Types
@@ -105,7 +106,7 @@ export interface MultiClaimVerificationResult {
  */
 export function createMultiClaimRequest(claims: ClaimSpec[], nonce: string): MultiClaimRequest {
   if (claims.length === 0) {
-    throw new Error('Multi-claim request must contain at least one claim');
+    throw new ZkIdValidationError('Multi-claim request must contain at least one claim', 'claims');
   }
 
   validateNonce(nonce);
@@ -114,10 +115,10 @@ export function createMultiClaimRequest(claims: ClaimSpec[], nonce: string): Mul
   const labels = new Set<string>();
   for (const claim of claims) {
     if (!claim.label || claim.label.length === 0) {
-      throw new Error('Claim label must be a non-empty string');
+      throw new ZkIdValidationError('Claim label must be a non-empty string', 'label');
     }
     if (labels.has(claim.label)) {
-      throw new Error(`Duplicate claim label: ${claim.label}`);
+      throw new ZkIdValidationError(`Duplicate claim label: ${claim.label}`, 'label');
     }
     labels.add(claim.label);
   }
@@ -126,14 +127,15 @@ export function createMultiClaimRequest(claims: ClaimSpec[], nonce: string): Mul
   for (const claim of claims) {
     if (claim.claimType === 'age' || claim.claimType === 'age-revocable') {
       if (claim.minAge === undefined) {
-        throw new Error(`Claim '${claim.label}': minAge is required for ${claim.claimType} claims`);
+        throw new ZkIdValidationError(`Claim '${claim.label}': minAge is required for ${claim.claimType} claims`, 'minAge');
       }
       validateMinAge(claim.minAge);
     }
     if (claim.claimType === 'nationality') {
       if (claim.targetNationality === undefined) {
-        throw new Error(
+        throw new ZkIdValidationError(
           `Claim '${claim.label}': targetNationality is required for nationality claims`,
+          'targetNationality',
         );
       }
       validateNationality(claim.targetNationality);

@@ -1,5 +1,6 @@
 import { poseidonHash } from './poseidon';
 import { ValidCredentialTree, RevocationWitness, RevocationRootInfo } from './types';
+import { ZkIdConfigError, ZkIdValidationError } from './errors';
 
 const DEFAULT_TREE_DEPTH = 10;
 const MAX_TREE_DEPTH = 20;
@@ -26,7 +27,7 @@ export class InMemoryValidCredentialTree implements ValidCredentialTree {
 
   constructor(depth: number = DEFAULT_TREE_DEPTH) {
     if (depth < 1 || depth > MAX_TREE_DEPTH) {
-      throw new Error(`Invalid Merkle depth ${depth}. Use 1..${MAX_TREE_DEPTH}.`);
+      throw new ZkIdConfigError(`Invalid Merkle depth ${depth}. Use 1..${MAX_TREE_DEPTH}.`);
     }
     this.depth = depth;
     this.ready = this.initialize();
@@ -65,7 +66,7 @@ export class InMemoryValidCredentialTree implements ValidCredentialTree {
 
     const maxLeaves = 1 << this.depth;
     if (this.leaves.length >= maxLeaves && this.freeIndices.length === 0) {
-      throw new Error('Valid credential tree is full for configured depth.');
+      throw new ZkIdConfigError('Valid credential tree is full for configured depth.');
     }
 
     const leaf = BigInt(normalized);
@@ -177,7 +178,7 @@ export class InMemoryValidCredentialTree implements ValidCredentialTree {
     try {
       return BigInt(commitment).toString();
     } catch {
-      throw new Error('Invalid commitment format');
+      throw new ZkIdValidationError('Invalid commitment format', 'commitment');
     }
   }
 
