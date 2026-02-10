@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-02-09
+
+### Added
+- **On-chain Groth16 verifier** (`@zk-id/contracts` package): Solidity BN128 pairing verifier, age + nationality verification contracts, deployment scripts
+- **W3C VC interoperability**: `toW3CVerifiableCredential`, `fromW3CVerifiableCredential`, `ed25519PublicKeyToDidKey`, `didKeyToEd25519PublicKey` in `@zk-id/core`
+- W3C VC documentation (`docs/W3C-VC-INTEROPERABILITY.md`)
+
+### Security
+- Hardened nonce store with configurable TTL and background pruning (`InMemoryNonceStoreOptions`)
+- Added scope validation (`validateBigIntString`, `validateFieldElement`) to nullifier prover
+- Grace period audit logging in `validateSignedCredentialBinding` for forensic completeness
+- Defensive try-catch around grace period audit logging
+- Pinned `actions/upload-artifact` GitHub Action to commit hash (supply chain security)
+- Removed unnecessary `security-events:write` CI permission
+- Fixed incomplete URL substring sanitization in tests
+- Added npm overrides for lodash, tmp, cookie, undici vulnerabilities
+
+### Fixed
+- Grace period in `validateSignedCredentialBinding` now emits `grace_period_accept` audit log entry
+- Cross-reference comments between dual grace period check locations
+- Circuit artifact hashes updated to match CI build environment
+
+### Tests
+- Grace period test for `validateSignedCredentialBinding` path
+- Nonce pruning and nullifier scope validation tests
+
+## [1.0.0] - 2026-02-09
+
+### Added
+- Comprehensive threat model (`docs/THREAT-MODEL.md`)
+- Circuit signal flow diagrams (`docs/CIRCUIT-DIAGRAMS.md`)
+- Production deployment guide (`docs/DEPLOYMENT.md`)
+- Full JSDoc coverage and TypeDoc setup
+- Error sanitization (`sanitizeError`) to prevent information leakage
+- Configurable `verboseErrors` mode for debugging
+- `maxFutureSkewMs` to prevent time-shifted proof attacks
+
+### Security
+- TypeScript strict mode enabled for all tests
+- Fixed time-shifted proof attack vector
+- Fixed under-constrained circuit signals
+
+### Fixed
+- v1.0.0 implementation gaps found in post-release review
+
 ## [0.6.0] - 2026-02-09
 
 ### Security
@@ -304,6 +349,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Full web application with issuer and verifier
 - Comprehensive documentation and README
 
+[1.1.0]: https://github.com/star7js/zk-id/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/star7js/zk-id/compare/v0.6.0...v1.0.0
 [0.6.0]: https://github.com/star7js/zk-id/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/star7js/zk-id/compare/v0.4.5...v0.5.0
 [0.4.5]: https://github.com/star7js/zk-id/compare/v0.4.4...v0.4.5

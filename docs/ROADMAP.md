@@ -51,25 +51,16 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - ✅ Input validation module and `any` type elimination across all packages
 - ✅ Sparse Merkle tree (`SparseMerkleTree` with hash-addressed leaves, O(n×depth) storage, non-membership proofs)
 - ✅ Boundary and concurrency tests (tree edge cases, concurrent operations, Poseidon hash boundaries)
+- ✅ On-chain Groth16 verifier (Solidity, `@zk-id/contracts`)
+- ✅ W3C VC interoperability (`toW3CVerifiableCredential`, `fromW3CVerifiableCredential`, DID key support)
+- ✅ v1.0.0 comprehensive documentation (threat model, circuit diagrams, deployment guide)
+- ✅ Error sanitization and verbose error mode
+- ✅ CI security hardening (pinned actions, minimal permissions, supply chain protections)
 
 ## Now (Next 2–6 Weeks)
 
-**Priority 1: On-Chain Verification (NEW - Critical for Web3 adoption)**
-1. **On-Chain Groth16 Verifier (Solidity)**
-   - Implement BN128 pairing-based verifier contract for on-chain proof verification
-   - Support age and nationality proof verification in smart contracts
-   - Add deployment scripts and integration tests
-   - Document use cases: DeFi KYC, DAO voting, NFT minting, compliant token transfers
-
-**Priority 2: W3C VC/DID Interoperability (Moved up from Q3-Q4)**
-2. **W3C VC Data Model v2.0 Compliance**
-   - Add `@context` and `type` fields to `ExternalCredential`
-   - Support DID identifiers for issuers (`did:key` / `did:web`)
-   - Document compliance gaps explicitly in `PROTOCOL.md`
-   - Maintain backward compatibility (non-breaking additions)
-
-**Priority 3: Developer Experience**
-3. **Compliance Regulation Mapping**
+**Priority 1: Developer Experience**
+1. **Compliance Regulation Mapping**
    - UK Online Safety Act compliance documentation
    - EU Digital Services Act and Age Verification Regulation mapping
    - eIDAS 2.0 alignment documentation
@@ -143,15 +134,17 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 2. **Nullifier Circuit Integration** ✅ *Partially Complete (v0.6.0)*
    - ✅ Circom circuit that computes `Poseidon(commitment, scopeHash)` and exposes the nullifier as a public signal
    - Integrate nullifier proof with age/nationality verification (combined circuit)
-   - On-chain nullifier set for trustless sybil detection
+   - On-chain nullifier set for trustless sybil detection (now more feasible with `@zk-id/contracts`)
 
 3. **Multi-Issuer Trust Framework**
    - Trust scoring, federation, and cross-jurisdiction policies
    - Multi-issuer credentials and threshold issuance
    - Cross-border identity verification agreements
 
-4. **Advanced W3C VC/DID Interoperability** (Initial items moved to "Now")
-   - **Full W3C VC v2.0 compliance:** Credential envelope passes VC validators
+4. **Advanced W3C VC/DID Interoperability** ✅ *Initial items complete (v1.1.0)*
+   - ✅ Basic W3C VC conversion: `toW3CVerifiableCredential`, `fromW3CVerifiableCredential` in `@zk-id/core`
+   - ✅ DID key support: `ed25519PublicKeyToDidKey`, `didKeyToEd25519PublicKey` utilities
+   - **Full W3C VC v2.0 compliance:** Credential envelope passes VC validators (not yet complete)
    - **JSON-LD `@context` alignment:** Embed zk-id-specific context URL
    - **VC Data Integrity proof suite:** Define `zkProof2026` proof type with Groth16 verification method
    - **DID resolution:** Support `did:web`, `did:key`, and `did:ion` for issuer identifiers
@@ -189,7 +182,7 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - **v0.5.0**: Wallet prototype + distributed tree synchronization + benchmarks + deprecation policy (done)
 - **v0.6.0**: KMS/HSM + policy + dashboard + standards + multi-claim + proving abstraction + nullifiers + recursive scaffold + BBS selective disclosure + unified revocation + sparse Merkle tree + type safety (done)
 - **v1.0.0**: Audit-ready release (completed)
-- **v1.1.0** (Q2 2026): On-chain verifier + W3C VC compliance + compliance docs
+- **v1.1.0** (done, except compliance docs): On-chain verifier + W3C VC interoperability
 - **v1.2.0** (Q3 2026): Mobile SDK + credential exchange protocol + developer portal
 - **v1.3.0** (Q4 2026): Multi-language SDKs + trusted setup ceremony + third-party audit
 - **v2.0.0** (2027+): Full W3C VC compliance + advanced cryptography + enterprise scale
@@ -217,4 +210,4 @@ Advanced cryptography (recursive proofs, PLONK, BBS+SNARK hybrid) has been depri
 
 ---
 
-Last updated: 2026-02-09
+Last updated: 2026-02-10

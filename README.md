@@ -218,7 +218,9 @@ zk-id/
 │   ├── circuits/          # Circom ZK circuits (age-verify, nationality-verify, credential-hash)
 │   ├── core/              # Core library (credential, prover, verifier, revocation, batch)
 │   ├── issuer/            # Credential issuance with Ed25519 signatures
-│   └── sdk/               # Server SDK with telemetry & revocation checking
+│   ├── sdk/               # Server SDK with telemetry & revocation checking
+│   ├── redis/             # Redis stores for nonce, revocation, and distributed tree sync
+│   └── contracts/         # Solidity on-chain Groth16 verifier
 ├── examples/
 │   └── web-app/           # Full web integration example with credential issuance and verification
 └── docs/                  # Architecture and protocol documentation
@@ -232,6 +234,8 @@ zk-id/
 | `@zk-id/issuer` | Credential issuance service | Ed25519 signatures, multi-attribute credentials, revocation |
 | `@zk-id/sdk` | Server-side verification | Proof verification, telemetry events, rate limiting, replay protection |
 | `@zk-id/circuits` | ZK circuits (Circom) | Age verification, nationality verification, credential hashing |
+| `@zk-id/redis` | Redis storage backends | Nonce store, revocation store, distributed tree sync |
+| `@zk-id/contracts` | Solidity contracts | On-chain Groth16 verifier for age & nationality proofs |
 
 ## Use Cases
 
@@ -337,10 +341,10 @@ Note: These circuits use BabyJub EdDSA signatures (circomlib), not Ed25519.
 - [x] **Web integration example** (Express + HTML demo)
 - [x] **In-circuit revocation proofs** (Merkle inclusion for valid-set)
 - [x] **TypeScript SDK integration for revocable credentials**
-- [ ] Browser wallet implementation
+- [x] Browser wallet implementation
 - [ ] Mobile wallet (iOS/Android)
-- [ ] Sparse Merkle tree for revocation-list (scalability improvement)
-- [ ] Recursive proof composition
+- [x] Sparse Merkle tree for revocation-list (scalability improvement)
+- [x] Recursive proof composition (scaffold)
 
 ## Security Considerations
 
@@ -352,8 +356,8 @@ Note: These circuits use BabyJub EdDSA signatures (circomlib), not Ed25519.
 ### Production Checklist
 
 - [ ] Use production Powers of Tau ceremony (not test ceremony)
-- [ ] Implement proper key management (HSM/KMS for issuer keys)
-- [ ] Add rate limiting to verification endpoints
+- [x] Implement proper key management (HSM/KMS for issuer keys)
+- [x] Add rate limiting to verification endpoints
 - [x] Implement nonce-based replay protection
 - [ ] Use HTTPS for all communications
 - [ ] Audit circuits before production use

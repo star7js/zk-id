@@ -162,3 +162,49 @@ For a third-party audit, we recommend the following scope (in priority order):
 6. **Key management** (`kms.ts`, `key-management.ts`) — envelope encryption, key lifecycle
 
 Estimated effort: 2-4 weeks for a team of 2 cryptographers + 1 code auditor.
+
+---
+
+## v1.1.0 Implementation Summary
+
+**Date:** 2026-02-09
+
+### On-Chain Groth16 Verifier
+
+- **Added `@zk-id/contracts` package**: Solidity BN128 pairing-based verifier contract for on-chain proof verification
+- **Age and nationality verification contracts**: Smart contracts for age and nationality proof verification
+- **Deployment scripts**: Automated deployment scripts for contract deployment
+- **Use cases documented**: DeFi KYC, DAO voting, NFT minting, compliant token transfers
+
+### W3C VC Interoperability
+
+- **W3C VC conversion utilities**: `toW3CVerifiableCredential`, `fromW3CVerifiableCredential` in `@zk-id/core`
+- **DID key support**: `ed25519PublicKeyToDidKey`, `didKeyToEd25519PublicKey` utilities for DID identifier conversion
+- **Documentation**: `docs/W3C-VC-INTEROPERABILITY.md` added
+- **Note**: Basic format conversion implemented; full W3C VC validator suite compliance pending
+
+### Security Hardening
+
+- **Grace period audit logging gap fixed**: `validateSignedCredentialBinding` now emits `grace_period_accept` audit log entry for forensic completeness
+- **Cross-reference comments**: Added cross-reference comments between dual grace period check locations
+- **Nonce store hardening**: Configurable TTL and background pruning (`InMemoryNonceStoreOptions`)
+- **Nullifier scope validation**: `validateBigIntString`, `validateFieldElement` added to nullifier prover
+- **Defensive try-catch**: Around grace period audit logging to prevent logging failures from blocking verification
+
+### CI Supply Chain Security
+
+- **Pinned `actions/upload-artifact`**: GitHub Action pinned to commit hash (supply chain security)
+- **Removed unnecessary CI permission**: Removed `security-events:write` permission (principle of least privilege)
+- **npm dependency overrides**: Added overrides for lodash, tmp, cookie, undici vulnerabilities
+
+### Circuit Artifact Hash Verification
+
+- **Fixed circuit artifact hashes**: Updated to match CI build environment
+- **Platform dependency documented**: Circuit artifact hashes are platform-dependent (macOS vs Linux produce different hashes)
+
+### Tests
+
+- **Grace period test**: Test for `validateSignedCredentialBinding` grace period path
+- **Nonce pruning tests**: Tests for nonce store pruning behavior
+- **Nullifier scope validation tests**: Tests for nullifier prover input validation
+- **URL sanitization test fix**: Fixed incomplete URL substring sanitization in tests
