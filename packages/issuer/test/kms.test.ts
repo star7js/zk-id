@@ -3,7 +3,7 @@ import { generateKeyPairSync, randomBytes, KeyObject, verify } from 'crypto';
 import { EnvelopeKeyManager, FileKeyManager, SealedKeyBundle } from '../src/kms';
 import { ManagedCredentialIssuer } from '../src/managed-issuer';
 import { CredentialIssuer } from '../src/issuer';
-import { credentialSignaturePayload } from '@zk-id/core';
+import { credentialSignaturePayload, ZkIdCryptoError } from '@zk-id/core';
 
 describe('KMS Integration', () => {
   describe('EnvelopeKeyManager', () => {
@@ -407,6 +407,59 @@ describe('KMS Integration', () => {
       // Verify with re-unsealed manager
       const isValid = CredentialIssuer.verifySignature(credential, manager2.getPublicKey());
       expect(isValid).to.be.true;
+    });
+  });
+
+  describe('FileKeyManager - Ed25519 key type validation (C-9 fix)', () => {
+    it('rejects RSA keys in fromPemStrings', () => {
+      const { privateKey, publicKey } = generateKeyPairSync('rsa', {
+        modulusLength: 2048,
+      });
+      const privateKeyPem = privateKey.export({ type: 'pkcs8', format: 'pem' }) as string;
+      const publicKeyPem = publicKey.export({ type: 'spki', format: 'pem' }) as string;
+
+      expect(() => {
+        FileKeyManager.fromPemStrings('test-issuer', privateKeyPem, publicKeyPem);
+      }).to.throw(ZkIdCryptoError);
+    });
+
+    it('rejects EC keys in fromPemStrings', () => {
+      const { privateKey, publicKey } = generateKeyPairSync('ec', {
+        namedCurve: 'prime256v1',
+      });
+      const privateKeyPem = privateKey.export({ type: 'pkcs8', format: 'pem' }) as string;
+      const publicKeyPem = publicKey.export({ type: 'spki', format: 'pem' }) as string;
+
+      expect(() => {
+        FileKeyManager.fromPemStrings('test-issuer', privateKeyPem, publicKeyPem);
+      }).to.throw(ZkIdCryptoError);
+    });
+
+    it('accepts Ed25519 keys in fromPemStrings', () => {
+      const { privateKey, publicKey } = generateKeyPairSync('ed25519');
+      const privateKeyPem = privateKey.export({ type: 'pkcs8', format: 'pem' }) as string;
+      const publicKeyPem = publicKey.export({ type: 'spki', format: 'pem' }) as string;
+
+      expect(() => {
+        FileKeyManager.fromPemStrings('test-issuer', privateKeyPem, publicKeyPem);
+      }).to.not.throw();
+    });
+
+    it('throws descriptive error message for wrong key type', () => {
+      const { privateKey, publicKey } = generateKeyPairSync('rsa', {
+        modulusLength: 2048,
+      });
+      const privateKeyPem = privateKey.export({ type: 'pkcs8', format: 'pem' }) as string;
+      const publicKeyPem = publicKey.export({ type: 'spki', format: 'pem' }) as string;
+
+      try {
+        FileKeyManager.fromPemStrings('test-issuer', privateKeyPem, publicKeyPem);
+        expect.fail('Should have thrown');
+      } catch (error: any) {
+        expect(error).to.be.instanceOf(ZkIdCryptoError);
+        expect(error.message).to.include('expected ed25519');
+        expect(error.message).to.include('got rsa');
+      }
     });
   });
 });

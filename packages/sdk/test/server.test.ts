@@ -1542,3 +1542,165 @@ describe('validateSignedCredentialBinding - rotationGracePeriodMs', () => {
     expect(graceLog.metadata).to.have.property('expiredAgoMs');
   });
 });
+
+// ---------------------------------------------------------------------------
+// validatePayloads default behavior (V-4 security fix)
+// ---------------------------------------------------------------------------
+
+describe('ZkIdServer - validatePayloads default true (V-4)', () => {
+  it('validates payloads by default (no config)', async () => {
+    const server = new ZkIdServer({
+      verificationKeys: { age: {} as any },
+      verboseErrors: true,
+    });
+
+    const result = await server.verifyProof({} as any);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.match(/Invalid payload/);
+  });
+
+  it('validates payloads when explicitly undefined', async () => {
+    const server = new ZkIdServer({
+      verificationKeys: { age: {} as any },
+      validatePayloads: undefined,
+      verboseErrors: true,
+    });
+
+    const result = await server.verifyProof({} as any);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.match(/Invalid payload/);
+  });
+
+  it('allows disabling validation with explicit false', async () => {
+    const server = new ZkIdServer({
+      verificationKeys: { age: {} as any },
+      validatePayloads: false,
+      requireSignedCredentials: false,
+    });
+
+    // Should skip validation and proceed to proof verification
+    const timestamp = Date.now();
+    const proofResponse: ProofResponse = {
+      credentialId: 'cred-1',
+      claimType: 'age',
+      proof: makeAgeProof('hash-1', 18, 'nonce-1', timestamp),
+      nonce: 'nonce-1',
+      requestTimestamp: new Date(timestamp).toISOString(),
+    } as ProofResponse;
+
+    const result = await server.verifyProof(proofResponse);
+    // Will fail at proof verification, not payload validation
+    expect(result.verified).to.equal(false);
+  });
+
+  it('validates when explicitly set to true', async () => {
+    const server = new ZkIdServer({
+      verificationKeys: { age: {} as any },
+      validatePayloads: true,
+      verboseErrors: true,
+    });
+
+    const result = await server.verifyProof({} as any);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.match(/Invalid payload/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// sanitizeError additional paths
+// ---------------------------------------------------------------------------
+
+describe('ZkIdServer - sanitizeError additional paths', () => {
+  it('sanitizes proof verification errors', async () => {
+    const server = new ZkIdServer({
+      verificationKeys: { age: {} as any },
+      verboseErrors: false,
+      requireSignedCredentials: false,
+    });
+
+    const timestamp = Date.now();
+    const proofResponse: ProofResponse = {
+      credentialId: 'cred-1',
+      claimType: 'age',
+      proof: makeAgeProof('hash-1', 18, 'nonce-proof', timestamp),
+      nonce: 'nonce-proof',
+      requestTimestamp: new Date(timestamp).toISOString(),
+    } as ProofResponse;
+
+    const result = await server.verifyProof(proofResponse);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.equal('Verification failed');
+  });
+
+  it('sanitizes issuer not found errors', async () => {
+    const server = new ZkIdServer({
+      verificationKeys: { age: {} as any },
+      verboseErrors: false,
+    });
+
+    const timestamp = Date.now();
+    const { signedCredential } = makeSignedCredential('hash-1', 'UnknownIssuer');
+    const proofResponse: ProofResponse = {
+      credentialId: 'cred-1',
+      claimType: 'age',
+      proof: makeAgeProof('hash-1', 18, 'nonce-issuer', timestamp),
+      nonce: 'nonce-issuer',
+      requestTimestamp: new Date(timestamp).toISOString(),
+      signedCredential,
+    } as ProofResponse;
+
+    const result = await server.verifyProof(proofResponse);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.equal('Verification failed');
+  });
+
+  it('sanitizes revocation root errors', async () => {
+    const server = new ZkIdServer({
+      verificationKeys: { ageRevocable: {} as any },
+      verboseErrors: false,
+      requireSignedCredentials: false,
+      maxRevocationRootAgeMs: 1000,
+    });
+
+    const timestamp = Date.now();
+    const proofResponse: ProofResponse = {
+      credentialId: 'cred-1',
+      claimType: 'age-revocable',
+      proof: makeAgeProofRevocable('hash-1', 'root-1', 18, 'nonce-rev', timestamp),
+      nonce: 'nonce-rev',
+      requestTimestamp: new Date(timestamp).toISOString(),
+      revocationRootTimestamp: new Date(timestamp - 5000).toISOString(), // 5 seconds ago
+    } as ProofResponse;
+
+    const result = await server.verifyProof(proofResponse);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.equal('Verification failed');
+  });
+
+  it('returns detailed error in verbose mode for missing fields', async () => {
+    const server = new ZkIdServer({
+      verificationKeys: { age: {} as any },
+      verboseErrors: true,
+      validatePayloads: true,
+    });
+
+    const result = await server.verifyProof({ claimType: 'age' } as any);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.include('Invalid payload');
+  });
+
+  it('returns detailed error in verbose mode for invalid types', async () => {
+    const server = new ZkIdServer({
+      verificationKeys: { age: {} as any },
+      verboseErrors: true,
+      validatePayloads: true,
+    });
+
+    const result = await server.verifyProof({
+      claimType: 'age',
+      nonce: 123, // Should be string
+    } as any);
+    expect(result.verified).to.equal(false);
+    expect(result.error).to.include('Invalid payload');
+  });
+});

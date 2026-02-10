@@ -1,6 +1,12 @@
 import { expect } from 'chai';
 import { ZkIdClient, WalletConnector, InMemoryWallet } from '../src/client';
-import { ProofRequest, SignedCredential } from '@zk-id/core';
+import {
+  ProofRequest,
+  SignedCredential,
+  ZkIdConfigError,
+  ZkIdCredentialError,
+  ZkIdProofError,
+} from '@zk-id/core';
 
 describe('SDK Client Tests', () => {
   const mockSignedCredential: SignedCredential = {
@@ -668,6 +674,117 @@ describe('SDK Client Tests', () => {
         console.warn = origWarn;
 
         expect(warnings.length).to.equal(0);
+      });
+    });
+
+    describe('Error propagation (E-2 fix)', () => {
+      it('re-throws ZkIdConfigError from wallet connector', async () => {
+        const mockWallet: WalletConnector = {
+          isAvailable: async () => true,
+          requestProof: async (_req) => {
+            throw new ZkIdConfigError('Invalid circuit configuration');
+          },
+        };
+
+        const client = new ZkIdClient({
+          verificationEndpoint: 'http://localhost:3000/verify',
+          walletConnector: mockWallet,
+        });
+
+        try {
+          await client.verifyAge(18);
+          expect.fail('Should have thrown ZkIdConfigError');
+        } catch (error: any) {
+          expect(error).to.be.instanceOf(ZkIdConfigError);
+          expect(error.message).to.include('Invalid circuit configuration');
+        }
+      });
+
+      it('re-throws ZkIdCredentialError from wallet connector', async () => {
+        const mockWallet: WalletConnector = {
+          isAvailable: async () => true,
+          requestProof: async (_req) => {
+            throw new ZkIdCredentialError('No valid credentials found', 'MISSING_CREDENTIAL');
+          },
+        };
+
+        const client = new ZkIdClient({
+          verificationEndpoint: 'http://localhost:3000/verify',
+          walletConnector: mockWallet,
+        });
+
+        try {
+          await client.verifyNationality(840);
+          expect.fail('Should have thrown ZkIdCredentialError');
+        } catch (error: any) {
+          expect(error).to.be.instanceOf(ZkIdCredentialError);
+          expect(error.code).to.equal('MISSING_CREDENTIAL');
+        }
+      });
+
+      it('re-throws ZkIdProofError from proof generation', async () => {
+        const mockWallet: WalletConnector = {
+          isAvailable: async () => true,
+          requestProof: async (_req) => {
+            throw new ZkIdProofError('Proof generation failed: invalid witness');
+          },
+        };
+
+        const client = new ZkIdClient({
+          verificationEndpoint: 'http://localhost:3000/verify',
+          walletConnector: mockWallet,
+        });
+
+        try {
+          await client.verifyAgeRevocable(21);
+          expect.fail('Should have thrown ZkIdProofError');
+        } catch (error: any) {
+          expect(error).to.be.instanceOf(ZkIdProofError);
+          expect(error.message).to.include('Proof generation failed');
+        }
+      });
+
+      it('swallows non-ZkIdError errors and returns false', async () => {
+        const mockWallet: WalletConnector = {
+          isAvailable: async () => true,
+          requestProof: async (_req) => {
+            throw new Error('Unexpected error');
+          },
+        };
+
+        const client = new ZkIdClient({
+          verificationEndpoint: 'http://localhost:3000/verify',
+          walletConnector: mockWallet,
+        });
+
+        const result = await client.verifyAge(18);
+        expect(result).to.be.false;
+      });
+
+      it('swallows network errors and returns false', async () => {
+        const mockWallet: WalletConnector = {
+          isAvailable: async () => true,
+          requestProof: async (req) => ({
+            credentialId: 'test-cred',
+            claimType: req.claimType,
+            proof: {} as any,
+            signedCredential: mockSignedCredential,
+            nonce: req.nonce,
+            requestTimestamp: req.timestamp,
+          }),
+        };
+
+        (global as any).fetch = async () => {
+          throw new Error('Network error');
+        };
+
+        const client = new ZkIdClient({
+          verificationEndpoint: 'http://localhost:3000/verify',
+          walletConnector: mockWallet,
+        });
+
+        const result = await client.verifyAge(18);
+        expect(result).to.be.false;
       });
     });
 
