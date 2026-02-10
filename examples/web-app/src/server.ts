@@ -343,10 +343,12 @@ async function main() {
       const results = await Promise.all(
         proofs.map(async (proof) => {
           try {
-            const result = await zkIdServer.verifyProof(proof, {
-              clientProtocolVersion: getClientProtocolVersion(req),
-            });
-            return result.success;
+            const result = await zkIdServer.verifyProof(
+              proof,
+              undefined,
+              getClientProtocolVersion(req),
+            );
+            return result.verified;
           } catch {
             return false;
           }
@@ -354,7 +356,7 @@ async function main() {
       );
 
       // All proofs must pass for scenario to be satisfied
-      const allVerified = results.every((r) => r);
+      const allVerified = results.every((r: boolean) => r);
 
       res.json({
         verified: allVerified,
@@ -391,10 +393,12 @@ async function main() {
       let verified = false;
 
       try {
-        const result = await zkIdServer.verifyProof(proof, {
-          clientProtocolVersion: getClientProtocolVersion(req),
-        });
-        verified = result.success;
+        const result = await zkIdServer.verifyProof(
+          proof,
+          undefined,
+          getClientProtocolVersion(req),
+        );
+        verified = result.verified;
       } catch {
         verified = false;
       }
