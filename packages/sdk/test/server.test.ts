@@ -1346,6 +1346,50 @@ describe('InMemoryIssuerRegistry - rotationGracePeriodMs', () => {
     expect(record!.publicKey).to.not.equal(revokedKey);
     expect(record!.publicKey).to.equal(fallbackKey);
   });
+
+  it('does not fail verification when grace-period audit logger throws', async () => {
+    const { signedCredential, publicKey } = makeSignedCredential('12345', 'grace-logger');
+    const now = Date.now();
+    const past = new Date(now - 86400_000);
+    const recentlyExpired = new Date(now - 30_000);
+
+    const registry = new InMemoryIssuerRegistry([
+      {
+        issuer: 'grace-logger',
+        publicKey,
+        status: 'active',
+        validFrom: past.toISOString(),
+        validTo: recentlyExpired.toISOString(),
+        rotationGracePeriodMs: 60_000,
+      },
+    ]);
+
+    const auditLogger = {
+      log: () => {
+        throw new Error('boom');
+      },
+    };
+
+    const server = new ZkIdServer({
+      verificationKeyPath: getVerificationKeyPath(),
+      issuerRegistry: registry,
+      auditLogger,
+      verboseErrors: true,
+    });
+
+    const requestTimestampMs = Date.now();
+    const proofResponse: ProofResponse = {
+      credentialId: signedCredential.credential.id,
+      claimType: 'age',
+      proof: makeAgeProof(signedCredential.credential.commitment, 18, 'nonce-grace', requestTimestampMs),
+      signedCredential,
+      nonce: 'nonce-grace',
+      requestTimestamp: new Date(requestTimestampMs).toISOString(),
+    };
+
+    const result = await server.verifyProof(proofResponse);
+    expect(result).to.have.property('verified');
+  });
 });
 
 // ---------------------------------------------------------------------------

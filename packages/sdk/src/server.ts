@@ -1274,18 +1274,22 @@ export class ZkIdServer extends EventEmitter {
           // Grace period accepted - log for audit
           // Note: grace period is also checked in InMemoryIssuerRegistry.getIssuer()
           if (withinGrace) {
-            this.auditLogger.log({
-              timestamp: new Date().toISOString(),
-              action: 'grace_period_accept',
-              actor: issuerRecord.issuer,
-              target: issuerRecord.issuer,
-              success: true,
-              metadata: {
-                validTo: issuerRecord.validTo,
-                graceMs,
-                expiredAgoMs: now - validToMs,
-              },
-            });
+            try {
+              this.auditLogger.log({
+                timestamp: new Date().toISOString(),
+                action: 'grace_period_accept',
+                actor: issuerRecord.issuer,
+                target: issuerRecord.issuer,
+                success: true,
+                metadata: {
+                  validTo: issuerRecord.validTo,
+                  graceMs,
+                  expiredAgoMs: now - validToMs,
+                },
+              });
+            } catch {
+              // Avoid turning telemetry failures into verification failures.
+            }
           }
         }
       }
