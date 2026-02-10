@@ -11,7 +11,7 @@ import {
   NullifierProof,
 } from './types';
 import { constantTimeEqual, constantTimeArrayEqual } from './timing-safe';
-import { ZkIdProofError } from './errors';
+import { ZkIdProofError, ZkIdConfigError } from './errors';
 
 /**
  * Verifies an age proof using the verification key

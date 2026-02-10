@@ -3,7 +3,7 @@
  */
 
 import { expect } from 'chai';
-import { BrowserWallet } from '../src/browser-wallet';
+import { BrowserWallet, InMemoryCredentialStore } from '../src/browser-wallet';
 import { ZkIdCredentialError } from '@zk-id/core';
 
 describe('JSON.parse error handling - BrowserWallet (S-6 fix)', () => {
@@ -15,6 +15,7 @@ describe('JSON.parse error handling - BrowserWallet (S-6 fix)', () => {
         ageWasm: '/path/to/age.wasm',
         ageZkey: '/path/to/age.zkey',
       },
+      credentialStore: new InMemoryCredentialStore(),
     });
   });
 

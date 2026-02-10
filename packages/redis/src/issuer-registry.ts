@@ -1,6 +1,7 @@
 import { createPublicKey } from 'crypto';
 import type { IssuerRegistry, IssuerRecord } from '@zk-id/sdk';
 import type { RedisClient } from './types';
+import { ZkIdConfigError } from '@zk-id/core';
 
 export interface RedisIssuerRegistryOptions {
   /** Key prefix for issuer keys (default: "zkid:issuer:") */
