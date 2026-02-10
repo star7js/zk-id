@@ -2,43 +2,43 @@
   "algorithm": "SHA-256",
   "circomVersion": "0.5.46",
   "snarkjsVersion": "0.7.6",
-  "generatedAt": "2026-02-10T01:58:29Z",
-  "note": "Canonical hashes generated on macOS for local development. WASM hashes included for reference but not verified in CI (Circom v2.x not cross-platform deterministic). Only zkey and verificationKey hashes are verified and security-critical.",
+  "generatedAt": "2026-02-10T02:00:00Z",
+  "note": "Canonical hashes from CI build artifacts (Linux). WASM hashes included for reference but not verified in CI (Circom v2.x not cross-platform deterministic). Only zkey and verificationKey hashes are verified and security-critical.",
   "circuits": {
     "age-verify": {
       "wasm": "d51c7781986f6237b9b7611723e9de03d6a742b223ba8d8cb9051aa2d02fad33",
-      "zkey": "2a8bc996b3567c69edfc9b45186ca0292eb0f424aa1aace463d1890439053632",
-      "verificationKey": "3ac2659f2ffa77b459f261c9242698855809857e32c577f174e0fbb40bc81a0b"
+      "zkey": "45a772a0dd7b50b025eb464b234319e79343c19a4c11eb5a9a1df19e5639b75a",
+      "verificationKey": "6a62ec9e572e9141652b254c68a0c49cdb827b08fce9019e92f9e96d44bf0fc4"
     },
     "credential-hash": {
       "wasm": "f003d83fc887b07144cc697096a9de5cad6c47ba60e26662424aac918bbc6a03",
-      "zkey": "152f22944e2ebe11c9d607ae64f9c32da366a994a68a4fe931b75c39650c05fb",
-      "verificationKey": "6ba8171dffa42b8840ff7c8f47eca6f726d241c4c4054e5aeeec477473746d2b"
+      "zkey": "d93cbe0128751c8746d862a32b533ba49f8bab589b867d6d5538e626d272f980",
+      "verificationKey": "2f285a0c2e61afb15cf02db1847d6805f7fd512ba322a41fb45ab784b1d92808"
     },
     "nationality-verify": {
       "wasm": "e9f60d0f5eca4ee86bb682490830235358cdcfddfee852951d5a697d81398016",
-      "zkey": "ef7e54ddf62bb8fa13fccad34418509fc63be7cdc671ae7f98dbc2ea5c91f712",
-      "verificationKey": "8dfb1965ddd0123b936cf5bcc1881eb217d0989c19451b3ea171aad3fc9e37b2"
+      "zkey": "d9e714543017d66395c5feddb44f6d26729dcea07bf296e1492451a1b78358b1",
+      "verificationKey": "55ea7ac41421923c83079420e95b53666710c9492f1ac7560e73a7195fb7618c"
     },
     "age-verify-signed": {
       "wasm": "9b669e55f9d6b7649d060a8d75d7067e6ad41b567ba96e279adb0c623c903fca",
-      "zkey": "ce13be63b873263aacdac6a3f09007544ebef186da63f6132c67124b50f25a1a",
-      "verificationKey": "ce270d96ee14cf02268682d7e364492a9d4c902386a03c540d880671097399d7"
+      "zkey": "9d5eb1277cbb22f767e81fb982e93ccb931a5ed314571e191413e096e803504b",
+      "verificationKey": "7b82a4cd769ac72f74e044b779fb0e83ca4fd8fbf36086bf745e7225e40a56bb"
     },
     "nationality-verify-signed": {
       "wasm": "b8d520adcf1b92de3c9badf20ea5904e63d669ba630a310b729aada546bc84d8",
-      "zkey": "d1c505529af9d0ef5d236395856ee1db6520906c3f91a8652e2f61f634353c4b",
-      "verificationKey": "97a957ad4538977db5bee45bcee8d919e1071d3ce0f427250c1bf738ea95e68f"
+      "zkey": "ea38b45218836ed4d5e26d9615215f38e207dec05c9a9a404904726a2db86a7a",
+      "verificationKey": "9671cdb7a2ce3b80b5978dc1567aa5ad113b4c901a94a7c9b214c7b3716be420"
     },
     "age-verify-revocable": {
       "wasm": "5422ede636e1d4ef8889be058fead5c192d267521b82e62627706faedfea4d98",
-      "zkey": "39204d41870c0f5ef0abd7495a7dd5d6a9d8f3759c09ee0c78c5f8e3908afcee",
-      "verificationKey": "b1f5c5f355a3eb104de89e63ba2a83af851b6dbf87ef06c8febbad241e49f8b7"
+      "zkey": "152f85c8e6cc06f50d1daaf950fab420b732bdc69fd8d89f1af5b4c8ec34bcf3",
+      "verificationKey": "64e2ecdf20cb78f5c39818dc102687549d0077427e273aec68078e62918eb36f"
     },
     "nullifier": {
       "wasm": "67b5e5a5374e51fc35efba042205fa49be1279c9b60dcf4a9c494170a0d225ac",
-      "zkey": "b3361efc978be6da6898e471414889923d1d63a3bcd21ab7b301cec81faf9189",
-      "verificationKey": "d5b663c06e59b79a18e31ba25ac1ad8f07b8b50c66da08cee229bfd0494ee1ea"
+      "zkey": "bf963994f1e837f5d6aa0313eec6fc89e993f7be0777b6766898409b47b09129",
+      "verificationKey": "4acaa9ea8ff86c4da7b57411a7ecd5933a105b030d0a8417d1e39d09991c9d7f"
     }
   }
 }
