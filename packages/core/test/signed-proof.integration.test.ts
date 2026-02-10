@@ -141,7 +141,7 @@ describe('Signed Proof Integration', () => {
     const ok = await verifyAgeProofSignedWithIssuer(
       proof,
       vkey,
-      wrongIssuer.getPublicKey()
+      wrongIssuer.getIssuerPublicKeyBits()
     );
 
     expect(ok).to.equal(false);
