@@ -9,9 +9,22 @@
   ],
   "scripts": {
     "build": "npm run build --workspace=@zk-id/circuits && npm run build --workspace=@zk-id/core && npm run build --workspace=@zk-id/sdk && npm run build --workspace=@zk-id/issuer && npm run build --workspace=@zk-id/redis && npm run build --workspace=@zk-id/contracts && npm run build --workspace=@zk-id/example-web-app",
+    "build:core": "npm run build --workspace=@zk-id/core && npm run build --workspace=@zk-id/sdk && npm run build --workspace=@zk-id/issuer && npm run build --workspace=@zk-id/redis",
     "test": "npm run test --workspaces",
+    "test:core": "npm test --workspace=@zk-id/core",
+    "test:sdk": "npm test --workspace=@zk-id/sdk",
+    "test:issuer": "npm test --workspace=@zk-id/issuer",
+    "test:circuits": "npm test --workspace=@zk-id/circuits",
+    "test:contracts": "npm test --workspace=@zk-id/contracts",
+    "test:redis": "npm test --workspace=@zk-id/redis",
     "compile:circuits": "npm run compile --workspace=@zk-id/circuits",
+    "setup:circuits": "npm run setup --workspace=@zk-id/circuits",
     "verify:hashes": "npm run verify-hashes --workspace=@zk-id/circuits",
+    "clean": "find packages -name 'dist' -type d -exec rm -rf {} + 2>/dev/null || true && find packages -name 'node_modules' -type d -exec rm -rf {} + 2>/dev/null || true",
+    "clean:dist": "find packages -name 'dist' -type d -exec rm -rf {} + 2>/dev/null || true",
+    "fresh": "npm run clean && rm -rf node_modules package-lock.json && npm install && npm run build",
+    "start": "npm start --workspace=@zk-id/example-web-app",
+    "dev": "npm run dev --workspace=@zk-id/example-web-app",
     "docs": "typedoc"
   },
   "keywords": [
