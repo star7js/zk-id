@@ -1656,7 +1656,7 @@ describe('ZkIdServer - sanitizeError additional paths', () => {
 
   it('sanitizes revocation root errors', async () => {
     const server = new ZkIdServer({
-      verificationKeys: { ageRevocable: {} as any },
+      verificationKeys: { age: {} as any, ageRevocable: {} as any },
       verboseErrors: false,
       requireSignedCredentials: false,
       maxRevocationRootAgeMs: 1000,
