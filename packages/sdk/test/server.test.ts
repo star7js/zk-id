@@ -1347,3 +1347,118 @@ describe('InMemoryIssuerRegistry - rotationGracePeriodMs', () => {
     expect(record!.publicKey).to.equal(fallbackKey);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Grace period test for validateSignedCredentialBinding (Fix 3)
+// ---------------------------------------------------------------------------
+
+describe('validateSignedCredentialBinding - rotationGracePeriodMs', () => {
+  function makeKeyPair() {
+    return generateKeyPairSync('ed25519');
+  }
+
+  function makeSignedCredentialWithKey(
+    commitment: string,
+    issuer: string,
+    privateKey: any
+  ): SignedCredential {
+    const credential = {
+      id: 'cred-grace-test',
+      birthYear: 1990,
+      nationality: 840,
+      salt: '00',
+      commitment,
+      createdAt: new Date().toISOString(),
+    };
+
+    const issuedAt = new Date().toISOString();
+    const payload = credentialSignaturePayload(credential, issuer, issuedAt);
+    const signature = sign(null, Buffer.from(payload), privateKey).toString('base64');
+
+    return {
+      credential,
+      issuer,
+      signature,
+      issuedAt,
+    };
+  }
+
+  it('verifyProof accepts signed credential from issuer within grace period and emits audit log', async () => {
+    const { publicKey, privateKey } = makeKeyPair();
+    const issuerName = 'grace-test-issuer';
+    const commitment = '123';
+
+    // Create an issuer with an expired key but within grace period
+    const now = new Date();
+    const past = new Date(now.getTime() - 86400_000); // 1 day ago
+    const recentlyExpired = new Date(now.getTime() - 30_000); // 30 seconds ago
+
+    // Track audit log entries
+    const auditLogs: any[] = [];
+    const mockAuditLogger = {
+      log: (entry: any) => {
+        auditLogs.push(entry);
+      },
+    };
+
+    const registry = new InMemoryIssuerRegistry(
+      [
+        {
+          issuer: issuerName,
+          publicKey,
+          status: 'active',
+          validFrom: past.toISOString(),
+          validTo: recentlyExpired.toISOString(),
+          rotationGracePeriodMs: 60_000, // 1 minute grace period
+        },
+      ],
+      mockAuditLogger
+    );
+
+    const server = new ZkIdServer({
+      verificationKeyPath: getVerificationKeyPath(),
+      issuerRegistry: registry,
+      auditLogger: mockAuditLogger,
+      verboseErrors: true,
+    });
+
+    // Create a signed credential from this issuer
+    const signedCredential = makeSignedCredentialWithKey(commitment, issuerName, privateKey);
+
+    // Create a proof response
+    const requestTimestamp = Date.now();
+    const proofResponse: ProofResponse = {
+      credentialId: signedCredential.credential.id,
+      claimType: 'age',
+      proof: makeAgeProof(commitment, 18, 'nonce-grace-test', requestTimestamp),
+      signedCredential,
+      nonce: 'nonce-grace-test',
+      requestTimestamp: new Date(requestTimestamp).toISOString(),
+    };
+
+    // Verify the proof (this should succeed due to grace period)
+    const result = await server.verifyProof(proofResponse);
+
+    // The verification should succeed (or at least not fail with "Issuer key expired")
+    // Note: It may fail for other reasons (missing vkey, etc.) but not for expiry
+    if (!result.verified && result.error === 'Issuer key expired') {
+      throw new Error('Grace period was not applied in validateSignedCredentialBinding');
+    }
+
+    // Verify that an audit log entry with action 'grace_period_accept' was emitted
+    const graceAcceptLogs = auditLogs.filter((log) => log.action === 'grace_period_accept');
+    expect(graceAcceptLogs.length).to.be.greaterThan(
+      0,
+      'Expected at least one grace_period_accept audit log entry'
+    );
+
+    // Verify the audit log entry has the expected structure
+    const graceLog = graceAcceptLogs[graceAcceptLogs.length - 1]; // Get the most recent one
+    expect(graceLog.actor).to.equal(issuerName);
+    expect(graceLog.target).to.equal(issuerName);
+    expect(graceLog.success).to.equal(true);
+    expect(graceLog.metadata).to.have.property('validTo');
+    expect(graceLog.metadata).to.have.property('graceMs');
+    expect(graceLog.metadata).to.have.property('expiredAgoMs');
+  });
+});

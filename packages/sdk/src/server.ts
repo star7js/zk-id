@@ -201,6 +201,7 @@ export class InMemoryIssuerRegistry implements IssuerRegistry {
     }
 
     // Check for recently-expired keys within grace period
+    // Note: grace period is also checked in validateSignedCredentialBinding()
     const gracePeriodMatch = records.find((r) => {
       if (r.status && r.status !== 'active') return false;
       if (!r.validTo || !r.rotationGracePeriodMs) return false;
@@ -1269,6 +1270,22 @@ export class ZkIdServer extends EventEmitter {
           const withinGrace = graceMs > 0 && now - validToMs <= graceMs;
           if (!withinGrace) {
             return { valid: false, error: this.sanitizeError('Issuer key expired') };
+          }
+          // Grace period accepted - log for audit
+          // Note: grace period is also checked in InMemoryIssuerRegistry.getIssuer()
+          if (withinGrace) {
+            this.auditLogger.log({
+              timestamp: new Date().toISOString(),
+              action: 'grace_period_accept',
+              actor: issuerRecord.issuer,
+              target: issuerRecord.issuer,
+              success: true,
+              metadata: {
+                validTo: issuerRecord.validTo,
+                graceMs,
+                expiredAgoMs: now - validToMs,
+              },
+            });
           }
         }
       }
