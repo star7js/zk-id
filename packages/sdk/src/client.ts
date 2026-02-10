@@ -23,6 +23,7 @@ import {
   ZkIdConfigError,
   ZkIdCredentialError,
   ZkIdProofError,
+  ZkIdError,
 } from '@zk-id/core';
 
 export interface ZkIdClientConfig {
@@ -84,6 +85,10 @@ export class ZkIdClient {
 
       return isValid;
     } catch (error) {
+      // Re-throw ZkIdError subclasses to preserve error context
+      if (error instanceof ZkIdError) {
+        throw error;
+      }
       console.error('[zk-id] Age verification failed:', error);
       return false;
     }
@@ -113,6 +118,10 @@ export class ZkIdClient {
 
       return isValid;
     } catch (error) {
+      // Re-throw ZkIdError subclasses to preserve error context
+      if (error instanceof ZkIdError) {
+        throw error;
+      }
       console.error('[zk-id] Nationality verification failed:', error);
       return false;
     }
@@ -142,6 +151,10 @@ export class ZkIdClient {
 
       return isValid;
     } catch (error) {
+      // Re-throw ZkIdError subclasses to preserve error context
+      if (error instanceof ZkIdError) {
+        throw error;
+      }
       console.error('[zk-id] Revocable age verification failed:', error);
       return false;
     }

@@ -39,7 +39,15 @@ export class RedisIssuerRegistry implements IssuerRegistry {
       return null;
     }
 
-    const stored = JSON.parse(value) as StoredIssuerRecord;
+    let stored: StoredIssuerRecord;
+    try {
+      stored = JSON.parse(value) as StoredIssuerRecord;
+    } catch (error) {
+      throw new ZkIdConfigError(
+        `Failed to parse issuer record from Redis: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+
     const publicKey = createPublicKey({
       key: stored.publicKeyPem,
       format: 'pem',

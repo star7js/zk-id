@@ -77,7 +77,8 @@ export class RedisTreeSyncChannel {
     try {
       event = JSON.parse(raw) as TreeSyncEvent;
     } catch {
-      return; // ignore malformed messages
+      console.warn('[zk-id] ignoring malformed message:', raw);
+      return;
     }
     for (const handler of this.handlers) {
       handler(event);
@@ -250,10 +251,11 @@ function randomHex(bytes: number): string {
   if (typeof globalThis !== 'undefined' && globalThis.crypto && globalThis.crypto.getRandomValues) {
     globalThis.crypto.getRandomValues(arr);
   } else {
-    // Fallback for older Node.js without webcrypto
-    for (let i = 0; i < bytes; i++) {
-      arr[i] = Math.floor(Math.random() * 256);
-    }
+    // Fallback for older Node.js without webcrypto - use crypto.randomBytes
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { randomBytes } = require('crypto');
+    const buf = randomBytes(bytes);
+    buf.copy(arr);
   }
   return Array.from(arr, (b) => b.toString(16).padStart(2, '0')).join('');
 }

@@ -406,7 +406,15 @@ export class BrowserWallet implements WalletConnector {
    * Validates the structure before storing.
    */
   async importCredential(json: string): Promise<SignedCredential> {
-    const parsed = JSON.parse(json) as SignedCredential;
+    let parsed: SignedCredential;
+    try {
+      parsed = JSON.parse(json) as SignedCredential;
+    } catch (error) {
+      throw new ZkIdCredentialError(
+        `Failed to parse credential JSON: ${error instanceof Error ? error.message : String(error)}`,
+        'INVALID_CREDENTIAL_FORMAT',
+      );
+    }
 
     // Basic structural validation
     if (
@@ -437,7 +445,15 @@ export class BrowserWallet implements WalletConnector {
    * Import multiple credentials from a JSON array string (full wallet restore).
    */
   async importAll(json: string): Promise<number> {
-    const parsed = JSON.parse(json) as SignedCredential[];
+    let parsed: SignedCredential[];
+    try {
+      parsed = JSON.parse(json) as SignedCredential[];
+    } catch (error) {
+      throw new ZkIdCredentialError(
+        `Failed to parse credentials JSON: ${error instanceof Error ? error.message : String(error)}`,
+        'INVALID_CREDENTIAL_FORMAT',
+      );
+    }
     if (!Array.isArray(parsed)) {
       throw new ZkIdCredentialError(
         'Expected a JSON array of credentials',

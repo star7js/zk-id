@@ -93,7 +93,7 @@ export interface ZkIdServerConfig {
   revocationRootSource?: string;
   /** Maximum acceptable root age in ms. If set, verifyProof rejects revocable proofs when the root is stale. */
   maxRevocationRootAgeMs?: number;
-  /** Enable strict payload validation before verification (default: false). Checks required fields and types. */
+  /** Enable strict payload validation before verification (default: true). Checks required fields and types. Set to false to disable validation. */
   validatePayloads?: boolean;
   /** Optional audit logger for verification and registry events. Defaults to ConsoleAuditLogger. */
   auditLogger?: AuditLogger;
@@ -519,8 +519,8 @@ export class ZkIdServer extends EventEmitter {
     const startTime = Date.now();
     const requireSigned = this.config.requireSignedCredentials !== false;
 
-    // Optional strict payload validation
-    if (this.config.validatePayloads) {
+    // Strict payload validation (enabled by default)
+    if (this.config.validatePayloads !== false) {
       const payloadErrors = validateProofResponsePayload(proofResponse, requireSigned);
       if (payloadErrors.length > 0) {
         const msg = payloadErrors.map((e) => `${e.field}: ${e.message}`).join('; ');
@@ -883,8 +883,8 @@ export class ZkIdServer extends EventEmitter {
   ): Promise<VerificationResult> {
     const startTime = Date.now();
 
-    // Optional strict payload validation
-    if (this.config.validatePayloads) {
+    // Strict payload validation (enabled by default)
+    if (this.config.validatePayloads !== false) {
       const payloadErrors = validateSignedProofRequestPayload(request);
       if (payloadErrors.length > 0) {
         const msg = payloadErrors.map((e) => `${e.field}: ${e.message}`).join('; ');

@@ -39,6 +39,12 @@ export const MAX_NATIONALITY = 999;
 /** Maximum scope ID length. */
 export const MAX_SCOPE_ID_LENGTH = 256;
 
+/** Valid claim types for ZK identity proofs. */
+export const VALID_CLAIM_TYPES = ['age', 'nationality', 'age-revocable'] as const;
+
+/** Type representing valid claim types. */
+export type ClaimType = (typeof VALID_CLAIM_TYPES)[number];
+
 // ---------------------------------------------------------------------------
 // Validation functions
 // ---------------------------------------------------------------------------
@@ -207,5 +213,18 @@ export function validateScopeId(scopeId: string): void {
 export function validatePositiveInt(value: number, label: string): void {
   if (!Number.isInteger(value) || value <= 0) {
     throw new ZkIdValidationError(`${label} must be a positive integer`, label);
+  }
+}
+
+/**
+ * Validate that a claim type is one of the recognized types.
+ * @throws ZkIdValidationError if claim type is not valid
+ */
+export function validateClaimType(claimType: string): void {
+  if (!VALID_CLAIM_TYPES.includes(claimType as ClaimType)) {
+    throw new ZkIdValidationError(
+      `Invalid claim type: ${claimType}. Must be one of: ${VALID_CLAIM_TYPES.join(', ')}`,
+      'claimType',
+    );
   }
 }

@@ -385,7 +385,13 @@ export async function loadVerificationKey(path: string): Promise<VerificationKey
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const fs = require('fs').promises;
   const data = await fs.readFile(path, 'utf8');
-  return JSON.parse(data);
+  try {
+    return JSON.parse(data);
+  } catch (error) {
+    throw new ZkIdConfigError(
+      `Failed to parse verification key from ${path}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 }
 
 /**

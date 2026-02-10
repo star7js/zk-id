@@ -257,6 +257,13 @@ export class FileKeyManager implements IssuerKeyManager {
     const privateKey = createPrivateKey(privateKeyPem);
     const publicKey = createPublicKey(publicKeyPem);
 
+    // Validate key type
+    if (privateKey.asymmetricKeyType !== 'ed25519') {
+      throw new ZkIdCryptoError(
+        `Invalid key type: expected ed25519, got ${privateKey.asymmetricKeyType}`,
+      );
+    }
+
     return new FileKeyManager(issuerName, privateKey, publicKey);
   }
 
@@ -278,6 +285,13 @@ export class FileKeyManager implements IssuerKeyManager {
   ): FileKeyManager {
     const privateKey = createPrivateKey(privateKeyPem);
     const publicKey = createPublicKey(publicKeyPem);
+
+    // Validate key type
+    if (privateKey.asymmetricKeyType !== 'ed25519') {
+      throw new ZkIdCryptoError(
+        `Invalid key type: expected ed25519, got ${privateKey.asymmetricKeyType}`,
+      );
+    }
 
     return new FileKeyManager(issuerName, privateKey, publicKey);
   }
