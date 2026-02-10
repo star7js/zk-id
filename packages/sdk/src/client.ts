@@ -24,6 +24,9 @@ import {
   ZkIdCredentialError,
   ZkIdProofError,
   ZkIdError,
+  VerificationScenario,
+  createScenarioRequest,
+  expandMultiClaimRequest,
 } from '@zk-id/core';
 
 export interface ZkIdClientConfig {
@@ -156,6 +159,50 @@ export class ZkIdClient {
         throw error;
       }
       console.error('[zk-id] Revocable age verification failed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Verify a complete scenario with multiple claims.
+   *
+   * Creates a multi-claim request from the scenario, generates proofs for each
+   * claim, submits them, and returns true only if all pass.
+   *
+   * @param scenario - The verification scenario to verify
+   * @returns true if all scenario claims verify successfully, false otherwise
+   */
+  async verifyScenario(scenario: VerificationScenario): Promise<boolean> {
+    try {
+      // Create multi-claim request from scenario
+      const nonce = this.generateNonce();
+      const multiClaimRequest = createScenarioRequest(scenario, nonce);
+
+      // Expand into individual proof requests
+      const expandedRequests = expandMultiClaimRequest(multiClaimRequest);
+
+      // Generate and verify each proof
+      for (const { proofRequest } of expandedRequests) {
+        // Get proof from wallet (or generate locally)
+        const proofResponse = await this.requestProof(proofRequest);
+
+        // Submit proof to backend for verification
+        const isValid = await this.submitProof(proofResponse);
+
+        // If any proof fails, the entire scenario fails
+        if (!isValid) {
+          return false;
+        }
+      }
+
+      // All proofs passed
+      return true;
+    } catch (error) {
+      // Re-throw ZkIdError subclasses to preserve error context
+      if (error instanceof ZkIdError) {
+        throw error;
+      }
+      console.error('[zk-id] Scenario verification failed:', error);
       return false;
     }
   }

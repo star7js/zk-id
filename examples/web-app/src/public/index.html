@@ -800,10 +800,52 @@
         <div id="verifyNationalityResult" class="result"></div>
       </div>
 
-      <!-- Step 4: Revoke -->
+      <!-- Step 4: Verify Voting Eligibility -->
       <div class="card">
         <div class="card-header">
           <div class="step-badge">4</div>
+          <h2 class="card-title">Verify Voting Eligibility</h2>
+        </div>
+        <div class="location-badge browser">Browser</div>
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">
+          Combined scenario: Verify you are 18+ AND a US citizen
+        </p>
+        <button
+          class="btn btn-primary"
+          id="verifyVotingBtn"
+          onclick="verifyVotingEligibility()"
+          disabled
+        >
+          Generate Proofs & Verify Voting Eligibility
+        </button>
+        <div id="verifyVotingResult" class="result"></div>
+      </div>
+
+      <!-- Step 5: Verify Senior Discount -->
+      <div class="card">
+        <div class="card-header">
+          <div class="step-badge">5</div>
+          <h2 class="card-title">Verify Senior Discount</h2>
+        </div>
+        <div class="location-badge browser">Browser</div>
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">
+          Verify you are 65+ for senior discounts
+        </p>
+        <button
+          class="btn btn-primary"
+          id="verifySeniorBtn"
+          onclick="verifySeniorDiscount()"
+          disabled
+        >
+          Generate Proof & Verify Senior Discount
+        </button>
+        <div id="verifySeniorResult" class="result"></div>
+      </div>
+
+      <!-- Step 6: Revoke -->
+      <div class="card">
+        <div class="card-header">
+          <div class="step-badge">6</div>
           <h2 class="card-title">Revoke Credential</h2>
         </div>
         <div class="location-badge server">
@@ -943,6 +985,8 @@
             // Enable verification buttons
             document.getElementById('verifyAgeBtn').disabled = false;
             document.getElementById('verifyNationalityBtn').disabled = false;
+            document.getElementById('verifyVotingBtn').disabled = false;
+            document.getElementById('verifySeniorBtn').disabled = false;
             document.getElementById('revokeBtn').disabled = false;
 
             // Clear previous verification results
@@ -1508,7 +1552,81 @@
         }
       }
 
-      // Step 4: Revoke Credential
+      // Step 4: Verify Voting Eligibility (Combined Scenario)
+      async function verifyVotingEligibility() {
+        showResult('verifyVotingResult', 'info', '<div class="result-title">Verifying voting eligibility...</div>');
+
+        // First verify age >= 18
+        const minAgeInput = document.getElementById('minAge');
+        const originalMinAge = minAgeInput.value;
+        minAgeInput.value = '18';
+
+        await verifyAge();
+        const ageResult = document.getElementById('verifyAgeResult');
+        const ageSuccess = ageResult.classList.contains('success');
+
+        if (!ageSuccess) {
+          showResult('verifyVotingResult', 'error',
+            '<div class="result-title">✗ Voting Eligibility Verification Failed</div><p>Age verification (18+) failed</p>');
+          minAgeInput.value = originalMinAge;
+          return;
+        }
+
+        // Then verify nationality = USA (840)
+        const nationalityInput = document.getElementById('targetNationality');
+        const originalNationality = nationalityInput.value;
+        nationalityInput.value = '840';
+
+        await verifyNationality();
+        const nationalityResult = document.getElementById('verifyNationalityResult');
+        const nationalitySuccess = nationalityResult.classList.contains('success');
+
+        if (!nationalitySuccess) {
+          showResult('verifyVotingResult', 'error',
+            '<div class="result-title">✗ Voting Eligibility Verification Failed</div><p>US citizenship verification failed</p>');
+          minAgeInput.value = originalMinAge;
+          nationalityInput.value = originalNationality;
+          return;
+        }
+
+        // Both passed!
+        showResult('verifyVotingResult', 'success',
+          '<div class="result-title">✓ Voting Eligibility Verified</div><p>You are 18+ and a US citizen - eligible to vote!</p>');
+
+        // Restore original values
+        minAgeInput.value = originalMinAge;
+        nationalityInput.value = originalNationality;
+      }
+
+      // Step 5: Verify Senior Discount
+      async function verifySeniorDiscount() {
+        showResult('verifySeniorResult', 'info', '<div class="result-title">Verifying senior discount eligibility...</div>');
+
+        // Verify age >= 65
+        const minAgeInput = document.getElementById('minAge');
+        const originalMinAge = minAgeInput.value;
+        minAgeInput.value = '65';
+
+        await verifyAge();
+        const ageResult = document.getElementById('verifyAgeResult');
+        const ageSuccess = ageResult.classList.contains('success');
+
+        if (!ageSuccess) {
+          showResult('verifySeniorResult', 'error',
+            '<div class="result-title">✗ Senior Discount Verification Failed</div><p>Age verification (65+) failed</p>');
+          minAgeInput.value = originalMinAge;
+          return;
+        }
+
+        // Success!
+        showResult('verifySeniorResult', 'success',
+          '<div class="result-title">✓ Senior Discount Eligibility Verified</div><p>You are 65+ - eligible for senior discounts!</p>');
+
+        // Restore original value
+        minAgeInput.value = originalMinAge;
+      }
+
+      // Step 6: Revoke Credential
       async function revokeCredential() {
         if (!state.credentialId) {
           showResult(

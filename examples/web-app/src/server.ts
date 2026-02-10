@@ -14,6 +14,7 @@ import {
   InMemoryValidCredentialTree,
   PROTOCOL_VERSION,
   isProtocolCompatible,
+  SCENARIOS,
 } from '@zk-id/core';
 
 async function main() {
@@ -319,6 +320,94 @@ async function main() {
       console.error('Error fetching revocation root:', error);
       res.status(500).json({
         error: 'Failed to fetch revocation root',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  });
+
+  /**
+   * Scenario endpoint: Verify US voting eligibility (age >= 18 AND nationality = USA)
+   */
+  app.post('/api/verify-voting-eligibility', apiLimiter, async (req, res) => {
+    try {
+      const scenario = SCENARIOS.VOTING_ELIGIBILITY_US;
+      const { proofs } = req.body as { proofs: ProofResponse[] };
+
+      if (!proofs || !Array.isArray(proofs) || proofs.length !== scenario.claims.length) {
+        return res.status(400).json({
+          error: `Expected ${scenario.claims.length} proofs for ${scenario.name}`,
+        });
+      }
+
+      // Verify each proof in the scenario
+      const results = await Promise.all(
+        proofs.map(async (proof) => {
+          try {
+            const result = await zkIdServer.verifyProof(proof, {
+              clientProtocolVersion: getClientProtocolVersion(req),
+            });
+            return result.success;
+          } catch {
+            return false;
+          }
+        }),
+      );
+
+      // All proofs must pass for scenario to be satisfied
+      const allVerified = results.every((r) => r);
+
+      res.json({
+        verified: allVerified,
+        scenario: scenario.name,
+        message: allVerified
+          ? 'Voting eligibility verified'
+          : 'Voting eligibility verification failed',
+      });
+    } catch (error) {
+      console.error('Error verifying voting eligibility:', error);
+      res.status(500).json({
+        error: 'Verification failed',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  });
+
+  /**
+   * Scenario endpoint: Verify senior discount eligibility (age >= 65)
+   */
+  app.post('/api/verify-senior-discount', apiLimiter, async (req, res) => {
+    try {
+      const scenario = SCENARIOS.SENIOR_DISCOUNT;
+      const { proofs } = req.body as { proofs: ProofResponse[] };
+
+      if (!proofs || !Array.isArray(proofs) || proofs.length !== scenario.claims.length) {
+        return res.status(400).json({
+          error: `Expected ${scenario.claims.length} proof for ${scenario.name}`,
+        });
+      }
+
+      // Verify the age proof
+      const proof = proofs[0];
+      let verified = false;
+
+      try {
+        const result = await zkIdServer.verifyProof(proof, {
+          clientProtocolVersion: getClientProtocolVersion(req),
+        });
+        verified = result.success;
+      } catch {
+        verified = false;
+      }
+
+      res.json({
+        verified,
+        scenario: scenario.name,
+        message: verified ? 'Senior discount eligibility verified' : 'Senior discount verification failed',
+      });
+    } catch (error) {
+      console.error('Error verifying senior discount:', error);
+      res.status(500).json({
+        error: 'Verification failed',
         details: error instanceof Error ? error.message : 'Unknown error',
       });
     }
