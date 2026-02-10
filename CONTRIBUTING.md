@@ -470,6 +470,7 @@ npm run format:check
 ```
 
 **Style rules:**
+
 - **Indentation**: 2 spaces (no tabs)
 - **Line length**: Max 100 characters (soft limit)
 - **Trailing commas**: Use in multiline arrays/objects
@@ -478,11 +479,13 @@ npm run format:check
 - **Arrow functions**: Prefer over function expressions
 
 **Editor integration:**
+
 - Install ESLint and Prettier extensions for your editor
 - Enable "Format on Save" for automatic formatting
 - ESLint will highlight issues in real-time
 
 **Pre-commit hooks:**
+
 - Prettier automatically formats staged files
 - ESLint checks run before commit
 - Hooks configured via `.husky/` directory

@@ -27,6 +27,7 @@ All fixes are covered by comprehensive security test suites.
 #### Issue
 
 The `constantTimeEqual` function had timing vulnerabilities:
+
 - Early return on length mismatch leaked timing information
 - Direct length check before comparison was vulnerable to timing attacks
 - `constantTimeArrayEqual` used JavaScript `===` operator, not timing-safe
@@ -181,6 +182,7 @@ if (this.config.validatePayloads !== false) {
 ```
 
 **Documentation updated**:
+
 ```typescript
 /** Enable strict payload validation before verification (default: true).
  *  Set to false to disable validation. */
@@ -236,6 +238,7 @@ try {
 ```
 
 Applied to three methods:
+
 - `verifyAge()`
 - `verifyNationality()`
 - `verifyAgeRevocable()`
@@ -433,6 +436,7 @@ npm run lint
 ```
 
 Expected results:
+
 - All tests pass
 - Core package: ≥97% coverage
 - SDK package: ≥65% coverage

@@ -174,6 +174,7 @@ describe('ZkIdServer - protocol enforcement', () => {
       requireSignedCredentials: false,
       protocolVersionPolicy: 'strict',
       verboseErrors: true,
+      validatePayloads: false, // Disable to test protocol version check
     });
 
     const signedRequest = {
@@ -196,6 +197,7 @@ describe('ZkIdServer - signature and policy enforcement', () => {
       verificationKeyPath: getVerificationKeyPath(),
       issuerPublicKeys: {},
       verboseErrors: true,
+      validatePayloads: false, // Disable to test signed credential check
     });
 
     const proofResponse = {

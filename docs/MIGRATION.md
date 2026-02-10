@@ -18,6 +18,7 @@ This document describes breaking changes and migration steps between versions.
 **Impact**: Medium - Affects ZkIdServer configuration
 
 **What changed:**
+
 - `validatePayloads` config option now defaults to `true` instead of `false`
 - Strict payload validation is now enabled by default for security
 
@@ -50,6 +51,7 @@ const server = new ZkIdServer({
 **Impact**: Low - Affects error handling in client SDK
 
 **What changed:**
+
 - `ZkIdClient` methods now re-throw `ZkIdError` subclasses instead of swallowing them
 - Only unexpected errors are caught and return `false`
 - Better error context for debugging
@@ -96,6 +98,7 @@ These changes are backwards compatible and require no migration.
 #### 4. New Validation Exports
 
 **What's new:**
+
 - `validateClaimType(claimType: string)` - Validates claim types
 - `VALID_CLAIM_TYPES` constant - Array of valid claim types
 - `ClaimType` type - TypeScript type for valid claim types
@@ -126,6 +129,7 @@ None - v0.6 was a non-breaking release focused on quality improvements.
 #### 1. Custom Error Classes
 
 **What changed:**
+
 - Introduced typed error hierarchy for better error handling
 - Replaced generic `Error` with specific error types
 
@@ -133,12 +137,12 @@ None - v0.6 was a non-breaking release focused on quality improvements.
 
 ```typescript
 import {
-  ZkIdError,           // Base class
-  ZkIdConfigError,     // Configuration errors
+  ZkIdError, // Base class
+  ZkIdConfigError, // Configuration errors
   ZkIdValidationError, // Input validation errors
   ZkIdCredentialError, // Credential-related errors
-  ZkIdCryptoError,     // Cryptographic errors
-  ZkIdProofError,      // Proof generation/verification errors
+  ZkIdCryptoError, // Cryptographic errors
+  ZkIdProofError, // Proof generation/verification errors
 } from '@zk-id/core';
 ```
 
@@ -169,6 +173,7 @@ try {
 #### 2. Code Quality Automation
 
 **What changed:**
+
 - Added ESLint for code quality enforcement
 - Added Prettier for consistent code formatting
 - Configured automatic formatting on save

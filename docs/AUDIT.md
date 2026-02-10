@@ -221,6 +221,7 @@ Version 0.7 implements comprehensive security hardening based on audit findings,
 ### Completed Security Fixes
 
 #### Timing Attack Mitigation
+
 - ✅ **C-1/C-2**: Fixed timing-safe comparisons in `constantTimeEqual` and `constantTimeArrayEqual`
   - Pad buffers to prevent length leakage
   - Always run `timingSafeEqual` regardless of length
@@ -228,6 +229,7 @@ Version 0.7 implements comprehensive security hardening based on audit findings,
   - Comprehensive test coverage (22 tests)
 
 #### Cryptographic Security
+
 - ✅ **C-11**: Replaced `Math.random()` fallback with `crypto.randomBytes()`
   - Secure random generation for Node.js fallback in Redis tree-sync
   - No more predictable PRNG in fallback path
@@ -238,6 +240,7 @@ Version 0.7 implements comprehensive security hardening based on audit findings,
   - 4 new tests for key type validation
 
 #### Input Validation
+
 - ✅ **V-3**: Added `validateClaimType()` function
   - Validates claim types against `VALID_CLAIM_TYPES` constant
   - Prevents processing of invalid claim types
@@ -251,6 +254,7 @@ Version 0.7 implements comprehensive security hardening based on audit findings,
   - Migration guide provided in MIGRATION.md
 
 #### Error Handling
+
 - ✅ **E-2**: Fixed client error swallowing
   - Re-throw `ZkIdError` subclasses to preserve error context
   - Only swallow unexpected errors
@@ -270,6 +274,7 @@ Version 0.7 implements comprehensive security hardening based on audit findings,
 ### Test Coverage
 
 **New Test Files:**
+
 - `packages/core/test/security.test.ts` - 33 tests (boundary fuzzing, timing-safe, field elements, nonces)
 - `packages/core/test/timing-safe.test.ts` - 14 tests (timing-safe edge cases)
 - `packages/core/test/json-parse-guards.test.ts` - 2 tests (verification key parsing)
@@ -278,6 +283,7 @@ Version 0.7 implements comprehensive security hardening based on audit findings,
 - `packages/sdk/test/json-parse-guards.test.ts` - 4 tests (credential parsing)
 
 **Enhanced Test Files:**
+
 - `packages/sdk/test/server.test.ts` - +11 tests (validatePayloads, sanitizeError)
 - `packages/sdk/test/client.test.ts` - +6 tests (error propagation)
 - `packages/issuer/test/kms.test.ts` - +4 tests (Ed25519 validation)
@@ -293,6 +299,7 @@ Version 0.7 implements comprehensive security hardening based on audit findings,
 ### Coverage Improvements
 
 Expected post-v0.7 coverage:
+
 - Core: ≥97% (improved from 64.2%)
 - SDK: ≥65% (improved from 55.86%)
 - Issuer: ≥75% (improved from 63.42%)

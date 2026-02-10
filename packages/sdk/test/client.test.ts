@@ -255,14 +255,18 @@ describe('SDK Client Tests', () => {
         expect(result).to.be.false;
       });
 
-      it('should return false when no wallet configured', async () => {
+      it('should throw ZkIdCredentialError when no wallet configured (E-2 fix)', async () => {
         const client = new ZkIdClient({
           verificationEndpoint: 'http://localhost:3000/verify',
         });
 
-        const result = await client.verifyAge(18);
-
-        expect(result).to.be.false;
+        try {
+          await client.verifyAge(18);
+          expect.fail('Should have thrown ZkIdCredentialError');
+        } catch (error: any) {
+          expect(error).to.be.instanceOf(ZkIdCredentialError);
+          expect(error.message).to.include('No credential wallet found');
+        }
       });
 
       it('should include protocol header by default in non-browser environments', async () => {
