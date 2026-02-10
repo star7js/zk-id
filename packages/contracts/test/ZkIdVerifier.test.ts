@@ -2,13 +2,7 @@ import { expect } from 'chai';
 import { ethers } from 'hardhat';
 import { ZkIdVerifier } from '../typechain-types';
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
-import {
-  createCredential,
-  generateAgeProof,
-  generateNationalityProof,
-  verifyAgeProof,
-  loadVerificationKey,
-} from '@zk-id/core';
+import { createCredential, generateAgeProof, generateNationalityProof } from '@zk-id/core';
 import { ageProofToCalldata, nationalityProofToCalldata } from './helpers/proof-to-calldata';
 import * as path from 'path';
 
@@ -20,18 +14,15 @@ import * as path from 'path';
  */
 describe('ZkIdVerifier', function () {
   let zkIdVerifier: ZkIdVerifier;
-  let owner: SignerWithAddress;
-  let user: SignerWithAddress;
+  let _owner: SignerWithAddress;
+  let _user: SignerWithAddress;
 
   // Circuit paths relative to test file
   const AGE_WASM_PATH = path.resolve(
     __dirname,
     '../../../packages/circuits/build/age-verify_js/age-verify.wasm',
   );
-  const AGE_ZKEY_PATH = path.resolve(
-    __dirname,
-    '../../../packages/circuits/build/age-verify.zkey',
-  );
+  const AGE_ZKEY_PATH = path.resolve(__dirname, '../../../packages/circuits/build/age-verify.zkey');
   const NATIONALITY_WASM_PATH = path.resolve(
     __dirname,
     '../../../packages/circuits/build/nationality-verify_js/nationality-verify.wasm',
@@ -40,13 +31,9 @@ describe('ZkIdVerifier', function () {
     __dirname,
     '../../../packages/circuits/build/nationality-verify.zkey',
   );
-  const AGE_VKEY_PATH = path.resolve(
-    __dirname,
-    '../../../packages/circuits/build/age-verify_verification_key.json',
-  );
 
   before(async function () {
-    [owner, user] = await ethers.getSigners();
+    [_owner, _user] = await ethers.getSigners();
 
     // Deploy all verifier contracts
     const AgeVerifierFactory = await ethers.getContractFactory('AgeVerifier');

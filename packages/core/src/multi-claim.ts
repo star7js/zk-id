@@ -127,7 +127,10 @@ export function createMultiClaimRequest(claims: ClaimSpec[], nonce: string): Mul
   for (const claim of claims) {
     if (claim.claimType === 'age' || claim.claimType === 'age-revocable') {
       if (claim.minAge === undefined) {
-        throw new ZkIdValidationError(`Claim '${claim.label}': minAge is required for ${claim.claimType} claims`, 'minAge');
+        throw new ZkIdValidationError(
+          `Claim '${claim.label}': minAge is required for ${claim.claimType} claims`,
+          'minAge',
+        );
       }
       validateMinAge(claim.minAge);
     }

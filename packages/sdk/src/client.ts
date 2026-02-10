@@ -207,7 +207,10 @@ export class ZkIdClient {
     }
 
     // Otherwise, show UI to guide user to get a credential
-    throw new ZkIdCredentialError('No credential wallet found. Please obtain a credential first.', 'CREDENTIAL_NOT_FOUND');
+    throw new ZkIdCredentialError(
+      'No credential wallet found. Please obtain a credential first.',
+      'CREDENTIAL_NOT_FOUND',
+    );
   }
 
   /**
@@ -402,7 +405,10 @@ export class InMemoryWallet implements WalletConnector {
 
       const witness = await this.config.validCredentialTree.getWitness(credential.commitment);
       if (!witness) {
-        throw new ZkIdCredentialError('Credential not found in valid credential tree', 'CREDENTIAL_NOT_FOUND');
+        throw new ZkIdCredentialError(
+          'Credential not found in valid credential tree',
+          'CREDENTIAL_NOT_FOUND',
+        );
       }
 
       const proof = await generateAgeProofRevocable(
@@ -424,7 +430,10 @@ export class InMemoryWallet implements WalletConnector {
         requestTimestamp: request.timestamp,
       };
     } else {
-      throw new ZkIdProofError(`Unsupported claim type: ${request.claimType}`, 'UNKNOWN_PROOF_TYPE');
+      throw new ZkIdProofError(
+        `Unsupported claim type: ${request.claimType}`,
+        'UNKNOWN_PROOF_TYPE',
+      );
     }
   }
 

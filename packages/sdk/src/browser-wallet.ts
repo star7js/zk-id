@@ -269,7 +269,10 @@ export class BrowserWallet implements WalletConnector {
 
     const signedCredential = credentials.find((c) => c.credential.id === selectedId);
     if (!signedCredential) {
-      throw new ZkIdCredentialError(`Credential ${selectedId} not found in wallet`, 'CREDENTIAL_NOT_FOUND');
+      throw new ZkIdCredentialError(
+        `Credential ${selectedId} not found in wallet`,
+        'CREDENTIAL_NOT_FOUND',
+      );
     }
 
     const credential = signedCredential.credential;
@@ -436,7 +439,10 @@ export class BrowserWallet implements WalletConnector {
   async importAll(json: string): Promise<number> {
     const parsed = JSON.parse(json) as SignedCredential[];
     if (!Array.isArray(parsed)) {
-      throw new ZkIdCredentialError('Expected a JSON array of credentials', 'INVALID_CREDENTIAL_FORMAT');
+      throw new ZkIdCredentialError(
+        'Expected a JSON array of credentials',
+        'INVALID_CREDENTIAL_FORMAT',
+      );
     }
     for (const credential of parsed) {
       await this.config.credentialStore.put(credential);

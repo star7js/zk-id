@@ -52,7 +52,10 @@ export function validateBirthYear(birthYear: number): void {
     throw new ZkIdValidationError('birthYear must be an integer', 'birthYear');
   }
   if (birthYear < MIN_BIRTH_YEAR || birthYear > new Date().getFullYear()) {
-    throw new ZkIdValidationError(`birthYear must be between ${MIN_BIRTH_YEAR} and ${new Date().getFullYear()}`, 'birthYear');
+    throw new ZkIdValidationError(
+      `birthYear must be between ${MIN_BIRTH_YEAR} and ${new Date().getFullYear()}`,
+      'birthYear',
+    );
   }
 }
 
@@ -65,7 +68,10 @@ export function validateNationality(nationality: number): void {
     throw new ZkIdValidationError('nationality must be an integer', 'nationality');
   }
   if (nationality < MIN_NATIONALITY || nationality > MAX_NATIONALITY) {
-    throw new ZkIdValidationError(`nationality must be between ${MIN_NATIONALITY} and ${MAX_NATIONALITY}`, 'nationality');
+    throw new ZkIdValidationError(
+      `nationality must be between ${MIN_NATIONALITY} and ${MAX_NATIONALITY}`,
+      'nationality',
+    );
   }
 }
 
@@ -97,10 +103,16 @@ export function validateNonce(nonce: string): void {
     throw new ZkIdValidationError('nonce must be a string', 'nonce');
   }
   if (nonce.length < MIN_NONCE_LENGTH) {
-    throw new ZkIdValidationError(`nonce must be at least ${MIN_NONCE_LENGTH} characters (got ${nonce.length})`, 'nonce');
+    throw new ZkIdValidationError(
+      `nonce must be at least ${MIN_NONCE_LENGTH} characters (got ${nonce.length})`,
+      'nonce',
+    );
   }
   if (nonce.length > MAX_NONCE_LENGTH) {
-    throw new ZkIdValidationError(`nonce must be at most ${MAX_NONCE_LENGTH} characters (got ${nonce.length})`, 'nonce');
+    throw new ZkIdValidationError(
+      `nonce must be at most ${MAX_NONCE_LENGTH} characters (got ${nonce.length})`,
+      'nonce',
+    );
   }
 }
 
@@ -116,7 +128,10 @@ export function validateNonce(nonce: string): void {
  */
 export function validateRequestTimestamp(timestampMs: number): void {
   if (!Number.isInteger(timestampMs) || timestampMs <= 0) {
-    throw new ZkIdValidationError('requestTimestamp must be a positive integer (milliseconds)', 'requestTimestamp');
+    throw new ZkIdValidationError(
+      'requestTimestamp must be a positive integer (milliseconds)',
+      'requestTimestamp',
+    );
   }
   const now = Date.now();
   const clockSkewMs = 30_000; // 30 seconds
@@ -124,7 +139,10 @@ export function validateRequestTimestamp(timestampMs: number): void {
     throw new ZkIdValidationError('requestTimestamp is in the future', 'requestTimestamp');
   }
   if (now - timestampMs > MAX_REQUEST_AGE_MS) {
-    throw new ZkIdValidationError(`requestTimestamp is too old (max age: ${MAX_REQUEST_AGE_MS / 1000}s)`, 'requestTimestamp');
+    throw new ZkIdValidationError(
+      `requestTimestamp is too old (max age: ${MAX_REQUEST_AGE_MS / 1000}s)`,
+      'requestTimestamp',
+    );
   }
 }
 

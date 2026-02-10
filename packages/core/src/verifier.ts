@@ -437,7 +437,10 @@ export async function verifyBatch(
           verified = await verifyNullifierProof(proof, verificationKey);
           break;
         default:
-          throw new ZkIdProofError(`Unknown proof type: ${(proof as ZkProof).proofType}`, 'UNKNOWN_PROOF_TYPE');
+          throw new ZkIdProofError(
+            `Unknown proof type: ${(proof as ZkProof).proofType}`,
+            'UNKNOWN_PROOF_TYPE',
+          );
       }
       return { index, verified, error: undefined };
     } catch (error) {

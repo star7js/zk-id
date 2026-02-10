@@ -25,7 +25,10 @@ export class RedisChallengeStore implements ChallengeStore {
       throw new ZkIdValidationError('nonce must be a non-empty string', 'nonce');
     }
     if (!Number.isInteger(requestTimestampMs) || requestTimestampMs <= 0) {
-      throw new ZkIdValidationError('requestTimestampMs must be a positive integer', 'requestTimestampMs');
+      throw new ZkIdValidationError(
+        'requestTimestampMs must be a positive integer',
+        'requestTimestampMs',
+      );
     }
     if (!Number.isInteger(ttlMs) || ttlMs <= 0) {
       throw new ZkIdValidationError('ttlMs must be a positive integer', 'ttlMs');
