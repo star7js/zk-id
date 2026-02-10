@@ -32,8 +32,9 @@ describe('BBS Selective Disclosure', () => {
 
     it('should generate unique key pairs', async () => {
       const kp2 = await generateBBSKeyPair();
-      expect(Buffer.from(kp2.secretKey).toString('hex'))
-        .to.not.equal(Buffer.from(keyPair.secretKey).toString('hex'));
+      expect(Buffer.from(kp2.secretKey).toString('hex')).to.not.equal(
+        Buffer.from(keyPair.secretKey).toString('hex'),
+      );
     });
   });
 
@@ -56,68 +57,34 @@ describe('BBS Selective Disclosure', () => {
 
   describe('signBBSMessages / verifyBBSSignature', () => {
     it('should sign and verify messages', async () => {
-      const messages = [
-        encodeBBSMessage('Alice'),
-        encodeBBSMessage(30),
-        encodeBBSMessage('US'),
-      ];
+      const messages = [encodeBBSMessage('Alice'), encodeBBSMessage(30), encodeBBSMessage('US')];
 
-      const signature = await signBBSMessages(
-        keyPair.secretKey,
-        keyPair.publicKey,
-        messages,
-      );
+      const signature = await signBBSMessages(keyPair.secretKey, keyPair.publicKey, messages);
 
       expect(signature).to.be.instanceOf(Uint8Array);
       expect(signature.length).to.be.greaterThan(0);
 
-      const valid = await verifyBBSSignature(
-        keyPair.publicKey,
-        signature,
-        messages,
-      );
+      const valid = await verifyBBSSignature(keyPair.publicKey, signature, messages);
       expect(valid).to.be.true;
     });
 
     it('should reject tampered messages', async () => {
-      const messages = [
-        encodeBBSMessage('Alice'),
-        encodeBBSMessage(30),
-      ];
+      const messages = [encodeBBSMessage('Alice'), encodeBBSMessage(30)];
 
-      const signature = await signBBSMessages(
-        keyPair.secretKey,
-        keyPair.publicKey,
-        messages,
-      );
+      const signature = await signBBSMessages(keyPair.secretKey, keyPair.publicKey, messages);
 
-      const tampered = [
-        encodeBBSMessage('Bob'),
-        encodeBBSMessage(30),
-      ];
+      const tampered = [encodeBBSMessage('Bob'), encodeBBSMessage(30)];
 
-      const valid = await verifyBBSSignature(
-        keyPair.publicKey,
-        signature,
-        tampered,
-      );
+      const valid = await verifyBBSSignature(keyPair.publicKey, signature, tampered);
       expect(valid).to.be.false;
     });
 
     it('should reject wrong public key', async () => {
       const messages = [encodeBBSMessage('test')];
-      const signature = await signBBSMessages(
-        keyPair.secretKey,
-        keyPair.publicKey,
-        messages,
-      );
+      const signature = await signBBSMessages(keyPair.secretKey, keyPair.publicKey, messages);
 
       const otherKP = await generateBBSKeyPair();
-      const valid = await verifyBBSSignature(
-        otherKP.publicKey,
-        signature,
-        messages,
-      );
+      const valid = await verifyBBSSignature(otherKP.publicKey, signature, messages);
       expect(valid).to.be.false;
     });
   });
@@ -147,8 +114,9 @@ describe('BBS Selective Disclosure', () => {
     });
 
     it('should throw on missing fields', () => {
-      expect(() => credentialFieldsToBBSMessages({ id: 'x' } as any))
-        .to.throw(/Missing required credential field/);
+      expect(() => credentialFieldsToBBSMessages({ id: 'x' } as any)).to.throw(
+        /Missing required credential field/,
+      );
     });
   });
 
@@ -311,7 +279,12 @@ describe('BBS Selective Disclosure', () => {
   describe('BBS_CREDENTIAL_FIELDS', () => {
     it('should define exactly 6 fields in canonical order', () => {
       expect(BBS_CREDENTIAL_FIELDS).to.deep.equal([
-        'id', 'birthYear', 'nationality', 'salt', 'issuedAt', 'issuer',
+        'id',
+        'birthYear',
+        'nationality',
+        'salt',
+        'issuedAt',
+        'issuer',
       ]);
     });
   });

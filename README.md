@@ -7,6 +7,7 @@ zk-id enables users to prove eligibility (age, attributes) without revealing per
 ## Problem
 
 Current age verification systems force users to expose sensitive information:
+
 - Upload driver's license → reveals name, address, photo, ID number
 - Enter credit card → reveals financial information
 - Trust third parties → data breaches, tracking
@@ -84,11 +85,12 @@ npm install @zk-id/sdk
 ```
 
 **Client side** (user's browser):
+
 ```typescript
 import { ZkIdClient } from '@zk-id/sdk';
 
 const client = new ZkIdClient({
-  verificationEndpoint: '/api/verify-age'
+  verificationEndpoint: '/api/verify-age',
 });
 
 // Request age verification
@@ -100,6 +102,7 @@ if (verified) {
 
 **Protocol version header (CORS note):**
 The SDK sends `X-ZkId-Protocol-Version` by default only for same-origin endpoints in browsers to avoid CORS preflight issues. For cross-origin verification endpoints, either allow this header in CORS or set:
+
 ```typescript
 const client = new ZkIdClient({
   verificationEndpoint: 'https://api.example.com/verify',
@@ -108,7 +111,8 @@ const client = new ZkIdClient({
 ```
 
 **Server side** (your backend):
-```typescript  
+
+```typescript
 import { ZkIdServer, InMemoryIssuerRegistry, InMemoryChallengeStore } from '@zk-id/sdk';
 import { InMemoryRevocationStore } from '@zk-id/core';
 
@@ -148,6 +152,7 @@ app.post('/api/verify-age', async (req, res) => {
 ```
 
 **Production storage (Postgres)**:
+
 ```typescript
 import { ZkIdServer, PostgresValidCredentialTree } from '@zk-id/sdk';
 import { Client } from 'pg';
@@ -171,6 +176,7 @@ const rootInfo = await server.getRevocationRootInfo();
 ```
 
 **Client helper for revocation root**:
+
 ```typescript
 const client = new ZkIdClient({
   verificationEndpoint: '/api/verify-age',
@@ -197,7 +203,7 @@ issuer.setRevocationStore(revocationStore);
 const credential = await issuer.issueCredential(
   userBirthYear,
   nationality, // ISO 3166-1 numeric code
-  userId
+  userId,
 );
 
 // Revoke a credential if needed (by commitment)
@@ -205,6 +211,7 @@ await issuer.revokeCredential(credential.credential.commitment);
 ```
 
 For KMS/HSM-backed signing:
+
 ```typescript
 import { ManagedCredentialIssuer, InMemoryIssuerKeyManager } from '@zk-id/issuer';
 
@@ -264,20 +271,21 @@ On-chain Groth16 proof verification for Ethereum and EVM-compatible chains.
 
 ### Quick Reference
 
-| Package | Use For | npm install |
-|---------|---------|-------------|
-| `@zk-id/core` | Building custom integrations | `npm install @zk-id/core` |
-| `@zk-id/sdk` | Integrating into web apps | `npm install @zk-id/sdk` |
-| `@zk-id/issuer` | Issuing credentials | `npm install @zk-id/issuer` |
-| `@zk-id/circuits` | Circuit artifacts (auto-included) | `npm install @zk-id/circuits` |
-| `@zk-id/redis` | Production storage | `npm install @zk-id/redis ioredis` |
-| `@zk-id/contracts` | On-chain verification | `npm install @zk-id/contracts` |
+| Package            | Use For                           | npm install                        |
+| ------------------ | --------------------------------- | ---------------------------------- |
+| `@zk-id/core`      | Building custom integrations      | `npm install @zk-id/core`          |
+| `@zk-id/sdk`       | Integrating into web apps         | `npm install @zk-id/sdk`           |
+| `@zk-id/issuer`    | Issuing credentials               | `npm install @zk-id/issuer`        |
+| `@zk-id/circuits`  | Circuit artifacts (auto-included) | `npm install @zk-id/circuits`      |
+| `@zk-id/redis`     | Production storage                | `npm install @zk-id/redis ioredis` |
+| `@zk-id/contracts` | On-chain verification             | `npm install @zk-id/contracts`     |
 
 ## Use Cases
 
 **Note:** The current public schema supports `birthYear` and `nationality`. Use cases beyond those attributes require new issuer attestations and circuits.
 
 ### Supported Today
+
 - **Age-Restricted Content**: Verify minimum age requirements for restricted websites (18+, 21+)
 - **Social Media**: Compliance with age restrictions (13+, 16+)
 - **E-Commerce**: Age verification for alcohol, tobacco, cannabis
@@ -288,6 +296,7 @@ On-chain Groth16 proof verification for Ethereum and EVM-compatible chains.
 - **Revocable Eligibility**: Prove membership in a valid set with Merkle inclusion (non-revocation)
 
 ### Potential With Extended Schema
+
 - **Bank account holder verification**: Prove you hold an active account without revealing account number or balance
 - **Credit eligibility**: Prove creditworthiness meets a threshold without exposing exact score or history
 - **Accredited investor status**: Prove income/net-worth thresholds for regulatory compliance without financial disclosure
@@ -332,20 +341,22 @@ On-chain Groth16 proof verification for Ethereum and EVM-compatible chains.
 
 ## Comparison to Existing Solutions
 
-| Solution | Privacy | Speed | Integration | Decentralized |
-|----------|---------|-------|-------------|---------------|
-| **zk-id** | ✅ Full | ✅ Fast | ✅ Easy | ✅ Yes |
-| Upload ID | ❌ None | ⚠️ Slow | ✅ Easy | ❌ No |
-| Credit Card | ❌ None | ✅ Fast | ✅ Easy | ❌ No |
-| Yoti/Jumio | ⚠️ Partial | ⚠️ Slow | ✅ Easy | ❌ No |
-| Worldcoin | ✅ Full | ✅ Fast | ⚠️ Complex | ✅ Yes |
+| Solution    | Privacy    | Speed   | Integration | Decentralized |
+| ----------- | ---------- | ------- | ----------- | ------------- |
+| **zk-id**   | ✅ Full    | ✅ Fast | ✅ Easy     | ✅ Yes        |
+| Upload ID   | ❌ None    | ⚠️ Slow | ✅ Easy     | ❌ No         |
+| Credit Card | ❌ None    | ✅ Fast | ✅ Easy     | ❌ No         |
+| Yoti/Jumio  | ⚠️ Partial | ⚠️ Slow | ✅ Easy     | ❌ No         |
+| Worldcoin   | ✅ Full    | ✅ Fast | ⚠️ Complex  | ✅ Yes        |
 
 ## Roadmap
+
 See `docs/ROADMAP.md` for current priorities and version targets.
 
 ## Threat Model
 
 Summary:
+
 - Issuer-signed credentials only
 - Verifier enforces policy and nonce binding
 - Trusted issuer keys are required
@@ -433,6 +444,7 @@ zk-id is compatible with and inspired by:
 Traditional identity systems are binary: either you share everything (your full ID) or nothing. Zero-knowledge proofs enable a third option: **prove specific claims without revealing underlying data**.
 
 Example:
+
 - ❌ Traditional: "Here's my driver's license" → reveals name, address, photo, ID number, birth date
 - ✅ zk-id: "I'm over 18" → reveals only that one fact, nothing else
 

@@ -4,10 +4,7 @@ import { AgeProofSigned } from '@zk-id/core';
 import path from 'path';
 
 function getSignedVerificationKeyPath(): string {
-  return path.resolve(
-    __dirname,
-    '../../circuits/build/age-verify-signed_verification_key.json'
-  );
+  return path.resolve(__dirname, '../../circuits/build/age-verify-signed_verification_key.json');
 }
 
 describe('ZkIdServer - signed proofs', () => {

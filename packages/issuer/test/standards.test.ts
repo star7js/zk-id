@@ -25,21 +25,15 @@ describe('ISO 18013-5/7 Standards Mapping', () => {
 
   describe('MDL_ELEMENTS', () => {
     it('should define birth_date element', () => {
-      expect(MDL_ELEMENTS.BIRTH_DATE).to.equal(
-        'org.iso.18013.5.1.birth_date'
-      );
+      expect(MDL_ELEMENTS.BIRTH_DATE).to.equal('org.iso.18013.5.1.birth_date');
     });
 
     it('should define nationality element', () => {
-      expect(MDL_ELEMENTS.NATIONALITY).to.equal(
-        'org.iso.18013.5.1.nationality'
-      );
+      expect(MDL_ELEMENTS.NATIONALITY).to.equal('org.iso.18013.5.1.nationality');
     });
 
     it('should define age_over prefix', () => {
-      expect(MDL_ELEMENTS.AGE_OVER_PREFIX).to.equal(
-        'org.iso.18013.5.1.age_over_'
-      );
+      expect(MDL_ELEMENTS.AGE_OVER_PREFIX).to.equal('org.iso.18013.5.1.age_over_');
     });
 
     it('should define issuing_authority element', () => {
@@ -76,21 +70,15 @@ describe('ISO 18013-5/7 Standards Mapping', () => {
 
       expect(elements.length).to.be.greaterThanOrEqual(5);
 
-      const birthDate = elements.find(
-        (e) => e.identifier === MDL_ELEMENTS.BIRTH_DATE
-      );
+      const birthDate = elements.find((e) => e.identifier === MDL_ELEMENTS.BIRTH_DATE);
       expect(birthDate).to.exist;
       expect(birthDate!.value).to.equal('1990-01-01');
 
-      const nationality = elements.find(
-        (e) => e.identifier === MDL_ELEMENTS.NATIONALITY
-      );
+      const nationality = elements.find((e) => e.identifier === MDL_ELEMENTS.NATIONALITY);
       expect(nationality).to.exist;
       expect(nationality!.value).to.equal('US');
 
-      const authority = elements.find(
-        (e) => e.identifier === MDL_ELEMENTS.ISSUING_AUTHORITY
-      );
+      const authority = elements.find((e) => e.identifier === MDL_ELEMENTS.ISSUING_AUTHORITY);
       expect(authority).to.exist;
       expect(authority!.value).to.equal('Test Authority');
     });
@@ -99,9 +87,7 @@ describe('ISO 18013-5/7 Standards Mapping', () => {
       const signed = await issuer.issueCredential(1990, 826);
       const elements = toMdlElements(signed, 'GB');
 
-      const country = elements.find(
-        (e) => e.identifier === MDL_ELEMENTS.ISSUING_COUNTRY
-      );
+      const country = elements.find((e) => e.identifier === MDL_ELEMENTS.ISSUING_COUNTRY);
       expect(country).to.exist;
       expect(country!.value).to.equal('GB');
     });
@@ -110,9 +96,7 @@ describe('ISO 18013-5/7 Standards Mapping', () => {
       const signed = await issuer.issueCredential(1990, 840);
       const elements = toMdlElements(signed);
 
-      const country = elements.find(
-        (e) => e.identifier === MDL_ELEMENTS.ISSUING_COUNTRY
-      );
+      const country = elements.find((e) => e.identifier === MDL_ELEMENTS.ISSUING_COUNTRY);
       expect(country).to.not.exist;
     });
 
@@ -120,9 +104,7 @@ describe('ISO 18013-5/7 Standards Mapping', () => {
       const signed = await issuer.issueCredential(1985, 276);
       const elements = toMdlElements(signed);
 
-      const docNum = elements.find(
-        (e) => e.identifier === MDL_ELEMENTS.DOCUMENT_NUMBER
-      );
+      const docNum = elements.find((e) => e.identifier === MDL_ELEMENTS.DOCUMENT_NUMBER);
       expect(docNum).to.exist;
       expect(docNum!.value).to.equal(signed.credential.id);
     });
@@ -133,9 +115,7 @@ describe('ISO 18013-5/7 Standards Mapping', () => {
       const attestation = createAgeOverAttestation(18);
 
       expect(attestation.ageThreshold).to.equal(18);
-      expect(attestation.elementId).to.equal(
-        'org.iso.18013.5.1.age_over_18'
-      );
+      expect(attestation.elementId).to.equal('org.iso.18013.5.1.age_over_18');
       expect(attestation.value).to.be.true;
     });
 
@@ -143,9 +123,7 @@ describe('ISO 18013-5/7 Standards Mapping', () => {
       const attestation = createAgeOverAttestation(21);
 
       expect(attestation.ageThreshold).to.equal(21);
-      expect(attestation.elementId).to.equal(
-        'org.iso.18013.5.1.age_over_21'
-      );
+      expect(attestation.elementId).to.equal('org.iso.18013.5.1.age_over_21');
       expect(attestation.value).to.be.true;
     });
 
@@ -174,9 +152,7 @@ describe('ISO 18013-5/7 Standards Mapping', () => {
 
     it('should have valid fidelity values', () => {
       for (const mapping of STANDARDS_MAPPINGS) {
-        expect(['exact', 'partial', 'conceptual']).to.include(
-          mapping.fidelity
-        );
+        expect(['exact', 'partial', 'conceptual']).to.include(mapping.fidelity);
       }
     });
 

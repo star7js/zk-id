@@ -1,4 +1,4 @@
-import { createPublicKey, type KeyObject } from 'crypto';
+import { createPublicKey } from 'crypto';
 import type { IssuerRegistry, IssuerRecord } from '@zk-id/sdk';
 import type { RedisClient } from './types';
 

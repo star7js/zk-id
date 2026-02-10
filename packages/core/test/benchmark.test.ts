@@ -7,7 +7,7 @@ import {
   BenchmarkResult,
 } from '../src/benchmark';
 import { poseidonHash } from '../src/poseidon';
-import { createCredential, validateCredential } from '../src/credential';
+import { createCredential } from '../src/credential';
 import { InMemoryValidCredentialTree } from '../src/valid-credential-tree';
 import { validateProofConstraints, validateNationalityProofConstraints } from '../src/verifier';
 import { AgeProof, NationalityProof } from '../src/types';
@@ -20,8 +20,11 @@ describe('Performance Benchmarks', function () {
     it('should meet target for 2-input hash', async () => {
       const result = await runBenchmark(
         'poseidon-hash-2',
-        async () => { await poseidonHash([1990, 840]); },
-        50, 5
+        async () => {
+          await poseidonHash([1990, 840]);
+        },
+        50,
+        5,
       );
 
       const check = checkTarget(result);
@@ -32,8 +35,11 @@ describe('Performance Benchmarks', function () {
     it('should meet target for 3-input hash', async () => {
       const result = await runBenchmark(
         'poseidon-hash-3',
-        async () => { await poseidonHash([1990, 840, 123456789n]); },
-        50, 5
+        async () => {
+          await poseidonHash([1990, 840, 123456789n]);
+        },
+        50,
+        5,
       );
 
       const check = checkTarget(result);
@@ -46,8 +52,11 @@ describe('Performance Benchmarks', function () {
     it('should meet target for credential creation', async () => {
       const result = await runBenchmark(
         'credential-creation',
-        async () => { await createCredential(1990, 840); },
-        50, 5
+        async () => {
+          await createCredential(1990, 840);
+        },
+        50,
+        5,
       );
 
       const check = checkTarget(result);
@@ -77,8 +86,11 @@ describe('Performance Benchmarks', function () {
       let idx = 0;
       const result = await runBenchmark(
         'merkle-add',
-        async () => { await tree.add(commitments[idx++ % commitments.length]); },
-        50, 0
+        async () => {
+          await tree.add(commitments[idx++ % commitments.length]);
+        },
+        50,
+        0,
       );
 
       const check = checkTarget(result);
@@ -94,8 +106,11 @@ describe('Performance Benchmarks', function () {
 
       const result = await runBenchmark(
         'merkle-get-root',
-        async () => { await tree.getRoot(); },
-        50, 5
+        async () => {
+          await tree.getRoot();
+        },
+        50,
+        5,
       );
 
       const check = checkTarget(result);
@@ -111,8 +126,11 @@ describe('Performance Benchmarks', function () {
 
       const result = await runBenchmark(
         'merkle-get-witness',
-        async () => { await tree.getWitness(commitments[0]); },
-        50, 5
+        async () => {
+          await tree.getWitness(commitments[0]);
+        },
+        50,
+        5,
       );
 
       const check = checkTarget(result);
@@ -127,8 +145,11 @@ describe('Performance Benchmarks', function () {
 
       const result = await runBenchmark(
         'merkle-contains',
-        async () => { await tree.contains(commitments[0]); },
-        50, 5
+        async () => {
+          await tree.contains(commitments[0]);
+        },
+        50,
+        5,
       );
 
       const check = checkTarget(result);
@@ -145,8 +166,11 @@ describe('Performance Benchmarks', function () {
       let idx = 0;
       const result = await runBenchmark(
         'merkle-remove',
-        async () => { await tree.remove(commitments[idx++ % commitments.length]); },
-        50, 0
+        async () => {
+          await tree.remove(commitments[idx++ % commitments.length]);
+        },
+        50,
+        0,
       );
 
       const check = checkTarget(result);
@@ -160,7 +184,10 @@ describe('Performance Benchmarks', function () {
       proofType: 'age',
       proof: {
         pi_a: ['1', '2'],
-        pi_b: [['3', '4'], ['5', '6']],
+        pi_b: [
+          ['3', '4'],
+          ['5', '6'],
+        ],
         pi_c: ['7', '8'],
         protocol: 'groth16',
         curve: 'bn128',
@@ -178,7 +205,10 @@ describe('Performance Benchmarks', function () {
       proofType: 'nationality',
       proof: {
         pi_a: ['1', '2'],
-        pi_b: [['3', '4'], ['5', '6']],
+        pi_b: [
+          ['3', '4'],
+          ['5', '6'],
+        ],
         pi_c: ['7', '8'],
         protocol: 'groth16',
         curve: 'bn128',
@@ -194,8 +224,11 @@ describe('Performance Benchmarks', function () {
     it('should meet target for age constraint validation', async () => {
       const result = await runBenchmark(
         'constraint-validation-age',
-        async () => { validateProofConstraints(mockAgeProof); },
-        200, 10
+        async () => {
+          validateProofConstraints(mockAgeProof);
+        },
+        200,
+        10,
       );
 
       const check = checkTarget(result);
@@ -206,8 +239,11 @@ describe('Performance Benchmarks', function () {
     it('should meet target for nationality constraint validation', async () => {
       const result = await runBenchmark(
         'constraint-validation-nationality',
-        async () => { validateNationalityProofConstraints(mockNationalityProof); },
-        200, 10
+        async () => {
+          validateNationalityProofConstraints(mockNationalityProof);
+        },
+        200,
+        10,
       );
 
       const check = checkTarget(result);
@@ -220,8 +256,11 @@ describe('Performance Benchmarks', function () {
     it('should produce valid statistics', async () => {
       const result = await runBenchmark(
         'test-op',
-        async () => { /* noop */ },
-        20, 2
+        async () => {
+          /* noop */
+        },
+        20,
+        2,
       );
 
       assert.strictEqual(result.name, 'test-op');

@@ -6,15 +6,15 @@ This package provides seven Circom circuits for age verification, nationality ve
 
 ## Circuits
 
-| Circuit | Purpose | Constraints | Public Signals |
-|---------|---------|------------|----------------|
-| `credential-hash` | Poseidon commitment | 605 | `credentialHash` |
-| `age-verify` | Age >= minAge | 653 | `currentYear`, `minAge`, `credentialHash`, `nonce`, `requestTimestamp` |
-| `nationality-verify` | Nationality match | 608 | `targetNationality`, `credentialHash`, `nonce`, `requestTimestamp` |
-| `age-verify-signed` | Age + EdDSA sig | 20,621 | + 256 issuer pubkey bits |
-| `nationality-verify-signed` | Nationality + EdDSA sig | 20,576 | + 256 issuer pubkey bits |
-| `age-verify-revocable` | Age + Merkle inclusion | 5,883 | + `merkleRoot` |
-| `nullifier` | Sybil-resistance | 1,122 | `credentialHash`, `scopeHash`, `nullifier` |
+| Circuit                     | Purpose                 | Constraints | Public Signals                                                         |
+| --------------------------- | ----------------------- | ----------- | ---------------------------------------------------------------------- |
+| `credential-hash`           | Poseidon commitment     | 605         | `credentialHash`                                                       |
+| `age-verify`                | Age >= minAge           | 653         | `currentYear`, `minAge`, `credentialHash`, `nonce`, `requestTimestamp` |
+| `nationality-verify`        | Nationality match       | 608         | `targetNationality`, `credentialHash`, `nonce`, `requestTimestamp`     |
+| `age-verify-signed`         | Age + EdDSA sig         | 20,621      | + 256 issuer pubkey bits                                               |
+| `nationality-verify-signed` | Nationality + EdDSA sig | 20,576      | + 256 issuer pubkey bits                                               |
+| `age-verify-revocable`      | Age + Merkle inclusion  | 5,883       | + `merkleRoot`                                                         |
+| `nullifier`                 | Sybil-resistance        | 1,122       | `credentialHash`, `scopeHash`, `nullifier`                             |
 
 Constraint counts are for v0.6.0. See `docs/CIRCUIT-COMPLEXITY.md` for detailed breakdown.
 
@@ -81,6 +81,7 @@ Artifacts are in `build/` directory after compilation.
 This package uses development Powers of Tau ceremonies from the Hermez project. **These are NOT suitable for production use.**
 
 For production deployments:
+
 1. Participate in or run a production Powers of Tau ceremony
 2. Recompile circuits using production `ptau` files
 3. Regenerate all `.zkey` and verification keys
@@ -91,6 +92,7 @@ See `docs/TRUSTED-SETUP.md` for details.
 ### Platform-Dependent Artifact Hashes
 
 Circuit artifact hashes are **platform-dependent** due to:
+
 - circom compiler differences (macOS vs Linux)
 - WASM binary format variations
 - ptau file endianness
@@ -100,6 +102,7 @@ The `verify-hashes` script checks hashes but allows for platform differences. Al
 ### Merkle Tree Depth Hardcoded
 
 The `age-verify-revocable` circuit uses a **hardcoded Merkle tree depth of 10** (1,024 max leaves). If you need more credentials, you must:
+
 1. Modify the circuit to increase depth
 2. Recompile with larger Powers of Tau
 3. Regenerate proving and verification keys

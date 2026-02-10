@@ -1,852 +1,919 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ZK-ID · Privacy-Preserving Identity Verification</title>
 
     <!-- External libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/snarkjs@0.7.6/build/snarkjs.min.js" integrity="sha384-0BwXUQOD9YoCtCxJEZteYrXCzG2h539Nyk+Nedmo+epTK4kk17sAl/EfoYrRddZT" crossorigin="anonymous"></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/snarkjs@0.7.6/build/snarkjs.min.js"
+      integrity="sha384-0BwXUQOD9YoCtCxJEZteYrXCzG2h539Nyk+Nedmo+epTK4kk17sAl/EfoYrRddZT"
+      crossorigin="anonymous"
+    ></script>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
 
     <style>
-        :root {
-            --bg-primary: #0a0e14;
-            --bg-secondary: #12161e;
-            --bg-elevated: #1a1f2b;
-            --text-primary: #e6edf3;
-            --text-secondary: #8b949e;
-            --text-muted: #6e7681;
-            --accent-client: #10b981;
-            --accent-client-glow: rgba(16, 185, 129, 0.15);
-            --accent-server: #f59e0b;
-            --accent-server-glow: rgba(245, 158, 11, 0.15);
-            --accent-proof: #06b6d4;
-            --border-subtle: rgba(230, 237, 243, 0.08);
-            --border-medium: rgba(230, 237, 243, 0.12);
-            --success: #10b981;
-            --error: #ef4444;
-            --warning: #f59e0b;
+      :root {
+        --bg-primary: #0a0e14;
+        --bg-secondary: #12161e;
+        --bg-elevated: #1a1f2b;
+        --text-primary: #e6edf3;
+        --text-secondary: #8b949e;
+        --text-muted: #6e7681;
+        --accent-client: #10b981;
+        --accent-client-glow: rgba(16, 185, 129, 0.15);
+        --accent-server: #f59e0b;
+        --accent-server-glow: rgba(245, 158, 11, 0.15);
+        --accent-proof: #06b6d4;
+        --border-subtle: rgba(230, 237, 243, 0.08);
+        --border-medium: rgba(230, 237, 243, 0.12);
+        --success: #10b981;
+        --error: #ef4444;
+        --warning: #f59e0b;
 
-            --font-display: 'Outfit', sans-serif;
-            --font-mono: 'IBM Plex Mono', monospace;
+        --font-display: 'Outfit', sans-serif;
+        --font-mono: 'IBM Plex Mono', monospace;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: var(--font-display);
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        line-height: 1.6;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      /* Background pattern */
+      body::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background:
+          radial-gradient(circle at 20% 30%, var(--accent-client-glow) 0%, transparent 40%),
+          radial-gradient(circle at 80% 70%, var(--accent-server-glow) 0%, transparent 40%),
+          repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 2px,
+            rgba(230, 237, 243, 0.02) 2px,
+            rgba(230, 237, 243, 0.02) 4px
+          );
+        pointer-events: none;
+        z-index: -1;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 60px 32px;
+      }
+
+      /* Header */
+      .header {
+        text-align: center;
+        margin-bottom: 80px;
+        animation: fadeInDown 0.8s ease-out;
+      }
+
+      .header-badge {
+        display: inline-block;
+        padding: 6px 14px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border-medium);
+        border-radius: 20px;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        color: var(--accent-client);
+        margin-bottom: 24px;
+        letter-spacing: 0.5px;
+      }
+
+      .header h1 {
+        font-size: 56px;
+        font-weight: 700;
+        margin-bottom: 16px;
+        color: var(--text-primary);
+        letter-spacing: -1.5px;
+      }
+
+      .header-subtitle {
+        font-size: 20px;
+        color: var(--text-primary);
+        font-weight: 300;
+        max-width: 600px;
+        margin: 0 auto;
+        opacity: 0.8;
+      }
+
+      /* Privacy callout */
+      .privacy-banner {
+        background: rgba(16, 185, 129, 0.1);
+        border: 2px solid var(--accent-client);
+        border-radius: 12px;
+        padding: 24px 32px;
+        margin-bottom: 60px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        animation: fadeIn 0.8s ease-out 0.3s both;
+      }
+
+      .privacy-icon {
+        font-size: 32px;
+        flex-shrink: 0;
+      }
+
+      .privacy-content h3 {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: var(--text-primary);
+      }
+
+      .privacy-content p {
+        font-size: 14px;
+        color: var(--text-primary);
+        line-height: 1.5;
+        opacity: 0.9;
+      }
+
+      /* Card system */
+      .card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-subtle);
+        border-radius: 16px;
+        padding: 40px;
+        margin-bottom: 32px;
+        position: relative;
+        overflow: hidden;
+        transition: border-color 0.3s ease;
+        animation: fadeInUp 0.6s ease-out both;
+      }
+
+      .card:nth-child(1) {
+        animation-delay: 0.1s;
+      }
+      .card:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .card:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+      .card:nth-child(4) {
+        animation-delay: 0.4s;
+      }
+
+      .card:hover {
+        border-color: var(--border-medium);
+      }
+
+      .card-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+
+      .step-badge {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--bg-elevated);
+        border: 2px solid var(--accent-client);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-mono);
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--accent-client);
+        flex-shrink: 0;
+      }
+
+      .card-title {
+        font-size: 28px;
+        font-weight: 600;
+        color: var(--text-primary);
+        letter-spacing: -0.5px;
+      }
+
+      .card-description {
+        color: var(--text-secondary);
+        margin-bottom: 32px;
+        line-height: 1.7;
+      }
+
+      /* Location badges */
+      .location-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 6px;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.3px;
+        margin-bottom: 16px;
+      }
+
+      .location-badge.client {
+        background: var(--accent-client-glow);
+        color: var(--accent-client);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+      }
+
+      .location-badge.server {
+        background: var(--accent-server-glow);
+        color: var(--accent-server);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+      }
+
+      .location-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      /* Form elements */
+      .form-group {
+        margin-bottom: 24px;
+      }
+
+      .form-label {
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .form-input,
+      .form-select {
+        width: 100%;
+        padding: 14px 16px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border-medium);
+        border-radius: 8px;
+        color: var(--text-primary);
+        font-family: var(--font-display);
+        font-size: 16px;
+        transition: all 0.2s ease;
+      }
+
+      .form-input:focus,
+      .form-select:focus {
+        outline: none;
+        border-color: var(--accent-client);
+        box-shadow: 0 0 0 3px var(--accent-client-glow);
+      }
+
+      /* Buttons */
+      .btn {
+        width: 100%;
+        padding: 16px 24px;
+        border: none;
+        border-radius: 8px;
+        font-family: var(--font-display);
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .btn-primary {
+        background: var(--accent-client);
+        color: var(--bg-primary);
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        background: #0ea574;
+        transform: translateY(-1px);
+        box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+      }
+
+      .btn-secondary {
+        background: var(--bg-elevated);
+        color: var(--text-primary);
+        border: 1px solid var(--border-medium);
+      }
+
+      .btn-secondary:hover:not(:disabled) {
+        background: var(--bg-primary);
+        border-color: var(--accent-client);
+      }
+
+      .btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        transform: none !important;
+      }
+
+      .btn + .btn {
+        margin-top: 12px;
+      }
+
+      /* Results */
+      .result {
+        margin-top: 24px;
+        padding: 20px;
+        border-radius: 8px;
+        border-left: 4px solid;
+        display: none;
+        animation: slideIn 0.3s ease-out;
+      }
+
+      .result.success {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: var(--success);
+        border-left-width: 4px;
+        display: block;
+        color: var(--text-primary);
+      }
+
+      .result.error {
+        background: rgba(239, 68, 68, 0.15);
+        border-color: var(--error);
+        border-left-width: 4px;
+        display: block;
+        color: var(--text-primary);
+      }
+
+      .result.loading {
+        background: rgba(6, 182, 212, 0.15);
+        border-color: var(--accent-proof);
+        border-left-width: 4px;
+        display: block;
+        color: var(--text-primary);
+      }
+
+      .result-title {
+        font-weight: 600;
+        margin-bottom: 8px;
+        font-size: 16px;
+        color: var(--text-primary);
+      }
+
+      .result p {
+        color: var(--text-primary);
+        opacity: 0.9;
+      }
+
+      /* Progress indicator */
+      .progress-container {
+        margin: 20px 0;
+      }
+
+      .progress-steps {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .progress-step {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        background: var(--bg-elevated);
+        border-radius: 6px;
+        font-family: var(--font-mono);
+        font-size: 13px;
+        opacity: 0.5;
+        transition: all 0.3s ease;
+        color: var(--text-primary);
+      }
+
+      .progress-step.active {
+        opacity: 1;
+        border: 1px solid var(--accent-proof);
+        background: rgba(6, 182, 212, 0.1);
+      }
+
+      .progress-step.complete {
+        opacity: 1;
+        background: rgba(16, 185, 129, 0.1);
+      }
+
+      .progress-step-icon {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 2px solid currentColor;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+      }
+
+      .progress-step.active .progress-step-icon {
+        border-color: var(--accent-proof);
+        color: var(--accent-proof);
+        animation: spin 1s linear infinite;
+      }
+
+      .progress-step.complete .progress-step-icon {
+        background: var(--success);
+        border-color: var(--success);
+        color: var(--bg-primary);
+      }
+
+      /* Timing breakdown */
+      .timing-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 16px;
+        margin: 20px 0;
+      }
+
+      .timing-item {
+        padding: 16px;
+        background: var(--bg-elevated);
+        border-radius: 8px;
+        border: 1px solid var(--border-subtle);
+      }
+
+      .timing-label {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 6px;
+      }
+
+      .timing-value {
+        font-size: 28px;
+        font-weight: 600;
+        color: var(--accent-client);
+        font-family: var(--font-mono);
+      }
+
+      .timing-unit {
+        font-size: 16px;
+        color: var(--text-primary);
+        opacity: 0.7;
+      }
+
+      /* Privacy details */
+      .privacy-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin: 20px 0;
+      }
+
+      .privacy-section {
+        padding: 20px;
+        background: var(--bg-elevated);
+        border-radius: 8px;
+        border: 1px solid var(--border-subtle);
+      }
+
+      .privacy-section-title {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .privacy-section.hidden .privacy-section-title {
+        color: var(--accent-client);
+      }
+
+      .privacy-section.revealed .privacy-section-title {
+        color: var(--accent-server);
+      }
+
+      .privacy-list {
+        list-style: none;
+      }
+
+      .privacy-list li {
+        padding: 8px 0;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--text-primary);
+      }
+
+      .privacy-list li::before {
+        content: '→';
+        font-weight: bold;
+        opacity: 0.6;
+      }
+
+      /* Credential display */
+      .credential-display {
+        margin: 20px 0;
+        padding: 20px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border-medium);
+        border-radius: 8px;
+        font-family: var(--font-mono);
+        font-size: 12px;
+      }
+
+      .credential-row {
+        display: flex;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .credential-row:last-child {
+        border-bottom: none;
+      }
+
+      .credential-key {
+        color: var(--text-secondary);
+        min-width: 140px;
+        font-weight: 500;
+      }
+
+      .credential-value {
+        color: var(--text-primary);
+        word-break: break-all;
+      }
+
+      /* Animations */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
         }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        to {
+          opacity: 1;
         }
+      }
 
-        body {
-            font-family: var(--font-display);
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            line-height: 1.6;
-            min-height: 100vh;
-            overflow-x: hidden;
+      @keyframes fadeInDown {
+        from {
+          opacity: 0;
+          transform: translateY(-20px);
         }
-
-        /* Background pattern */
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background:
-                radial-gradient(circle at 20% 30%, var(--accent-client-glow) 0%, transparent 40%),
-                radial-gradient(circle at 80% 70%, var(--accent-server-glow) 0%, transparent 40%),
-                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(230, 237, 243, 0.02) 2px, rgba(230, 237, 243, 0.02) 4px);
-            pointer-events: none;
-            z-index: -1;
+        to {
+          opacity: 1;
+          transform: translateY(0);
         }
+      }
 
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateX(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
         .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 60px 32px;
-        }
-
-        /* Header */
-        .header {
-            text-align: center;
-            margin-bottom: 80px;
-            animation: fadeInDown 0.8s ease-out;
-        }
-
-        .header-badge {
-            display: inline-block;
-            padding: 6px 14px;
-            background: var(--bg-elevated);
-            border: 1px solid var(--border-medium);
-            border-radius: 20px;
-            font-family: var(--font-mono);
-            font-size: 12px;
-            color: var(--accent-client);
-            margin-bottom: 24px;
-            letter-spacing: 0.5px;
+          padding: 40px 20px;
         }
 
         .header h1 {
-            font-size: 56px;
-            font-weight: 700;
-            margin-bottom: 16px;
-            color: var(--text-primary);
-            letter-spacing: -1.5px;
+          font-size: 40px;
         }
 
-        .header-subtitle {
-            font-size: 20px;
-            color: var(--text-primary);
-            font-weight: 300;
-            max-width: 600px;
-            margin: 0 auto;
-            opacity: 0.8;
-        }
-
-        /* Privacy callout */
-        .privacy-banner {
-            background: rgba(16, 185, 129, 0.1);
-            border: 2px solid var(--accent-client);
-            border-radius: 12px;
-            padding: 24px 32px;
-            margin-bottom: 60px;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            animation: fadeIn 0.8s ease-out 0.3s both;
-        }
-
-        .privacy-icon {
-            font-size: 32px;
-            flex-shrink: 0;
-        }
-
-        .privacy-content h3 {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 6px;
-            color: var(--text-primary);
-        }
-
-        .privacy-content p {
-            font-size: 14px;
-            color: var(--text-primary);
-            line-height: 1.5;
-            opacity: 0.9;
-        }
-
-        /* Card system */
         .card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-subtle);
-            border-radius: 16px;
-            padding: 40px;
-            margin-bottom: 32px;
-            position: relative;
-            overflow: hidden;
-            transition: border-color 0.3s ease;
-            animation: fadeInUp 0.6s ease-out both;
+          padding: 28px 24px;
         }
 
-        .card:nth-child(1) { animation-delay: 0.1s; }
-        .card:nth-child(2) { animation-delay: 0.2s; }
-        .card:nth-child(3) { animation-delay: 0.3s; }
-        .card:nth-child(4) { animation-delay: 0.4s; }
-
-        .card:hover {
-            border-color: var(--border-medium);
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        .step-badge {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: var(--bg-elevated);
-            border: 2px solid var(--accent-client);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: var(--font-mono);
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--accent-client);
-            flex-shrink: 0;
-        }
-
-        .card-title {
-            font-size: 28px;
-            font-weight: 600;
-            color: var(--text-primary);
-            letter-spacing: -0.5px;
-        }
-
-        .card-description {
-            color: var(--text-secondary);
-            margin-bottom: 32px;
-            line-height: 1.7;
-        }
-
-        /* Location badges */
-        .location-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 12px;
-            border-radius: 6px;
-            font-family: var(--font-mono);
-            font-size: 11px;
-            font-weight: 500;
-            letter-spacing: 0.3px;
-            margin-bottom: 16px;
-        }
-
-        .location-badge.client {
-            background: var(--accent-client-glow);
-            color: var(--accent-client);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-        }
-
-        .location-badge.server {
-            background: var(--accent-server-glow);
-            color: var(--accent-server);
-            border: 1px solid rgba(245, 158, 11, 0.3);
-        }
-
-        .location-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: currentColor;
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        /* Form elements */
-        .form-group {
-            margin-bottom: 24px;
-        }
-
-        .form-label {
-            display: block;
-            font-family: var(--font-mono);
-            font-size: 12px;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .form-input,
-        .form-select {
-            width: 100%;
-            padding: 14px 16px;
-            background: var(--bg-elevated);
-            border: 1px solid var(--border-medium);
-            border-radius: 8px;
-            color: var(--text-primary);
-            font-family: var(--font-display);
-            font-size: 16px;
-            transition: all 0.2s ease;
-        }
-
-        .form-input:focus,
-        .form-select:focus {
-            outline: none;
-            border-color: var(--accent-client);
-            box-shadow: 0 0 0 3px var(--accent-client-glow);
-        }
-
-        /* Buttons */
-        .btn {
-            width: 100%;
-            padding: 16px 24px;
-            border: none;
-            border-radius: 8px;
-            font-family: var(--font-display);
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-primary {
-            background: var(--accent-client);
-            color: var(--bg-primary);
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            background: #0ea574;
-            transform: translateY(-1px);
-            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
-        }
-
-        .btn-secondary {
-            background: var(--bg-elevated);
-            color: var(--text-primary);
-            border: 1px solid var(--border-medium);
-        }
-
-        .btn-secondary:hover:not(:disabled) {
-            background: var(--bg-primary);
-            border-color: var(--accent-client);
-        }
-
-        .btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            transform: none !important;
-        }
-
-        .btn + .btn {
-            margin-top: 12px;
-        }
-
-        /* Results */
-        .result {
-            margin-top: 24px;
-            padding: 20px;
-            border-radius: 8px;
-            border-left: 4px solid;
-            display: none;
-            animation: slideIn 0.3s ease-out;
-        }
-
-        .result.success {
-            background: rgba(16, 185, 129, 0.15);
-            border-color: var(--success);
-            border-left-width: 4px;
-            display: block;
-            color: var(--text-primary);
-        }
-
-        .result.error {
-            background: rgba(239, 68, 68, 0.15);
-            border-color: var(--error);
-            border-left-width: 4px;
-            display: block;
-            color: var(--text-primary);
-        }
-
-        .result.loading {
-            background: rgba(6, 182, 212, 0.15);
-            border-color: var(--accent-proof);
-            border-left-width: 4px;
-            display: block;
-            color: var(--text-primary);
-        }
-
-        .result-title {
-            font-weight: 600;
-            margin-bottom: 8px;
-            font-size: 16px;
-            color: var(--text-primary);
-        }
-
-        .result p {
-            color: var(--text-primary);
-            opacity: 0.9;
-        }
-
-        /* Progress indicator */
-        .progress-container {
-            margin: 20px 0;
-        }
-
-        .progress-steps {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .progress-step {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px;
-            background: var(--bg-elevated);
-            border-radius: 6px;
-            font-family: var(--font-mono);
-            font-size: 13px;
-            opacity: 0.5;
-            transition: all 0.3s ease;
-            color: var(--text-primary);
-        }
-
-        .progress-step.active {
-            opacity: 1;
-            border: 1px solid var(--accent-proof);
-            background: rgba(6, 182, 212, 0.1);
-        }
-
-        .progress-step.complete {
-            opacity: 1;
-            background: rgba(16, 185, 129, 0.1);
-        }
-
-        .progress-step-icon {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            border: 2px solid currentColor;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-        }
-
-        .progress-step.active .progress-step-icon {
-            border-color: var(--accent-proof);
-            color: var(--accent-proof);
-            animation: spin 1s linear infinite;
-        }
-
-        .progress-step.complete .progress-step-icon {
-            background: var(--success);
-            border-color: var(--success);
-            color: var(--bg-primary);
-        }
-
-        /* Timing breakdown */
-        .timing-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 16px;
-            margin: 20px 0;
-        }
-
-        .timing-item {
-            padding: 16px;
-            background: var(--bg-elevated);
-            border-radius: 8px;
-            border: 1px solid var(--border-subtle);
-        }
-
-        .timing-label {
-            font-family: var(--font-mono);
-            font-size: 11px;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 6px;
-        }
-
-        .timing-value {
-            font-size: 28px;
-            font-weight: 600;
-            color: var(--accent-client);
-            font-family: var(--font-mono);
-        }
-
-        .timing-unit {
-            font-size: 16px;
-            color: var(--text-primary);
-            opacity: 0.7;
-        }
-
-        /* Privacy details */
         .privacy-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-            margin: 20px 0;
+          grid-template-columns: 1fr;
         }
 
-        .privacy-section {
-            padding: 20px;
-            background: var(--bg-elevated);
-            border-radius: 8px;
-            border: 1px solid var(--border-subtle);
+        .timing-grid {
+          grid-template-columns: 1fr;
         }
-
-        .privacy-section-title {
-            font-family: var(--font-mono);
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .privacy-section.hidden .privacy-section-title {
-            color: var(--accent-client);
-        }
-
-        .privacy-section.revealed .privacy-section-title {
-            color: var(--accent-server);
-        }
-
-        .privacy-list {
-            list-style: none;
-        }
-
-        .privacy-list li {
-            padding: 8px 0;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--text-primary);
-        }
-
-        .privacy-list li::before {
-            content: '→';
-            font-weight: bold;
-            opacity: 0.6;
-        }
-
-        /* Credential display */
-        .credential-display {
-            margin: 20px 0;
-            padding: 20px;
-            background: var(--bg-elevated);
-            border: 1px solid var(--border-medium);
-            border-radius: 8px;
-            font-family: var(--font-mono);
-            font-size: 12px;
-        }
-
-        .credential-row {
-            display: flex;
-            padding: 8px 0;
-            border-bottom: 1px solid var(--border-subtle);
-        }
-
-        .credential-row:last-child {
-            border-bottom: none;
-        }
-
-        .credential-key {
-            color: var(--text-secondary);
-            min-width: 140px;
-            font-weight: 500;
-        }
-
-        .credential-value {
-            color: var(--text-primary);
-            word-break: break-all;
-        }
-
-        /* Animations */
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
-        }
-
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: 0.5;
-            }
-        }
-
-        @keyframes spin {
-            from {
-                transform: rotate(0deg);
-            }
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .container {
-                padding: 40px 20px;
-            }
-
-            .header h1 {
-                font-size: 40px;
-            }
-
-            .card {
-                padding: 28px 24px;
-            }
-
-            .privacy-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .timing-grid {
-                grid-template-columns: 1fr;
-            }
-        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <header class="header">
-            <div class="header-badge">CLIENT-SIDE ZK PROOFS</div>
-            <h1>ZK-ID</h1>
-            <p class="header-subtitle">Privacy-Preserving Identity Verification with Zero-Knowledge Proofs</p>
-        </header>
+      <header class="header">
+        <div class="header-badge">CLIENT-SIDE ZK PROOFS</div>
+        <h1>ZK-ID</h1>
+        <p class="header-subtitle">
+          Privacy-Preserving Identity Verification with Zero-Knowledge Proofs
+        </p>
+      </header>
 
-        <div class="privacy-banner">
-            <div class="privacy-icon">🔒</div>
-            <div class="privacy-content">
-                <h3>Your Data Never Leaves Your Browser</h3>
-                <p>All proofs are generated locally on your device. Your birth year, nationality, and credential data remain completely private. Only the zero-knowledge proof is transmitted to the server for verification.</p>
-            </div>
+      <div class="privacy-banner">
+        <div class="privacy-icon">🔒</div>
+        <div class="privacy-content">
+          <h3>Your Data Never Leaves Your Browser</h3>
+          <p>
+            All proofs are generated locally on your device. Your birth year, nationality, and
+            credential data remain completely private. Only the zero-knowledge proof is transmitted
+            to the server for verification.
+          </p>
+        </div>
+      </div>
+
+      <!-- Step 1: Issue Credential -->
+      <div class="card">
+        <div class="card-header">
+          <div class="step-badge">1</div>
+          <h2 class="card-title">Issue Credential</h2>
+        </div>
+        <div class="location-badge server">
+          <div class="location-dot"></div>
+          SERVER OPERATION
+        </div>
+        <p class="card-description">
+          Request a verifiable credential from the issuing authority. In production, this requires
+          government ID verification. For this demo, create a test credential with your chosen
+          attributes.
+        </p>
+
+        <div class="form-group">
+          <label class="form-label" for="birthYear">Birth Year</label>
+          <input
+            type="number"
+            id="birthYear"
+            class="form-input"
+            placeholder="e.g., 1990"
+            min="1900"
+            max="2026"
+            value="1990"
+          />
         </div>
 
-        <!-- Step 1: Issue Credential -->
-        <div class="card">
-            <div class="card-header">
-                <div class="step-badge">1</div>
-                <h2 class="card-title">Issue Credential</h2>
-            </div>
-            <div class="location-badge server">
-                <div class="location-dot"></div>
-                SERVER OPERATION
-            </div>
-            <p class="card-description">
-                Request a verifiable credential from the issuing authority. In production, this requires government ID verification. For this demo, create a test credential with your chosen attributes.
-            </p>
-
-            <div class="form-group">
-                <label class="form-label" for="birthYear">Birth Year</label>
-                <input type="number" id="birthYear" class="form-input" placeholder="e.g., 1990" min="1900" max="2026" value="1990">
-            </div>
-
-            <div class="form-group">
-                <label class="form-label" for="nationality">Nationality (ISO 3166-1)</label>
-                <select id="nationality" class="form-select">
-                    <option value="840">United States (840)</option>
-                    <option value="826">United Kingdom (826)</option>
-                    <option value="124">Canada (124)</option>
-                    <option value="276">Germany (276)</option>
-                    <option value="250">France (250)</option>
-                    <option value="392">Japan (392)</option>
-                </select>
-            </div>
-
-            <button class="btn btn-primary" onclick="issueCredential()">Issue Credential</button>
-            <div id="issueResult" class="result"></div>
+        <div class="form-group">
+          <label class="form-label" for="nationality">Nationality (ISO 3166-1)</label>
+          <select id="nationality" class="form-select">
+            <option value="840">United States (840)</option>
+            <option value="826">United Kingdom (826)</option>
+            <option value="124">Canada (124)</option>
+            <option value="276">Germany (276)</option>
+            <option value="250">France (250)</option>
+            <option value="392">Japan (392)</option>
+          </select>
         </div>
 
-        <!-- Step 2: Verify Age -->
-        <div class="card">
-            <div class="card-header">
-                <div class="step-badge">2</div>
-                <h2 class="card-title">Verify Age</h2>
-            </div>
-            <div class="location-badge client">
-                <div class="location-dot"></div>
-                CLIENT-SIDE PROOF GENERATION
-            </div>
-            <p class="card-description">
-                Prove you meet the minimum age requirement without revealing your exact birth year. The proof is generated entirely in your browser using the Groth16 ZK-SNARK system.
-            </p>
+        <button class="btn btn-primary" onclick="issueCredential()">Issue Credential</button>
+        <div id="issueResult" class="result"></div>
+      </div>
 
-            <div class="form-group">
-                <label class="form-label" for="minAge">Minimum Age Required</label>
-                <input type="number" id="minAge" class="form-input" value="18" min="0" max="150">
-                <div style="margin-top: 8px; font-size: 13px; color: var(--text-muted); font-family: var(--font-mono);">
-                    ⓘ Note: Proofs can only be generated if your actual age meets the requirement
-                </div>
-            </div>
+      <!-- Step 2: Verify Age -->
+      <div class="card">
+        <div class="card-header">
+          <div class="step-badge">2</div>
+          <h2 class="card-title">Verify Age</h2>
+        </div>
+        <div class="location-badge client">
+          <div class="location-dot"></div>
+          CLIENT-SIDE PROOF GENERATION
+        </div>
+        <p class="card-description">
+          Prove you meet the minimum age requirement without revealing your exact birth year. The
+          proof is generated entirely in your browser using the Groth16 ZK-SNARK system.
+        </p>
 
-            <button class="btn btn-primary" id="verifyAgeBtn" onclick="verifyAge()" disabled>
-                Generate Proof & Verify Age
-            </button>
-            <div id="verifyResult" class="result"></div>
+        <div class="form-group">
+          <label class="form-label" for="minAge">Minimum Age Required</label>
+          <input type="number" id="minAge" class="form-input" value="18" min="0" max="150" />
+          <div
+            style="
+              margin-top: 8px;
+              font-size: 13px;
+              color: var(--text-muted);
+              font-family: var(--font-mono);
+            "
+          >
+            ⓘ Note: Proofs can only be generated if your actual age meets the requirement
+          </div>
         </div>
 
-        <!-- Step 3: Verify Nationality -->
-        <div class="card">
-            <div class="card-header">
-                <div class="step-badge">3</div>
-                <h2 class="card-title">Verify Nationality</h2>
-            </div>
-            <div class="location-badge client">
-                <div class="location-dot"></div>
-                CLIENT-SIDE PROOF GENERATION
-            </div>
-            <p class="card-description">
-                Prove your nationality without revealing your age or other attributes. This demonstrates selective disclosure - revealing only what's necessary.
-            </p>
+        <button class="btn btn-primary" id="verifyAgeBtn" onclick="verifyAge()" disabled>
+          Generate Proof & Verify Age
+        </button>
+        <div id="verifyResult" class="result"></div>
+      </div>
 
-            <div class="form-group">
-                <label class="form-label" for="targetNationality">Target Nationality</label>
-                <select id="targetNationality" class="form-select">
-                    <option value="840">United States (840)</option>
-                    <option value="826">United Kingdom (826)</option>
-                    <option value="124">Canada (124)</option>
-                    <option value="276">Germany (276)</option>
-                    <option value="250">France (250)</option>
-                    <option value="392">Japan (392)</option>
-                </select>
-                <div style="margin-top: 8px; font-size: 13px; color: var(--text-muted); font-family: var(--font-mono);">
-                    ⓘ Note: Proofs can only be generated if your actual nationality matches
-                </div>
-            </div>
+      <!-- Step 3: Verify Nationality -->
+      <div class="card">
+        <div class="card-header">
+          <div class="step-badge">3</div>
+          <h2 class="card-title">Verify Nationality</h2>
+        </div>
+        <div class="location-badge client">
+          <div class="location-dot"></div>
+          CLIENT-SIDE PROOF GENERATION
+        </div>
+        <p class="card-description">
+          Prove your nationality without revealing your age or other attributes. This demonstrates
+          selective disclosure - revealing only what's necessary.
+        </p>
 
-            <button class="btn btn-primary" id="verifyNationalityBtn" onclick="verifyNationality()" disabled>
-                Generate Proof & Verify Nationality
-            </button>
-            <div id="verifyNationalityResult" class="result"></div>
+        <div class="form-group">
+          <label class="form-label" for="targetNationality">Target Nationality</label>
+          <select id="targetNationality" class="form-select">
+            <option value="840">United States (840)</option>
+            <option value="826">United Kingdom (826)</option>
+            <option value="124">Canada (124)</option>
+            <option value="276">Germany (276)</option>
+            <option value="250">France (250)</option>
+            <option value="392">Japan (392)</option>
+          </select>
+          <div
+            style="
+              margin-top: 8px;
+              font-size: 13px;
+              color: var(--text-muted);
+              font-family: var(--font-mono);
+            "
+          >
+            ⓘ Note: Proofs can only be generated if your actual nationality matches
+          </div>
         </div>
 
-        <!-- Step 4: Revoke -->
-        <div class="card">
-            <div class="card-header">
-                <div class="step-badge">4</div>
-                <h2 class="card-title">Revoke Credential</h2>
-            </div>
-            <div class="location-badge server">
-                <div class="location-dot"></div>
-                SERVER OPERATION
-            </div>
-            <p class="card-description">
-                Revoke your credential to prevent future verifications. After revoking, try generating a proof again to see the verification fail.
-            </p>
+        <button
+          class="btn btn-primary"
+          id="verifyNationalityBtn"
+          onclick="verifyNationality()"
+          disabled
+        >
+          Generate Proof & Verify Nationality
+        </button>
+        <div id="verifyNationalityResult" class="result"></div>
+      </div>
 
-            <button class="btn btn-secondary" id="revokeBtn" onclick="revokeCredential()" disabled>
-                Revoke Credential
-            </button>
-            <div id="revokeResult" class="result"></div>
+      <!-- Step 4: Revoke -->
+      <div class="card">
+        <div class="card-header">
+          <div class="step-badge">4</div>
+          <h2 class="card-title">Revoke Credential</h2>
         </div>
+        <div class="location-badge server">
+          <div class="location-dot"></div>
+          SERVER OPERATION
+        </div>
+        <p class="card-description">
+          Revoke your credential to prevent future verifications. After revoking, try generating a
+          proof again to see the verification fail.
+        </p>
+
+        <button class="btn btn-secondary" id="revokeBtn" onclick="revokeCredential()" disabled>
+          Revoke Credential
+        </button>
+        <div id="revokeResult" class="result"></div>
+      </div>
     </div>
 
     <script>
-        // Application state
-        const state = {
-            credential: null,
-            credentialId: null,
-            isRevoked: false
+      // Application state
+      const state = {
+        credential: null,
+        credentialId: null,
+        isRevoked: false,
+      };
+
+      // Utility functions
+      function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+      }
+
+      function showResult(elementId, type, content) {
+        const el = document.getElementById(elementId);
+        console.log('Showing result:', elementId, type, el);
+        if (!el) {
+          console.error('Element not found:', elementId);
+          return;
+        }
+        el.className = `result ${type}`;
+        el.innerHTML = content;
+        el.style.display = 'block'; // Force display
+        console.log('Result element after update:', el.className, el.style.display);
+        // Scroll result into view
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+      }
+
+      function hideResult(elementId) {
+        const el = document.getElementById(elementId);
+        el.className = 'result';
+        el.style.display = 'none';
+      }
+
+      function getNationalityName(code) {
+        const names = {
+          840: 'United States',
+          826: 'United Kingdom',
+          124: 'Canada',
+          276: 'Germany',
+          250: 'France',
+          392: 'Japan',
         };
+        return names[code] || `Country ${code}`;
+      }
 
-        // Utility functions
-        function escapeHtml(str) {
-            const div = document.createElement('div');
-            div.textContent = str;
-            return div.innerHTML;
+      // Step 1: Issue Credential
+      async function issueCredential() {
+        const birthYear = parseInt(document.getElementById('birthYear').value);
+        const nationality = parseInt(document.getElementById('nationality').value);
+
+        if (isNaN(birthYear) || birthYear < 1900 || birthYear > 2026) {
+          showResult('issueResult', 'error', '<div class="result-title">Invalid birth year</div>');
+          return;
         }
 
-        function showResult(elementId, type, content) {
-            const el = document.getElementById(elementId);
-            console.log('Showing result:', elementId, type, el);
-            if (!el) {
-                console.error('Element not found:', elementId);
-                return;
-            }
-            el.className = `result ${type}`;
-            el.innerHTML = content;
-            el.style.display = 'block';  // Force display
-            console.log('Result element after update:', el.className, el.style.display);
-            // Scroll result into view
-            setTimeout(() => {
-                el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }, 100);
+        if (isNaN(nationality) || nationality < 1 || nationality > 999) {
+          showResult('issueResult', 'error', '<div class="result-title">Invalid nationality</div>');
+          return;
         }
 
-        function hideResult(elementId) {
-            const el = document.getElementById(elementId);
-            el.className = 'result';
-            el.style.display = 'none';
-        }
+        showResult(
+          'issueResult',
+          'loading',
+          '<div class="result-title">⏳ Requesting credential from server...</div>',
+        );
 
-        function getNationalityName(code) {
-            const names = {
-                840: 'United States',
-                826: 'United Kingdom',
-                124: 'Canada',
-                276: 'Germany',
-                250: 'France',
-                392: 'Japan'
-            };
-            return names[code] || `Country ${code}`;
-        }
+        try {
+          const response = await fetch('/api/issue-credential', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ birthYear, nationality, userId: 'demo-user' }),
+          });
 
-        // Step 1: Issue Credential
-        async function issueCredential() {
-            const birthYear = parseInt(document.getElementById('birthYear').value);
-            const nationality = parseInt(document.getElementById('nationality').value);
+          const data = await response.json();
 
-            if (isNaN(birthYear) || birthYear < 1900 || birthYear > 2026) {
-                showResult('issueResult', 'error', '<div class="result-title">Invalid birth year</div>');
-                return;
-            }
+          if (data.success) {
+            // Store credential in browser memory (NEVER sent to server during proof generation)
+            state.credential = data.credential;
+            state.credentialId = data.credential.credential.id;
+            state.isRevoked = false;
 
-            if (isNaN(nationality) || nationality < 1 || nationality > 999) {
-                showResult('issueResult', 'error', '<div class="result-title">Invalid nationality</div>');
-                return;
-            }
+            const nationalityName = getNationalityName(nationality);
 
-            showResult('issueResult', 'loading', '<div class="result-title">⏳ Requesting credential from server...</div>');
-
-            try {
-                const response = await fetch('/api/issue-credential', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ birthYear, nationality, userId: 'demo-user' })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    // Store credential in browser memory (NEVER sent to server during proof generation)
-                    state.credential = data.credential;
-                    state.credentialId = data.credential.credential.id;
-                    state.isRevoked = false;
-
-                    const nationalityName = getNationalityName(nationality);
-
-                    showResult('issueResult', 'success', `
+            showResult(
+              'issueResult',
+              'success',
+              `
                         <div class="result-title">✓ Credential Issued Successfully</div>
                         <div class="credential-display">
                             <div class="credential-row">
@@ -870,58 +937,82 @@
                                 <div class="credential-value">${escapeHtml(data.credential.credential.commitment.substring(0, 64))}...</div>
                             </div>
                         </div>
-                    `);
+                    `,
+            );
 
-                    // Enable verification buttons
-                    document.getElementById('verifyAgeBtn').disabled = false;
-                    document.getElementById('verifyNationalityBtn').disabled = false;
-                    document.getElementById('revokeBtn').disabled = false;
+            // Enable verification buttons
+            document.getElementById('verifyAgeBtn').disabled = false;
+            document.getElementById('verifyNationalityBtn').disabled = false;
+            document.getElementById('revokeBtn').disabled = false;
 
-                    // Clear previous verification results
-                    hideResult('verifyResult');
-                    hideResult('verifyNationalityResult');
-                    hideResult('revokeResult');
-                } else {
-                    showResult('issueResult', 'error', `<div class="result-title">✗ ${escapeHtml(data.error)}</div>`);
-                }
-            } catch (error) {
-                showResult('issueResult', 'error', `<div class="result-title">✗ ${escapeHtml(error.message)}</div>`);
-            }
+            // Clear previous verification results
+            hideResult('verifyResult');
+            hideResult('verifyNationalityResult');
+            hideResult('revokeResult');
+          } else {
+            showResult(
+              'issueResult',
+              'error',
+              `<div class="result-title">✗ ${escapeHtml(data.error)}</div>`,
+            );
+          }
+        } catch (error) {
+          showResult(
+            'issueResult',
+            'error',
+            `<div class="result-title">✗ ${escapeHtml(error.message)}</div>`,
+          );
+        }
+      }
+
+      // Step 2: Verify Age (CLIENT-SIDE PROOF GENERATION)
+      async function verifyAge() {
+        if (!state.credential) {
+          showResult(
+            'verifyResult',
+            'error',
+            '<div class="result-title">✗ Please issue a credential first</div>',
+          );
+          return;
         }
 
-        // Step 2: Verify Age (CLIENT-SIDE PROOF GENERATION)
-        async function verifyAge() {
-            if (!state.credential) {
-                showResult('verifyResult', 'error', '<div class="result-title">✗ Please issue a credential first</div>');
-                return;
-            }
+        if (typeof snarkjs === 'undefined') {
+          showResult(
+            'verifyResult',
+            'error',
+            '<div class="result-title">✗ snarkjs library not loaded. Please refresh the page.</div>',
+          );
+          return;
+        }
 
-            if (typeof snarkjs === 'undefined') {
-                showResult('verifyResult', 'error', '<div class="result-title">✗ snarkjs library not loaded. Please refresh the page.</div>');
-                return;
-            }
+        const minAge = parseInt(document.getElementById('minAge').value);
+        if (isNaN(minAge)) {
+          showResult(
+            'verifyResult',
+            'error',
+            '<div class="result-title">✗ Invalid minimum age</div>',
+          );
+          return;
+        }
 
-            const minAge = parseInt(document.getElementById('minAge').value);
-            if (isNaN(minAge)) {
-                showResult('verifyResult', 'error', '<div class="result-title">✗ Invalid minimum age</div>');
-                return;
-            }
+        const btn = document.getElementById('verifyAgeBtn');
+        btn.disabled = true;
 
-            const btn = document.getElementById('verifyAgeBtn');
-            btn.disabled = true;
+        const timings = {
+          fetchStart: 0,
+          fetchEnd: 0,
+          proofStart: 0,
+          proofEnd: 0,
+          verifyStart: 0,
+          verifyEnd: 0,
+        };
 
-            const timings = {
-                fetchStart: 0,
-                fetchEnd: 0,
-                proofStart: 0,
-                proofEnd: 0,
-                verifyStart: 0,
-                verifyEnd: 0
-            };
-
-            try {
-                // Show progress
-                showResult('verifyResult', 'loading', `
+        try {
+          // Show progress
+          showResult(
+            'verifyResult',
+            'loading',
+            `
                     <div class="result-title">Generating Zero-Knowledge Proof</div>
                     <div class="progress-container">
                         <div class="progress-steps">
@@ -943,116 +1034,126 @@
                             </div>
                         </div>
                     </div>
-                `);
+                `,
+          );
 
-                // Step 1: Fetch challenge
-                document.getElementById('step-challenge').classList.add('active');
-                timings.fetchStart = Date.now();
-                const challengeResponse = await fetch('/api/challenge');
-                const challenge = await challengeResponse.json();
-                timings.fetchEnd = Date.now();
-                document.getElementById('step-challenge').classList.remove('active');
-                document.getElementById('step-challenge').classList.add('complete');
-                document.getElementById('step-challenge').querySelector('.progress-step-icon').textContent = '✓';
+          // Step 1: Fetch challenge
+          document.getElementById('step-challenge').classList.add('active');
+          timings.fetchStart = Date.now();
+          const challengeResponse = await fetch('/api/challenge');
+          const challenge = await challengeResponse.json();
+          timings.fetchEnd = Date.now();
+          document.getElementById('step-challenge').classList.remove('active');
+          document.getElementById('step-challenge').classList.add('complete');
+          document
+            .getElementById('step-challenge')
+            .querySelector('.progress-step-icon').textContent = '✓';
 
-                // Step 2: Download artifacts and generate proof
-                document.getElementById('step-download').classList.add('active');
-                document.getElementById('step-compute').classList.add('active');
+          // Step 2: Download artifacts and generate proof
+          document.getElementById('step-download').classList.add('active');
+          document.getElementById('step-compute').classList.add('active');
 
-                timings.proofStart = Date.now();
+          timings.proofStart = Date.now();
 
-                // Prepare circuit inputs (ALL DONE LOCALLY)
-                const currentYear = new Date().getFullYear();
-                const requestTimestampMs = Date.parse(challenge.requestTimestamp);
+          // Prepare circuit inputs (ALL DONE LOCALLY)
+          const currentYear = new Date().getFullYear();
+          const requestTimestampMs = Date.parse(challenge.requestTimestamp);
 
-                // Convert hex salt to decimal string
-                const saltDecimal = BigInt('0x' + state.credential.credential.salt).toString();
+          // Convert hex salt to decimal string
+          const saltDecimal = BigInt('0x' + state.credential.credential.salt).toString();
 
-                const inputs = {
-                    birthYear: state.credential.credential.birthYear.toString(),
-                    nationality: state.credential.credential.nationality.toString(),
-                    salt: saltDecimal,
-                    currentYear: currentYear.toString(),
-                    minAge: minAge.toString(),
-                    credentialHash: state.credential.credential.commitment,
-                    nonce: challenge.nonce.toString(),
-                    requestTimestamp: requestTimestampMs.toString()
-                };
+          const inputs = {
+            birthYear: state.credential.credential.birthYear.toString(),
+            nationality: state.credential.credential.nationality.toString(),
+            salt: saltDecimal,
+            currentYear: currentYear.toString(),
+            minAge: minAge.toString(),
+            credentialHash: state.credential.credential.commitment,
+            nonce: challenge.nonce.toString(),
+            requestTimestamp: requestTimestampMs.toString(),
+          };
 
-                console.log('Circuit inputs:', inputs);
+          console.log('Circuit inputs:', inputs);
 
-                // Generate proof using snarkjs (downloads artifacts automatically)
-                const wasmUrl = '/circuits/age-verify_js/age-verify.wasm';
-                const zkeyUrl = '/circuits/age-verify.zkey';
+          // Generate proof using snarkjs (downloads artifacts automatically)
+          const wasmUrl = '/circuits/age-verify_js/age-verify.wasm';
+          const zkeyUrl = '/circuits/age-verify.zkey';
 
-                const { proof, publicSignals } = await snarkjs.groth16.fullProve(
-                    inputs,
-                    wasmUrl,
-                    zkeyUrl
-                );
+          const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+            inputs,
+            wasmUrl,
+            zkeyUrl,
+          );
 
-                timings.proofEnd = Date.now();
-                document.getElementById('step-download').classList.remove('active');
-                document.getElementById('step-download').classList.add('complete');
-                document.getElementById('step-download').querySelector('.progress-step-icon').textContent = '✓';
-                document.getElementById('step-compute').classList.remove('active');
-                document.getElementById('step-compute').classList.add('complete');
-                document.getElementById('step-compute').querySelector('.progress-step-icon').textContent = '✓';
+          timings.proofEnd = Date.now();
+          document.getElementById('step-download').classList.remove('active');
+          document.getElementById('step-download').classList.add('complete');
+          document
+            .getElementById('step-download')
+            .querySelector('.progress-step-icon').textContent = '✓';
+          document.getElementById('step-compute').classList.remove('active');
+          document.getElementById('step-compute').classList.add('complete');
+          document.getElementById('step-compute').querySelector('.progress-step-icon').textContent =
+            '✓';
 
-                // Step 3: Send ONLY the proof to server (not the private data!)
-                document.getElementById('step-verify').classList.add('active');
-                timings.verifyStart = Date.now();
+          // Step 3: Send ONLY the proof to server (not the private data!)
+          document.getElementById('step-verify').classList.add('active');
+          timings.verifyStart = Date.now();
 
-                // Format the proof properly (convert array to structured object)
-                const formattedProof = {
-                    proof: {
-                        pi_a: proof.pi_a.slice(0, 2),
-                        pi_b: proof.pi_b.slice(0, 2),
-                        pi_c: proof.pi_c.slice(0, 2),
-                        protocol: proof.protocol,
-                        curve: proof.curve
-                    },
-                    publicSignals: {
-                        currentYear: parseInt(publicSignals[0]),
-                        minAge: parseInt(publicSignals[1]),
-                        credentialHash: publicSignals[2],
-                        nonce: publicSignals[3],
-                        requestTimestamp: parseInt(publicSignals[4])
-                    }
-                };
+          // Format the proof properly (convert array to structured object)
+          const formattedProof = {
+            proof: {
+              pi_a: proof.pi_a.slice(0, 2),
+              pi_b: proof.pi_b.slice(0, 2),
+              pi_c: proof.pi_c.slice(0, 2),
+              protocol: proof.protocol,
+              curve: proof.curve,
+            },
+            publicSignals: {
+              currentYear: parseInt(publicSignals[0]),
+              minAge: parseInt(publicSignals[1]),
+              credentialHash: publicSignals[2],
+              nonce: publicSignals[3],
+              requestTimestamp: parseInt(publicSignals[4]),
+            },
+          };
 
-                const proofResponse = {
-                    proof: formattedProof,
-                    nonce: challenge.nonce,
-                    requestTimestamp: challenge.requestTimestamp,
-                    claimType: 'age',
-                    credentialId: state.credentialId,
-                    signedCredential: state.credential
-                };
+          const proofResponse = {
+            proof: formattedProof,
+            nonce: challenge.nonce,
+            requestTimestamp: challenge.requestTimestamp,
+            claimType: 'age',
+            credentialId: state.credentialId,
+            signedCredential: state.credential,
+          };
 
-                const verifyResponse = await fetch('/api/verify-age', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(proofResponse)
-                });
+          const verifyResponse = await fetch('/api/verify-age', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(proofResponse),
+          });
 
-                const result = await verifyResponse.json();
-                timings.verifyEnd = Date.now();
+          const result = await verifyResponse.json();
+          timings.verifyEnd = Date.now();
 
-                document.getElementById('step-verify').classList.remove('active');
-                document.getElementById('step-verify').classList.add('complete');
-                document.getElementById('step-verify').querySelector('.progress-step-icon').textContent = '✓';
+          document.getElementById('step-verify').classList.remove('active');
+          document.getElementById('step-verify').classList.add('complete');
+          document.getElementById('step-verify').querySelector('.progress-step-icon').textContent =
+            '✓';
 
-                // Calculate timings
-                const fetchTime = timings.fetchEnd - timings.fetchStart;
-                const proofTime = timings.proofEnd - timings.proofStart;
-                const verifyTime = timings.verifyEnd - timings.verifyStart;
-                const totalTime = timings.verifyEnd - timings.fetchStart;
+          // Calculate timings
+          const fetchTime = timings.fetchEnd - timings.fetchStart;
+          const proofTime = timings.proofEnd - timings.proofStart;
+          const verifyTime = timings.verifyEnd - timings.verifyStart;
+          const totalTime = timings.verifyEnd - timings.fetchStart;
 
-                console.log('Verification result:', result);
+          console.log('Verification result:', result);
 
-                if (result.verified) {
-                    showResult('verifyResult', 'success', `
+          if (result.verified) {
+            showResult(
+              'verifyResult',
+              'success',
+              `
                         <div class="result-title">✓ Age Verification Successful</div>
                         <p>User is at least ${minAge} years old.</p>
 
@@ -1097,66 +1198,94 @@
                                 </ul>
                             </div>
                         </div>
-                    `);
-                } else {
-                    showResult('verifyResult', 'error', `
+                    `,
+            );
+          } else {
+            showResult(
+              'verifyResult',
+              'error',
+              `
                         <div class="result-title">✗ Verification Failed</div>
                         <p>${escapeHtml(result.error || result.message)}</p>
-                    `);
-                }
-            } catch (error) {
-                console.error('Age verification error:', error);
+                    `,
+            );
+          }
+        } catch (error) {
+          console.error('Age verification error:', error);
 
-                // Provide user-friendly error messages for common circuit failures
-                let errorMessage = error.message;
-                if (error.message && error.message.includes('Assert Failed') && error.message.includes('AgeVerify')) {
-                    const birthYear = state.credential.credential.birthYear;
-                    const currentYear = new Date().getFullYear();
-                    const actualAge = currentYear - birthYear;
-                    errorMessage = `Cannot generate proof: Your age (${actualAge}) does not meet the minimum requirement (${minAge}). Zero-knowledge proofs can only prove true statements.`;
-                }
+          // Provide user-friendly error messages for common circuit failures
+          let errorMessage = error.message;
+          if (
+            error.message &&
+            error.message.includes('Assert Failed') &&
+            error.message.includes('AgeVerify')
+          ) {
+            const birthYear = state.credential.credential.birthYear;
+            const currentYear = new Date().getFullYear();
+            const actualAge = currentYear - birthYear;
+            errorMessage = `Cannot generate proof: Your age (${actualAge}) does not meet the minimum requirement (${minAge}). Zero-knowledge proofs can only prove true statements.`;
+          }
 
-                showResult('verifyResult', 'error', `
+          showResult(
+            'verifyResult',
+            'error',
+            `
                     <div class="result-title">✗ Proof Generation Failed</div>
                     <p>${escapeHtml(errorMessage)}</p>
-                `);
-            } finally {
-                btn.disabled = false;
-            }
+                `,
+          );
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      // Step 3: Verify Nationality (CLIENT-SIDE PROOF GENERATION)
+      async function verifyNationality() {
+        if (!state.credential) {
+          showResult(
+            'verifyNationalityResult',
+            'error',
+            '<div class="result-title">✗ Please issue a credential first</div>',
+          );
+          return;
         }
 
-        // Step 3: Verify Nationality (CLIENT-SIDE PROOF GENERATION)
-        async function verifyNationality() {
-            if (!state.credential) {
-                showResult('verifyNationalityResult', 'error', '<div class="result-title">✗ Please issue a credential first</div>');
-                return;
-            }
+        if (typeof snarkjs === 'undefined') {
+          showResult(
+            'verifyNationalityResult',
+            'error',
+            '<div class="result-title">✗ snarkjs library not loaded. Please refresh the page.</div>',
+          );
+          return;
+        }
 
-            if (typeof snarkjs === 'undefined') {
-                showResult('verifyNationalityResult', 'error', '<div class="result-title">✗ snarkjs library not loaded. Please refresh the page.</div>');
-                return;
-            }
+        const targetNationality = parseInt(document.getElementById('targetNationality').value);
+        if (isNaN(targetNationality)) {
+          showResult(
+            'verifyNationalityResult',
+            'error',
+            '<div class="result-title">✗ Invalid nationality</div>',
+          );
+          return;
+        }
 
-            const targetNationality = parseInt(document.getElementById('targetNationality').value);
-            if (isNaN(targetNationality)) {
-                showResult('verifyNationalityResult', 'error', '<div class="result-title">✗ Invalid nationality</div>');
-                return;
-            }
+        const btn = document.getElementById('verifyNationalityBtn');
+        btn.disabled = true;
 
-            const btn = document.getElementById('verifyNationalityBtn');
-            btn.disabled = true;
+        const timings = {
+          fetchStart: 0,
+          fetchEnd: 0,
+          proofStart: 0,
+          proofEnd: 0,
+          verifyStart: 0,
+          verifyEnd: 0,
+        };
 
-            const timings = {
-                fetchStart: 0,
-                fetchEnd: 0,
-                proofStart: 0,
-                proofEnd: 0,
-                verifyStart: 0,
-                verifyEnd: 0
-            };
-
-            try {
-                showResult('verifyNationalityResult', 'loading', `
+        try {
+          showResult(
+            'verifyNationalityResult',
+            'loading',
+            `
                     <div class="result-title">Generating Zero-Knowledge Proof</div>
                     <div class="progress-container">
                         <div class="progress-steps">
@@ -1178,110 +1307,122 @@
                             </div>
                         </div>
                     </div>
-                `);
+                `,
+          );
 
-                // Step 1: Fetch challenge
-                document.getElementById('step-nat-challenge').classList.add('active');
-                timings.fetchStart = Date.now();
-                const challengeResponse = await fetch('/api/challenge');
-                const challenge = await challengeResponse.json();
-                timings.fetchEnd = Date.now();
-                document.getElementById('step-nat-challenge').classList.remove('active');
-                document.getElementById('step-nat-challenge').classList.add('complete');
-                document.getElementById('step-nat-challenge').querySelector('.progress-step-icon').textContent = '✓';
+          // Step 1: Fetch challenge
+          document.getElementById('step-nat-challenge').classList.add('active');
+          timings.fetchStart = Date.now();
+          const challengeResponse = await fetch('/api/challenge');
+          const challenge = await challengeResponse.json();
+          timings.fetchEnd = Date.now();
+          document.getElementById('step-nat-challenge').classList.remove('active');
+          document.getElementById('step-nat-challenge').classList.add('complete');
+          document
+            .getElementById('step-nat-challenge')
+            .querySelector('.progress-step-icon').textContent = '✓';
 
-                // Step 2: Download artifacts and generate proof
-                document.getElementById('step-nat-download').classList.add('active');
-                document.getElementById('step-nat-compute').classList.add('active');
+          // Step 2: Download artifacts and generate proof
+          document.getElementById('step-nat-download').classList.add('active');
+          document.getElementById('step-nat-compute').classList.add('active');
 
-                timings.proofStart = Date.now();
+          timings.proofStart = Date.now();
 
-                const requestTimestampMs = Date.parse(challenge.requestTimestamp);
+          const requestTimestampMs = Date.parse(challenge.requestTimestamp);
 
-                // Convert hex salt to decimal string
-                const saltDecimal = BigInt('0x' + state.credential.credential.salt).toString();
+          // Convert hex salt to decimal string
+          const saltDecimal = BigInt('0x' + state.credential.credential.salt).toString();
 
-                const inputs = {
-                    birthYear: state.credential.credential.birthYear.toString(),
-                    nationality: state.credential.credential.nationality.toString(),
-                    salt: saltDecimal,
-                    targetNationality: targetNationality.toString(),
-                    credentialHash: state.credential.credential.commitment,
-                    nonce: challenge.nonce.toString(),
-                    requestTimestamp: requestTimestampMs.toString()
-                };
+          const inputs = {
+            birthYear: state.credential.credential.birthYear.toString(),
+            nationality: state.credential.credential.nationality.toString(),
+            salt: saltDecimal,
+            targetNationality: targetNationality.toString(),
+            credentialHash: state.credential.credential.commitment,
+            nonce: challenge.nonce.toString(),
+            requestTimestamp: requestTimestampMs.toString(),
+          };
 
-                console.log('Circuit inputs:', inputs);
+          console.log('Circuit inputs:', inputs);
 
-                const wasmUrl = '/circuits/nationality-verify_js/nationality-verify.wasm';
-                const zkeyUrl = '/circuits/nationality-verify.zkey';
+          const wasmUrl = '/circuits/nationality-verify_js/nationality-verify.wasm';
+          const zkeyUrl = '/circuits/nationality-verify.zkey';
 
-                const { proof, publicSignals } = await snarkjs.groth16.fullProve(
-                    inputs,
-                    wasmUrl,
-                    zkeyUrl
-                );
+          const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+            inputs,
+            wasmUrl,
+            zkeyUrl,
+          );
 
-                timings.proofEnd = Date.now();
-                document.getElementById('step-nat-download').classList.remove('active');
-                document.getElementById('step-nat-download').classList.add('complete');
-                document.getElementById('step-nat-download').querySelector('.progress-step-icon').textContent = '✓';
-                document.getElementById('step-nat-compute').classList.remove('active');
-                document.getElementById('step-nat-compute').classList.add('complete');
-                document.getElementById('step-nat-compute').querySelector('.progress-step-icon').textContent = '✓';
+          timings.proofEnd = Date.now();
+          document.getElementById('step-nat-download').classList.remove('active');
+          document.getElementById('step-nat-download').classList.add('complete');
+          document
+            .getElementById('step-nat-download')
+            .querySelector('.progress-step-icon').textContent = '✓';
+          document.getElementById('step-nat-compute').classList.remove('active');
+          document.getElementById('step-nat-compute').classList.add('complete');
+          document
+            .getElementById('step-nat-compute')
+            .querySelector('.progress-step-icon').textContent = '✓';
 
-                // Step 3: Send proof to server
-                document.getElementById('step-nat-verify').classList.add('active');
-                timings.verifyStart = Date.now();
+          // Step 3: Send proof to server
+          document.getElementById('step-nat-verify').classList.add('active');
+          timings.verifyStart = Date.now();
 
-                // Format the proof properly (convert array to structured object)
-                const formattedProof = {
-                    proof: {
-                        pi_a: proof.pi_a.slice(0, 2),
-                        pi_b: proof.pi_b.slice(0, 2),
-                        pi_c: proof.pi_c.slice(0, 2),
-                        protocol: proof.protocol,
-                        curve: proof.curve
-                    },
-                    publicSignals: {
-                        targetNationality: parseInt(publicSignals[0]),
-                        credentialHash: publicSignals[1],
-                        nonce: publicSignals[2],
-                        requestTimestamp: parseInt(publicSignals[3])
-                    }
-                };
+          // Format the proof properly (convert array to structured object)
+          const formattedProof = {
+            proof: {
+              pi_a: proof.pi_a.slice(0, 2),
+              pi_b: proof.pi_b.slice(0, 2),
+              pi_c: proof.pi_c.slice(0, 2),
+              protocol: proof.protocol,
+              curve: proof.curve,
+            },
+            publicSignals: {
+              targetNationality: parseInt(publicSignals[0]),
+              credentialHash: publicSignals[1],
+              nonce: publicSignals[2],
+              requestTimestamp: parseInt(publicSignals[3]),
+            },
+          };
 
-                const proofResponse = {
-                    proof: formattedProof,
-                    nonce: challenge.nonce,
-                    requestTimestamp: challenge.requestTimestamp,
-                    claimType: 'nationality',
-                    credentialId: state.credentialId,
-                    signedCredential: state.credential
-                };
+          const proofResponse = {
+            proof: formattedProof,
+            nonce: challenge.nonce,
+            requestTimestamp: challenge.requestTimestamp,
+            claimType: 'nationality',
+            credentialId: state.credentialId,
+            signedCredential: state.credential,
+          };
 
-                const verifyResponse = await fetch('/api/verify-nationality', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(proofResponse)
-                });
+          const verifyResponse = await fetch('/api/verify-nationality', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(proofResponse),
+          });
 
-                const result = await verifyResponse.json();
-                timings.verifyEnd = Date.now();
+          const result = await verifyResponse.json();
+          timings.verifyEnd = Date.now();
 
-                document.getElementById('step-nat-verify').classList.remove('active');
-                document.getElementById('step-nat-verify').classList.add('complete');
-                document.getElementById('step-nat-verify').querySelector('.progress-step-icon').textContent = '✓';
+          document.getElementById('step-nat-verify').classList.remove('active');
+          document.getElementById('step-nat-verify').classList.add('complete');
+          document
+            .getElementById('step-nat-verify')
+            .querySelector('.progress-step-icon').textContent = '✓';
 
-                const fetchTime = timings.fetchEnd - timings.fetchStart;
-                const proofTime = timings.proofEnd - timings.proofStart;
-                const verifyTime = timings.verifyEnd - timings.verifyStart;
-                const totalTime = timings.verifyEnd - timings.fetchStart;
+          const fetchTime = timings.fetchEnd - timings.fetchStart;
+          const proofTime = timings.proofEnd - timings.proofStart;
+          const verifyTime = timings.verifyEnd - timings.verifyStart;
+          const totalTime = timings.verifyEnd - timings.fetchStart;
 
-                const nationalityName = getNationalityName(targetNationality);
+          const nationalityName = getNationalityName(targetNationality);
 
-                if (result.verified) {
-                    showResult('verifyNationalityResult', 'success', `
+          if (result.verified) {
+            showResult(
+              'verifyNationalityResult',
+              'success',
+              `
                         <div class="result-title">✓ Nationality Verification Successful</div>
                         <p>User has nationality: ${escapeHtml(nationalityName)}</p>
 
@@ -1326,74 +1467,112 @@
                                 </ul>
                             </div>
                         </div>
-                    `);
-                } else {
-                    showResult('verifyNationalityResult', 'error', `
+                    `,
+            );
+          } else {
+            showResult(
+              'verifyNationalityResult',
+              'error',
+              `
                         <div class="result-title">✗ Verification Failed</div>
                         <p>${escapeHtml(result.error || result.message)}</p>
-                    `);
-                }
-            } catch (error) {
-                console.error('Nationality verification error:', error);
+                    `,
+            );
+          }
+        } catch (error) {
+          console.error('Nationality verification error:', error);
 
-                // Provide user-friendly error messages for common circuit failures
-                let errorMessage = error.message;
-                if (error.message && error.message.includes('Assert Failed') && error.message.includes('NationalityVerify')) {
-                    const actualNationality = state.credential.credential.nationality;
-                    const targetNationalityName = document.getElementById('targetNationality').selectedOptions[0].text;
-                    errorMessage = `Cannot generate proof: Your nationality (${actualNationality}) does not match the target (${targetNationalityName}). Zero-knowledge proofs can only prove true statements.`;
-                }
+          // Provide user-friendly error messages for common circuit failures
+          let errorMessage = error.message;
+          if (
+            error.message &&
+            error.message.includes('Assert Failed') &&
+            error.message.includes('NationalityVerify')
+          ) {
+            const actualNationality = state.credential.credential.nationality;
+            const targetNationalityName =
+              document.getElementById('targetNationality').selectedOptions[0].text;
+            errorMessage = `Cannot generate proof: Your nationality (${actualNationality}) does not match the target (${targetNationalityName}). Zero-knowledge proofs can only prove true statements.`;
+          }
 
-                showResult('verifyNationalityResult', 'error', `
+          showResult(
+            'verifyNationalityResult',
+            'error',
+            `
                     <div class="result-title">✗ Proof Generation Failed</div>
                     <p>${escapeHtml(errorMessage)}</p>
-                `);
-            } finally {
-                btn.disabled = false;
-            }
+                `,
+          );
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      // Step 4: Revoke Credential
+      async function revokeCredential() {
+        if (!state.credentialId) {
+          showResult(
+            'revokeResult',
+            'error',
+            '<div class="result-title">✗ Please issue a credential first</div>',
+          );
+          return;
         }
 
-        // Step 4: Revoke Credential
-        async function revokeCredential() {
-            if (!state.credentialId) {
-                showResult('revokeResult', 'error', '<div class="result-title">✗ Please issue a credential first</div>');
-                return;
-            }
+        if (state.isRevoked) {
+          showResult(
+            'revokeResult',
+            'error',
+            '<div class="result-title">⚠️ This credential is already revoked</div>',
+          );
+          return;
+        }
 
-            if (state.isRevoked) {
-                showResult('revokeResult', 'error', '<div class="result-title">⚠️ This credential is already revoked</div>');
-                return;
-            }
+        const btn = document.getElementById('revokeBtn');
+        btn.disabled = true;
 
-            const btn = document.getElementById('revokeBtn');
-            btn.disabled = true;
+        try {
+          showResult(
+            'revokeResult',
+            'loading',
+            '<div class="result-title">⏳ Revoking credential...</div>',
+          );
 
-            try {
-                showResult('revokeResult', 'loading', '<div class="result-title">⏳ Revoking credential...</div>');
+          const response = await fetch('/api/revoke-credential', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credentialId: state.credentialId }),
+          });
 
-                const response = await fetch('/api/revoke-credential', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ credentialId: state.credentialId })
-                });
+          const data = await response.json();
 
-                const data = await response.json();
-
-                if (data.success) {
-                    state.isRevoked = true;
-                    showResult('revokeResult', 'success', `
+          if (data.success) {
+            state.isRevoked = true;
+            showResult(
+              'revokeResult',
+              'success',
+              `
                         <div class="result-title">✓ Credential Revoked Successfully</div>
                         <p>Try verifying again to see revocation in action. The proof will be generated client-side, but verification will fail because the credential is revoked.</p>
-                    `);
-                } else {
-                    showResult('revokeResult', 'error', `<div class="result-title">✗ ${escapeHtml(data.error)}</div>`);
-                }
-            } catch (error) {
-                showResult('revokeResult', 'error', `<div class="result-title">✗ ${escapeHtml(error.message)}</div>`);
-            } finally {
-                btn.disabled = false;
-            }
+                    `,
+            );
+          } else {
+            showResult(
+              'revokeResult',
+              'error',
+              `<div class="result-title">✗ ${escapeHtml(data.error)}</div>`,
+            );
+          }
+        } catch (error) {
+          showResult(
+            'revokeResult',
+            'error',
+            `<div class="result-title">✗ ${escapeHtml(error.message)}</div>`,
+          );
+        } finally {
+          btn.disabled = false;
         }
+      }
     </script>
-</body>
+  </body>
 </html>

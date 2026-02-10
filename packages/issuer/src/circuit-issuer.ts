@@ -37,7 +37,10 @@ function bigintToBytesLE(value: bigint, length: number): Uint8Array {
 /** Typed interface for the circomlibjs EdDSA instance. */
 interface EdDSA {
   prv2pub(privateKey: Uint8Array): [Uint8Array, Uint8Array];
-  signPedersen(privateKey: Uint8Array, msg: Uint8Array): { R8: [Uint8Array, Uint8Array]; S: bigint };
+  signPedersen(
+    privateKey: Uint8Array,
+    msg: Uint8Array,
+  ): { R8: [Uint8Array, Uint8Array]; S: bigint };
   babyJub: { packPoint(point: [Uint8Array, Uint8Array]): Uint8Array };
 }
 
@@ -115,10 +118,7 @@ export class CircuitCredentialIssuer {
    * @param nationality - ISO 3166-1 numeric nationality code (e.g., 840 for USA)
    * @returns A signed credential with circuit-compatible signature
    */
-  async issueCredential(
-    birthYear: number,
-    nationality: number
-  ): Promise<CircuitSignedCredential> {
+  async issueCredential(birthYear: number, nationality: number): Promise<CircuitSignedCredential> {
     const credential = await createCredential(birthYear, nationality);
     const commitment = BigInt(credential.commitment);
     const msgBytes = bigintToBytesLE(commitment, 32);

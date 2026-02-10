@@ -10,7 +10,10 @@ describe('Revocable Verifier Tests', () => {
         proofType: 'age-revocable',
         proof: {
           pi_a: ['1', '2'],
-          pi_b: [['3', '4'], ['5', '6']],
+          pi_b: [
+            ['3', '4'],
+            ['5', '6'],
+          ],
           pi_c: ['7', '8'],
           protocol: 'groth16',
           curve: 'bn128',
@@ -111,7 +114,10 @@ describe('Revocable Verifier Tests', () => {
         proofType: 'age-revocable',
         proof: {
           pi_a: ['1', '2'],
-          pi_b: [['3', '4'], ['5', '6']],
+          pi_b: [
+            ['3', '4'],
+            ['5', '6'],
+          ],
           pi_c: ['7', '8'],
           protocol: 'groth16',
           curve: 'bn128',

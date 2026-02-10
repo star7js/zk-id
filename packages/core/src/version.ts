@@ -130,7 +130,7 @@ export function isProtocolCompatible(a: string, b: string): boolean {
  */
 export function getVersionStatus(
   version: string,
-  schedule: ProtocolDeprecationEntry[] = DEPRECATION_SCHEDULE
+  schedule: ProtocolDeprecationEntry[] = DEPRECATION_SCHEDULE,
 ): ProtocolDeprecationEntry | null {
   return schedule.find((e) => e.version === version) ?? null;
 }
@@ -144,7 +144,7 @@ export function getVersionStatus(
  */
 export function isVersionDeprecated(
   version: string,
-  schedule: ProtocolDeprecationEntry[] = DEPRECATION_SCHEDULE
+  schedule: ProtocolDeprecationEntry[] = DEPRECATION_SCHEDULE,
 ): boolean {
   const entry = getVersionStatus(version, schedule);
   if (!entry) return false;
@@ -160,7 +160,7 @@ export function isVersionDeprecated(
  */
 export function isVersionSunset(
   version: string,
-  schedule: ProtocolDeprecationEntry[] = DEPRECATION_SCHEDULE
+  schedule: ProtocolDeprecationEntry[] = DEPRECATION_SCHEDULE,
 ): boolean {
   const entry = getVersionStatus(version, schedule);
   if (!entry) return false;
@@ -179,7 +179,7 @@ export function isVersionSunset(
  */
 export function buildDeprecationHeaders(
   entry: ProtocolDeprecationEntry,
-  migrationUrl?: string
+  migrationUrl?: string,
 ): Record<string, string> {
   const headers: Record<string, string> = {};
 

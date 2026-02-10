@@ -88,7 +88,10 @@ describe('JSON Schema interop', () => {
       proof: {
         proof: {
           pi_a: ['1', '2', '3'],
-          pi_b: [['4', '5'], ['6', '7']],
+          pi_b: [
+            ['4', '5'],
+            ['6', '7'],
+          ],
           pi_c: ['8', '9', '10'],
           protocol: 'groth16',
           curve: 'bn128',
@@ -131,7 +134,7 @@ describe('JSON Schema interop', () => {
     it('rejects ProofResponse missing claimType', () => {
       const ajv = createValidator();
       const validate = ajv.compile(proofResponseSchema);
-      const { claimType, ...rest } = sampleProofResponse;
+      const { claimType: _claimType, ...rest } = sampleProofResponse;
       const valid = validate(rest);
       expect(valid).to.equal(false);
     });
@@ -139,7 +142,7 @@ describe('JSON Schema interop', () => {
     it('rejects ProofResponse missing proof', () => {
       const ajv = createValidator();
       const validate = ajv.compile(proofResponseSchema);
-      const { proof, ...rest } = sampleProofResponse;
+      const { proof: _proof, ...rest } = sampleProofResponse;
       const valid = validate(rest);
       expect(valid).to.equal(false);
     });
@@ -190,7 +193,7 @@ describe('JSON Schema interop', () => {
     it('rejects SignedProofRequest missing issuer', () => {
       const ajv = createValidator();
       const validate = ajv.compile(signedProofRequestSchema);
-      const { issuer, ...rest } = sampleSignedProofRequest;
+      const { issuer: _issuer, ...rest } = sampleSignedProofRequest;
       const valid = validate(rest);
       expect(valid).to.equal(false);
     });

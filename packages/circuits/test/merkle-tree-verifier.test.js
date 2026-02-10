@@ -1,19 +1,16 @@
-const path = require("path");
-const snarkjs = require("snarkjs");
-const wasm_tester = require("circom_tester").wasm;
-const { buildPoseidon } = require("circomlibjs");
+const path = require('path');
+const _snarkjs = require('snarkjs');
+const wasm_tester = require('circom_tester').wasm;
+const { buildPoseidon } = require('circomlibjs');
 
-describe("MerkleTreeVerifier (via AgeVerifyRevocable) Circuit Tests", function () {
+describe('MerkleTreeVerifier (via AgeVerifyRevocable) Circuit Tests', function () {
   let circuit;
   let poseidon;
 
   before(async function () {
-    circuit = await wasm_tester(
-      path.join(__dirname, "../src/age-verify-revocable.circom"),
-      {
-        include: path.join(__dirname, "../../../node_modules"),
-      }
-    );
+    circuit = await wasm_tester(path.join(__dirname, '../src/age-verify-revocable.circom'), {
+      include: path.join(__dirname, '../../../node_modules'),
+    });
     poseidon = await buildPoseidon();
   });
 
@@ -66,7 +63,7 @@ describe("MerkleTreeVerifier (via AgeVerifyRevocable) Circuit Tests", function (
     return { root, pathIndices, siblings };
   }
 
-  it("should verify valid age with valid Merkle proof (credential at index 0)", async function () {
+  it('should verify valid age with valid Merkle proof (credential at index 0)', async function () {
     const birthYear = 2000;
     const nationality = 840;
     const salt = 12345n;
@@ -88,7 +85,7 @@ describe("MerkleTreeVerifier (via AgeVerifyRevocable) Circuit Tests", function (
       minAge: 18,
       credentialHash: credentialHash,
       merkleRoot: witness.root,
-      nonce: "1",
+      nonce: '1',
       requestTimestamp: 1700000000000,
     };
 
@@ -96,7 +93,7 @@ describe("MerkleTreeVerifier (via AgeVerifyRevocable) Circuit Tests", function (
     await circuit.checkConstraints(witnessCalc);
   });
 
-  it("should verify credential at different tree positions", async function () {
+  it('should verify credential at different tree positions', async function () {
     const depth = 10;
 
     // Create multiple credentials
@@ -107,8 +104,8 @@ describe("MerkleTreeVerifier (via AgeVerifyRevocable) Circuit Tests", function (
       { birthYear: 1985, nationality: 276, salt: 44444n },
     ];
 
-    const credentialHashes = credentials.map(c =>
-      BigInt(computeHash(c.birthYear, c.nationality, c.salt))
+    const credentialHashes = credentials.map((c) =>
+      BigInt(computeHash(c.birthYear, c.nationality, c.salt)),
     );
 
     const layers = buildMerkleTree(credentialHashes, depth);
@@ -125,7 +122,7 @@ describe("MerkleTreeVerifier (via AgeVerifyRevocable) Circuit Tests", function (
       minAge: 18,
       credentialHash: credentialHashes[0].toString(),
       merkleRoot: witness0.root,
-      nonce: "1",
+      nonce: '1',
       requestTimestamp: 1700000000000,
     };
     const witnessCalc0 = await circuit.calculateWitness(input0);
@@ -143,14 +140,14 @@ describe("MerkleTreeVerifier (via AgeVerifyRevocable) Circuit Tests", function (
       minAge: 18,
       credentialHash: credentialHashes[2].toString(),
       merkleRoot: witness2.root,
-      nonce: "2",
+      nonce: '2',
       requestTimestamp: 1700000000001,
     };
     const witnessCalc2 = await circuit.calculateWitness(input2);
     await circuit.checkConstraints(witnessCalc2);
   });
 
-  it("should fail when merkleRoot does not match", async function () {
+  it('should fail when merkleRoot does not match', async function () {
     const birthYear = 2000;
     const nationality = 840;
     const salt = 12345n;
@@ -162,7 +159,7 @@ describe("MerkleTreeVerifier (via AgeVerifyRevocable) Circuit Tests", function (
     const witness = getWitness(layers, 0, depth);
 
     // Use wrong root
-    const wrongRoot = "123456789012345678901234567890";
+    const wrongRoot = '123456789012345678901234567890';
 
     const input = {
       birthYear: birthYear,
@@ -174,34 +171,40 @@ describe("MerkleTreeVerifier (via AgeVerifyRevocable) Circuit Tests", function (
       minAge: 18,
       credentialHash: credentialHash,
       merkleRoot: wrongRoot,
-      nonce: "1",
+      nonce: '1',
       requestTimestamp: 1700000000000,
     };
 
     try {
       await circuit.calculateWitness(input);
-      throw new Error("Expected constraint failure but proof succeeded");
+      throw new Error('Expected constraint failure but proof succeeded');
     } catch (error) {
-      if (error.message.includes("Expected constraint failure")) {
+      if (error.message.includes('Expected constraint failure')) {
         throw error;
       }
       // Success - constraint properly failed
     }
   });
 
-  it("should fail when credential is not in tree", async function () {
+  it('should fail when credential is not in tree', async function () {
     const depth = 10;
 
     // Build tree with one credential
     const inTreeCred = { birthYear: 2000, nationality: 840, salt: 11111n };
-    const inTreeHash = BigInt(computeHash(inTreeCred.birthYear, inTreeCred.nationality, inTreeCred.salt));
+    const inTreeHash = BigInt(
+      computeHash(inTreeCred.birthYear, inTreeCred.nationality, inTreeCred.salt),
+    );
 
     const layers = buildMerkleTree([inTreeHash], depth);
     const witness = getWitness(layers, 0, depth);
 
     // Try to prove a different credential is in the tree
     const notInTreeCred = { birthYear: 1995, nationality: 826, salt: 99999n };
-    const notInTreeHash = computeHash(notInTreeCred.birthYear, notInTreeCred.nationality, notInTreeCred.salt);
+    const notInTreeHash = computeHash(
+      notInTreeCred.birthYear,
+      notInTreeCred.nationality,
+      notInTreeCred.salt,
+    );
 
     const input = {
       birthYear: notInTreeCred.birthYear,
@@ -213,22 +216,22 @@ describe("MerkleTreeVerifier (via AgeVerifyRevocable) Circuit Tests", function (
       minAge: 18,
       credentialHash: notInTreeHash,
       merkleRoot: witness.root,
-      nonce: "1",
+      nonce: '1',
       requestTimestamp: 1700000000000,
     };
 
     try {
       await circuit.calculateWitness(input);
-      throw new Error("Expected constraint failure but proof succeeded");
+      throw new Error('Expected constraint failure but proof succeeded');
     } catch (error) {
-      if (error.message.includes("Expected constraint failure")) {
+      if (error.message.includes('Expected constraint failure')) {
         throw error;
       }
       // Success - constraint properly failed
     }
   });
 
-  it("should fail when age < minAge even with valid Merkle proof", async function () {
+  it('should fail when age < minAge even with valid Merkle proof', async function () {
     const birthYear = 2010; // Too young
     const nationality = 840;
     const salt = 12345n;
@@ -249,15 +252,15 @@ describe("MerkleTreeVerifier (via AgeVerifyRevocable) Circuit Tests", function (
       minAge: 18,
       credentialHash: credentialHash,
       merkleRoot: witness.root,
-      nonce: "1",
+      nonce: '1',
       requestTimestamp: 1700000000000,
     };
 
     try {
       await circuit.calculateWitness(input);
-      throw new Error("Expected constraint failure but proof succeeded");
+      throw new Error('Expected constraint failure but proof succeeded');
     } catch (error) {
-      if (error.message.includes("Expected constraint failure")) {
+      if (error.message.includes('Expected constraint failure')) {
         throw error;
       }
       // Success - age constraint properly failed
@@ -268,7 +271,7 @@ describe("MerkleTreeVerifier (via AgeVerifyRevocable) Circuit Tests", function (
     const birthYear = 2000;
     const nationality = 840;
     const salt = 12345n;
-    const correctHash = computeHash(birthYear, nationality, salt);
+    const _correctHash = computeHash(birthYear, nationality, salt);
 
     // Use a different credential hash in the tree
     const wrongCred = { birthYear: 1995, nationality: 826, salt: 99999n };
@@ -289,22 +292,22 @@ describe("MerkleTreeVerifier (via AgeVerifyRevocable) Circuit Tests", function (
       minAge: 18,
       credentialHash: wrongHash, // Merkle proof is for this hash
       merkleRoot: witness.root,
-      nonce: "1",
+      nonce: '1',
       requestTimestamp: 1700000000000,
     };
 
     try {
       await circuit.calculateWitness(input);
-      throw new Error("Expected constraint failure but proof succeeded");
+      throw new Error('Expected constraint failure but proof succeeded');
     } catch (error) {
-      if (error.message.includes("Expected constraint failure")) {
+      if (error.message.includes('Expected constraint failure')) {
         throw error;
       }
       // Success - hash binding constraint properly failed
     }
   });
 
-  it("should fail when pathIndices contains non-binary values", async function () {
+  it('should fail when pathIndices contains non-binary values', async function () {
     const birthYear = 2000;
     const nationality = 840;
     const salt = 12345n;
@@ -329,15 +332,15 @@ describe("MerkleTreeVerifier (via AgeVerifyRevocable) Circuit Tests", function (
       minAge: 18,
       credentialHash: credentialHash,
       merkleRoot: witness.root,
-      nonce: "1",
+      nonce: '1',
       requestTimestamp: 1700000000000,
     };
 
     try {
       await circuit.calculateWitness(input);
-      throw new Error("Expected constraint failure but proof succeeded");
+      throw new Error('Expected constraint failure but proof succeeded');
     } catch (error) {
-      if (error.message.includes("Expected constraint failure")) {
+      if (error.message.includes('Expected constraint failure')) {
         throw error;
       }
       // Success - binary constraint properly failed

@@ -22,6 +22,7 @@ Before you begin, ensure you have:
 - **Git** — For cloning the repository
 
 Optional for building circuits from source:
+
 - **circom 0.5.46+** — Circuit compiler ([installation guide](https://docs.circom.io/getting-started/installation/))
 - **Rust toolchain** — Required by circom ([rustup.rs](https://rustup.rs/))
 
@@ -125,11 +126,11 @@ Issuers are trusted entities (governments, banks, employers) that verify user id
 
 ### 3.1 Choose Your Signature Scheme
 
-| Scheme | Best For | Verification | Circuit Size |
-|--------|----------|--------------|--------------|
-| **Ed25519** | Most cases | Off-chain (fast) | N/A |
-| **BabyJub EdDSA** | Trustless on-chain | In-circuit (~15s) | ~20k constraints |
-| **BBS+** | Selective disclosure | Off-chain (fast) | N/A |
+| Scheme            | Best For             | Verification      | Circuit Size     |
+| ----------------- | -------------------- | ----------------- | ---------------- |
+| **Ed25519**       | Most cases           | Off-chain (fast)  | N/A              |
+| **BabyJub EdDSA** | Trustless on-chain   | In-circuit (~15s) | ~20k constraints |
+| **BBS+**          | Selective disclosure | Off-chain (fast)  | N/A              |
 
 For most use cases, start with **Ed25519**.
 
@@ -144,8 +145,8 @@ const issuer = createTestIssuer({ name: 'Demo Issuer' });
 // Issue a credential after verifying user identity
 const credential = await issuer.issueCredential(
   1995, // birth year from verified ID
-  840,  // ISO 3166-1 numeric: 840 = USA
-  'user-123' // optional user identifier for audit
+  840, // ISO 3166-1 numeric: 840 = USA
+  'user-123', // optional user identifier for audit
 );
 
 console.log('Issued credential:', credential.id);
@@ -164,13 +165,13 @@ import { ConsoleAuditLogger } from '@zk-id/core';
 // Load keys from PEM files
 const keyManager = await FileKeyManager.fromPemFiles(
   './config/issuer-private-key.pem',
-  './config/issuer-public-key.pem'
+  './config/issuer-public-key.pem',
 );
 
 const issuer = new ManagedCredentialIssuer(
   'Production Issuer Name',
   keyManager,
-  new ConsoleAuditLogger() // Replace with real logging in production
+  new ConsoleAuditLogger(), // Replace with real logging in production
 );
 
 // Issue credentials
@@ -238,7 +239,7 @@ const proof = await generateAgeProofAuto(
   credential,
   18, // minAge
   'nonce-from-server',
-  Date.now()
+  Date.now(),
 );
 
 // proof.proof contains the ZK proof (~192 bytes)
@@ -396,6 +397,7 @@ See the [SDK package README](./packages/sdk/README.md) for more details.
 ### 6.1 Production Checklist
 
 Security:
+
 - [ ] Use production Powers of Tau ceremony (not dev/test)
 - [ ] Store issuer keys in HSM, AWS KMS, or Azure Key Vault
 - [ ] Enable HTTPS/TLS for all endpoints
@@ -405,6 +407,7 @@ Security:
 - [ ] Implement comprehensive audit logging
 
 Infrastructure:
+
 - [ ] Replace in-memory stores with Redis or Postgres
 - [ ] Set up monitoring and alerting
 - [ ] Configure CDN for circuit artifact delivery
@@ -413,6 +416,7 @@ Infrastructure:
 - [ ] Configure CORS properly for cross-origin verification
 
 Performance:
+
 - [ ] Enable circuit artifact caching (browser + CDN)
 - [ ] Use Web Workers for client-side proof generation
 - [ ] Implement batch verification for high-throughput scenarios
@@ -594,6 +598,7 @@ See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for Kubernetes manifests and Helm
 **Error:** `Cannot find module '@zk-id/circuits/build/age-verify.wasm'`
 
 **Solution:** Ensure circuit artifacts are compiled:
+
 ```bash
 npm run compile:circuits
 npm run --workspace=@zk-id/circuits setup
@@ -602,12 +607,14 @@ npm run --workspace=@zk-id/circuits setup
 ### Verification Fails with "Invalid proof"
 
 **Causes:**
+
 1. Circuit artifacts mismatch (recompile circuits on all environments)
 2. Wrong verification key (ensure same version)
 3. Clock skew (timestamp validation failed)
 4. Nonce expired or reused
 
 **Debug:**
+
 ```typescript
 const server = new ZkIdServer({
   verboseErrors: true, // Enable detailed errors
@@ -618,11 +625,13 @@ const server = new ZkIdServer({
 ### Performance Issues
 
 **Slow proof generation:**
+
 - Use Web Workers for non-blocking proof generation
 - Serve circuit artifacts from CDN with long cache headers
 - Consider native mobile apps (faster than browser)
 
 **Slow verification:**
+
 - Enable batch verification for multiple proofs
 - Check database query performance (add indexes)
 - Monitor circuit artifact download times
@@ -632,6 +641,7 @@ const server = new ZkIdServer({
 **Error:** `Rate limit exceeded`
 
 **Solution:**
+
 - Check `RedisRateLimiter` configuration
 - Implement proper user authentication (don't rely on IP)
 - Adjust limits based on your traffic patterns

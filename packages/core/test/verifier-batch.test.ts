@@ -14,11 +14,11 @@ describe('Batch Verification Tests', () => {
     // Load verification keys
     const ageVkPath = path.resolve(
       __dirname,
-      '../../circuits/build/age-verify_verification_key.json'
+      '../../circuits/build/age-verify_verification_key.json',
     );
     const nationalityVkPath = path.resolve(
       __dirname,
-      '../../circuits/build/nationality-verify_verification_key.json'
+      '../../circuits/build/nationality-verify_verification_key.json',
     );
 
     ageVerificationKey = await loadVerificationKey(ageVkPath);
@@ -41,7 +41,10 @@ describe('Batch Verification Tests', () => {
         proofType: 'age',
         proof: {
           pi_a: ['1', '1'],
-          pi_b: [['1', '1'], ['1', '1']],
+          pi_b: [
+            ['1', '1'],
+            ['1', '1'],
+          ],
           pi_c: ['1', '1'],
           protocol: 'groth16',
           curve: 'bn128',
@@ -79,7 +82,10 @@ describe('Batch Verification Tests', () => {
         proofType: 'age',
         proof: {
           pi_a: ['1', '1'],
-          pi_b: [['1', '1'], ['1', '1']],
+          pi_b: [
+            ['1', '1'],
+            ['1', '1'],
+          ],
           pi_c: ['1', '1'],
           protocol: 'groth16',
           curve: 'bn128',
@@ -97,7 +103,10 @@ describe('Batch Verification Tests', () => {
         proofType: 'nationality',
         proof: {
           pi_a: ['1', '1'],
-          pi_b: [['1', '1'], ['1', '1']],
+          pi_b: [
+            ['1', '1'],
+            ['1', '1'],
+          ],
           pi_c: ['1', '1'],
           protocol: 'groth16',
           curve: 'bn128',
@@ -134,7 +143,10 @@ describe('Batch Verification Tests', () => {
         proofType: 'age',
         proof: {
           pi_a: ['1', '1'],
-          pi_b: [['1', '1'], ['1', '1']],
+          pi_b: [
+            ['1', '1'],
+            ['1', '1'],
+          ],
           pi_c: ['1', '1'],
           protocol: 'groth16',
           curve: 'bn128',
@@ -197,7 +209,7 @@ describe('Batch Verification Tests', () => {
         credential,
         840,
         nonceNat,
-        Date.now()
+        Date.now(),
       );
 
       const result = await verifyBatch([
@@ -225,7 +237,10 @@ describe('Batch Verification Tests', () => {
         proofType: 'age',
         proof: {
           pi_a: ['1', '1'],
-          pi_b: [['1', '1'], ['1', '1']],
+          pi_b: [
+            ['1', '1'],
+            ['1', '1'],
+          ],
           pi_c: ['1', '1'],
           protocol: 'groth16',
           curve: 'bn128',
@@ -266,7 +281,10 @@ describe('Batch Verification Tests', () => {
         proofType: 'nationality',
         proof: {
           pi_a: ['1', '1'],
-          pi_b: [['1', '1'], ['1', '1']],
+          pi_b: [
+            ['1', '1'],
+            ['1', '1'],
+          ],
           pi_c: ['1', '1'],
           protocol: 'groth16',
           curve: 'bn128',
@@ -342,7 +360,10 @@ describe('Batch Verification Tests', () => {
         proofType: 'age',
         proof: {
           pi_a: ['1', '1'],
-          pi_b: [['1', '1'], ['1', '1']],
+          pi_b: [
+            ['1', '1'],
+            ['1', '1'],
+          ],
           pi_c: ['1', '1'],
           protocol: 'groth16',
           curve: 'bn128',
@@ -360,7 +381,10 @@ describe('Batch Verification Tests', () => {
         proofType: 'age',
         proof: {
           pi_a: ['999', '999'],
-          pi_b: [['999', '999'], ['999', '999']],
+          pi_b: [
+            ['999', '999'],
+            ['999', '999'],
+          ],
           pi_c: ['999', '999'],
           protocol: 'groth16',
           curve: 'bn128',
@@ -378,7 +402,10 @@ describe('Batch Verification Tests', () => {
         proofType: 'nationality',
         proof: {
           pi_a: ['777', '777'],
-          pi_b: [['777', '777'], ['777', '777']],
+          pi_b: [
+            ['777', '777'],
+            ['777', '777'],
+          ],
           pi_c: ['777', '777'],
           protocol: 'groth16',
           curve: 'bn128',
@@ -421,7 +448,7 @@ describe('Batch Verification Tests', () => {
 
       const startTime = Date.now();
       const result = await verifyBatch(batch);
-      const batchTime = Date.now() - startTime;
+      const _batchTime = Date.now() - startTime;
 
       // Batch verification should complete successfully
       expect(result.allVerified).to.be.true;

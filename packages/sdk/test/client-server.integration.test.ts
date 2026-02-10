@@ -27,11 +27,11 @@ describe('SDK Server Integration', () => {
     // Setup server with real verification keys
     const ageVkPath = path.resolve(
       __dirname,
-      '../../circuits/build/age-verify_verification_key.json'
+      '../../circuits/build/age-verify_verification_key.json',
     );
     const nationalityVkPath = path.resolve(
       __dirname,
-      '../../circuits/build/nationality-verify_verification_key.json'
+      '../../circuits/build/nationality-verify_verification_key.json',
     );
 
     const ageVkey = await loadVerificationKey(ageVkPath);
@@ -177,12 +177,8 @@ describe('SDK Server Integration', () => {
       expect(result3.minAge).to.equal(50);
 
       // All should have same commitment
-      expect(proof1.publicSignals.credentialHash).to.equal(
-        proof2.publicSignals.credentialHash
-      );
-      expect(proof2.publicSignals.credentialHash).to.equal(
-        proof3.publicSignals.credentialHash
-      );
+      expect(proof1.publicSignals.credentialHash).to.equal(proof2.publicSignals.credentialHash);
+      expect(proof2.publicSignals.credentialHash).to.equal(proof3.publicSignals.credentialHash);
     });
   });
 
@@ -194,12 +190,7 @@ describe('SDK Server Integration', () => {
       const nonce = BigInt('0x' + randomBytes(31).toString('hex')).toString();
       const requestTimestamp = Date.now();
 
-      const proof = await generateNationalityProofAuto(
-        credential,
-        840,
-        nonce,
-        requestTimestamp
-      );
+      const proof = await generateNationalityProofAuto(credential, 840, nonce, requestTimestamp);
 
       const proofResponse: ProofResponse = {
         credentialId: credential.id,
@@ -341,7 +332,7 @@ describe('SDK Server Integration', () => {
         credential,
         18,
         challenge.nonce,
-        new Date(challenge.requestTimestamp).getTime()
+        new Date(challenge.requestTimestamp).getTime(),
       );
 
       // 3. Server verifies proof with challenge nonce
@@ -412,7 +403,10 @@ describe('SDK Server Integration', () => {
           proofType: 'age',
           proof: {
             pi_a: ['invalid', 'data'],
-            pi_b: [['1', '2'], ['3', '4']],
+            pi_b: [
+              ['1', '2'],
+              ['3', '4'],
+            ],
             pi_c: ['5', '6'],
           },
           publicSignals: {
@@ -467,12 +461,7 @@ describe('SDK Server Integration', () => {
       // Generate nationality proof
       const nonceNat = BigInt('0x' + randomBytes(31).toString('hex')).toString();
       const timestampNat = Date.now();
-      const natProof = await generateNationalityProofAuto(
-        credential,
-        840,
-        nonceNat,
-        timestampNat
-      );
+      const natProof = await generateNationalityProofAuto(credential, 840, nonceNat, timestampNat);
       const natResponse: ProofResponse = {
         credentialId: credential.id,
         claimType: 'nationality',
@@ -498,9 +487,7 @@ describe('SDK Server Integration', () => {
       expect(natResult.targetNationality).to.equal(840);
 
       // Both proofs should share same commitment
-      expect(ageProof.publicSignals.credentialHash).to.equal(
-        natProof.publicSignals.credentialHash
-      );
+      expect(ageProof.publicSignals.credentialHash).to.equal(natProof.publicSignals.credentialHash);
     });
   });
 });

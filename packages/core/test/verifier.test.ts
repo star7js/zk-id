@@ -10,7 +10,10 @@ describe('Verifier Tests', () => {
         proofType: 'age',
         proof: {
           pi_a: ['1', '2'],
-          pi_b: [['3', '4'], ['5', '6']],
+          pi_b: [
+            ['3', '4'],
+            ['5', '6'],
+          ],
           pi_c: ['7', '8'],
           protocol: 'groth16',
           curve: 'bn128',
@@ -137,13 +140,13 @@ describe('Verifier Tests', () => {
       for (const age of validAges) {
         const proof = createMockProof({
           publicSignals: {
-          currentYear: new Date().getFullYear(),
-          minAge: age,
-          credentialHash: '12345',
-          nonce: 'nonce-1',
-          requestTimestamp: Date.now(),
-        },
-      });
+            currentYear: new Date().getFullYear(),
+            minAge: age,
+            credentialHash: '12345',
+            nonce: 'nonce-1',
+            requestTimestamp: Date.now(),
+          },
+        });
 
         const result = validateProofConstraints(proof);
         expect(result.valid).to.be.true;
@@ -169,12 +172,17 @@ describe('Verifier Tests', () => {
   });
 
   describe('validateNationalityProofConstraints', () => {
-    const createMockNationalityProof = (overrides?: Partial<NationalityProof>): NationalityProof => {
+    const createMockNationalityProof = (
+      overrides?: Partial<NationalityProof>,
+    ): NationalityProof => {
       const defaults: NationalityProof = {
         proofType: 'nationality',
         proof: {
           pi_a: ['1', '2'],
-          pi_b: [['3', '4'], ['5', '6']],
+          pi_b: [
+            ['3', '4'],
+            ['5', '6'],
+          ],
           pi_c: ['7', '8'],
           protocol: 'groth16',
           curve: 'bn128',

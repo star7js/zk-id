@@ -1,8 +1,7 @@
 import { expect } from 'chai';
 import { RedisRevocationStore } from '../src/revocation-store';
 
-const REDIS_URL =
-  process.env.ZKID_REDIS_URL || process.env.REDIS_URL;
+const REDIS_URL = process.env.ZKID_REDIS_URL || process.env.REDIS_URL;
 
 describe('RedisRevocationStore', function () {
   if (!REDIS_URL) {
@@ -99,7 +98,7 @@ describe('RedisRevocationStore', function () {
     await store.revoke(commitment);
 
     // Wait a bit to ensure no auto-expiration
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
     expect(await store.isRevoked(commitment)).to.equal(true);
   });

@@ -160,7 +160,7 @@ describe('Credential Tests', () => {
       const derived = await deriveCommitment(
         credential.birthYear,
         credential.nationality,
-        credential.salt
+        credential.salt,
       );
 
       expect(derived).to.equal(credential.commitment);

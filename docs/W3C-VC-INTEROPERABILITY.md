@@ -19,10 +19,7 @@ A zk-id credential in W3C VC format looks like this:
 
 ```json
 {
-  "@context": [
-    "https://www.w3.org/ns/credentials/v2",
-    "https://w3id.org/zk-id/credentials/v1"
-  ],
+  "@context": ["https://www.w3.org/ns/credentials/v2", "https://w3id.org/zk-id/credentials/v1"],
   "type": ["VerifiableCredential", "ZkIdCredential"],
   "id": "urn:uuid:123e4567-e89b-12d3-a456-426614174000",
   "issuer": "did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK",
@@ -48,11 +45,13 @@ A zk-id credential in W3C VC format looks like this:
 ## Key Differences from Traditional VCs
 
 ### Traditional W3C VC
+
 - Reveals all credential attributes (name, birth date, address, etc.)
 - Signature proves authenticity
 - Holder must share full credential to prove claims
 
 ### zk-id W3C VC
+
 - **Only reveals the commitment** (Poseidon hash)
 - Signature proves authenticity of the commitment
 - Holder generates **zero-knowledge proofs** to prove claims (age >= 18, nationality, etc.) **without revealing the commitment or underlying attributes**
@@ -126,7 +125,7 @@ const { publicKey, privateKey } = generateKeyPairSync('ed25519');
 
 // Convert public key to DID
 const issuerDID = ed25519PublicKeyToDIDKey(
-  publicKey.export({ type: 'spki', format: 'der' }).slice(-32) // Last 32 bytes
+  publicKey.export({ type: 'spki', format: 'der' }).slice(-32), // Last 32 bytes
 );
 
 // Use DID when issuing credentials
@@ -149,6 +148,7 @@ const vc = toW3CVerifiableCredential(signedCredential, {
 ## Interoperability Roadmap
 
 ### v1.1.0 (Current - February 2026)
+
 - ✅ W3C VC Data Model v2.0 `@context` and `type` fields
 - ✅ DID support for issuers and subjects (`did:key`)
 - ✅ Ed25519Signature2020 proof type
@@ -156,17 +156,20 @@ const vc = toW3CVerifiableCredential(signedCredential, {
 - ✅ Backward compatibility with existing zk-id credentials
 
 ### v1.2.0 (Q3 2026)
+
 - JSON-LD `@context` alignment with zk-id-specific vocabulary
 - `did:web` support for organizational issuers
 - VC Data Integrity proof suite definition (`zkProof2026`)
 - DIF Presentation Exchange v2.0 support
 
 ### v1.3.0 (Q4 2026)
+
 - W3C VC v2.0 full compliance (passes VC validators)
 - Credential Status integration (RevocationList2020)
 - Selective disclosure presentation format
 
 ### v2.0.0 (2027+)
+
 - `did:ion` support (Sidetree on Bitcoin)
 - DID resolution across multiple methods
 - Participation in W3C VC-WG interoperability testing
@@ -197,6 +200,7 @@ const vc = toW3CVerifiableCredential(signedCredential, {
 **W3C VC wallets expect to display credential attributes.**
 
 Traditional W3C VCs contain claims like:
+
 ```json
 {
   "credentialSubject": {
@@ -208,6 +212,7 @@ Traditional W3C VCs contain claims like:
 ```
 
 zk-id VCs only contain the commitment:
+
 ```json
 {
   "credentialSubject": {
@@ -221,6 +226,7 @@ zk-id VCs only contain the commitment:
 **Wallets that expect to display attributes will show "unknown" or the commitment hash.**
 
 This is intentional — revealing attributes defeats the purpose of zero-knowledge proofs. Users must understand that:
+
 - The credential itself is **opaque** (commitment only)
 - **Proofs** are generated to prove specific claims (age >= 18, nationality = US)
 - Verifiers receive **proofs**, not credentials
@@ -230,6 +236,7 @@ This is intentional — revealing attributes defeats the purpose of zero-knowled
 ### Browser Wallet Support
 
 zk-id includes a browser wallet prototype (`BrowserWallet` in `@zk-id/sdk`) that:
+
 - Stores W3C VC-formatted credentials in IndexedDB
 - Generates ZK proofs when verifiers request them
 - Presents proofs using W3C Presentation Exchange (v1.2)
@@ -239,6 +246,7 @@ zk-id includes a browser wallet prototype (`BrowserWallet` in `@zk-id/sdk`) that
 To integrate with existing W3C VC wallets:
 
 1. **Issue credentials in W3C VC format**
+
    ```typescript
    const vc = toW3CVerifiableCredential(signedCredential, { issuerDID, subjectDID });
    ```
@@ -309,7 +317,7 @@ const nationalityProof = await generateNationalityProof(
   euCredential.credential,
   276, // Germany
   nonce,
-  timestamp
+  timestamp,
 );
 
 // Verifier accepts any EU member state nationality code
@@ -321,16 +329,19 @@ await verifier.verifyProof(nationalityProof);
 ### W3C Verifiable Credentials Data Model v2.0
 
 ✅ **Compliant**:
+
 - `@context` array with VC v2.0 context
 - `type` array including "VerifiableCredential"
 - Required properties: `id`, `issuer`, `issuanceDate`, `credentialSubject`
 - Proof object with `type`, `created`, `verificationMethod`, `proofPurpose`
 
 ⚠️ **Partial Compliance**:
+
 - Custom `@context` is a placeholder (not resolvable)
 - `zkCredential` is a non-standard credentialSubject property
 
 🔜 **Planned**:
+
 - JSON-LD vocabulary definition
 - Custom proof suite (`zkProof2026`)
 - Credential Status integration
@@ -338,11 +349,13 @@ await verifier.verifyProof(nationalityProof);
 ### W3C Decentralized Identifiers (DIDs) v1.0
 
 ✅ **Compliant**:
+
 - `did:key` method implementation
 - Multicodec prefix for Ed25519 (0xed 0x01)
 - Base58 encoding with Bitcoin alphabet
 
 🔜 **Planned**:
+
 - `did:web` method support
 - `did:ion` method support
 - DID resolution
@@ -358,6 +371,7 @@ The W3C VC proof signs the **commitment**, not the underlying attributes. This m
 ❌ The VC alone does not reveal the attributes
 
 **Attack resistance:**
+
 - Signature forgery is prevented by Ed25519 cryptography
 - Commitment binding is enforced by Poseidon hash in the circuit
 - Replay attacks are mitigated by nonce + timestamp in ZK proofs
@@ -369,6 +383,7 @@ The W3C VC proof signs the **commitment**, not the underlying attributes. This m
 - `did:ion` provides blockchain-anchored trust (planned)
 
 **Key management:**
+
 - Issuers must protect Ed25519 private keys
 - Use KMS/HSM for production deployments
 - Regular key rotation is recommended (see `@zk-id/issuer` policy tooling)
@@ -388,6 +403,7 @@ Integration with RevocationList2020 is planned for v1.3.
 ### From zk-id v1.0.0 to W3C VC (v1.1.0)
 
 **Option 1: Dual format (recommended)**
+
 - Issue credentials in both formats
 - Store W3C VC in wallets for interoperability
 - Use zk-id format internally for ZK proof generation
@@ -402,6 +418,7 @@ await wallet.store(vc); // For W3C VC interoperability
 ```
 
 **Option 2: W3C VC only (forward-compatible)**
+
 - Issue only W3C VCs
 - Convert to zk-id format when generating proofs
 
@@ -416,6 +433,7 @@ const proof = await generateAgeProof(zkCredential.credential, 18, nonce, timesta
 ```
 
 **Option 3: W3C VC with embedded zk-id data (custom)**
+
 - Extend `credentialSubject` with both formats
 
 ```typescript

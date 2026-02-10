@@ -22,15 +22,12 @@ describe('Signed Proof Integration', () => {
 
     const wasmPath = path.resolve(
       __dirname,
-      '../../circuits/build/age-verify-signed_js/age-verify-signed.wasm'
+      '../../circuits/build/age-verify-signed_js/age-verify-signed.wasm',
     );
-    const zkeyPath = path.resolve(
-      __dirname,
-      '../../circuits/build/age-verify-signed.zkey'
-    );
+    const zkeyPath = path.resolve(__dirname, '../../circuits/build/age-verify-signed.zkey');
     const vkeyPath = path.resolve(
       __dirname,
-      '../../circuits/build/age-verify-signed_verification_key.json'
+      '../../circuits/build/age-verify-signed_verification_key.json',
     );
 
     const nonce = BigInt('0x' + randomBytes(31).toString('hex')).toString();
@@ -43,15 +40,11 @@ describe('Signed Proof Integration', () => {
       requestTimestampMs,
       signatureInputs,
       wasmPath,
-      zkeyPath
+      zkeyPath,
     );
 
     const vkey = await loadVerificationKey(vkeyPath);
-    const ok = await verifyAgeProofSignedWithIssuer(
-      proof,
-      vkey,
-      signed.issuerPublicKey
-    );
+    const ok = await verifyAgeProofSignedWithIssuer(proof, vkey, signed.issuerPublicKey);
 
     expect(ok).to.equal(true);
   });
@@ -66,15 +59,12 @@ describe('Signed Proof Integration', () => {
 
     const wasmPath = path.resolve(
       __dirname,
-      '../../circuits/build/nationality-verify-signed_js/nationality-verify-signed.wasm'
+      '../../circuits/build/nationality-verify-signed_js/nationality-verify-signed.wasm',
     );
-    const zkeyPath = path.resolve(
-      __dirname,
-      '../../circuits/build/nationality-verify-signed.zkey'
-    );
+    const zkeyPath = path.resolve(__dirname, '../../circuits/build/nationality-verify-signed.zkey');
     const vkeyPath = path.resolve(
       __dirname,
-      '../../circuits/build/nationality-verify-signed_verification_key.json'
+      '../../circuits/build/nationality-verify-signed_verification_key.json',
     );
 
     const nonce = BigInt('0x' + randomBytes(31).toString('hex')).toString();
@@ -87,15 +77,11 @@ describe('Signed Proof Integration', () => {
       requestTimestampMs,
       signatureInputs,
       wasmPath,
-      zkeyPath
+      zkeyPath,
     );
 
     const vkey = await loadVerificationKey(vkeyPath);
-    const ok = await verifyNationalityProofSignedWithIssuer(
-      proof,
-      vkey,
-      signed.issuerPublicKey
-    );
+    const ok = await verifyNationalityProofSignedWithIssuer(proof, vkey, signed.issuerPublicKey);
 
     expect(ok).to.equal(true);
   });
@@ -110,15 +96,12 @@ describe('Signed Proof Integration', () => {
 
     const wasmPath = path.resolve(
       __dirname,
-      '../../circuits/build/age-verify-signed_js/age-verify-signed.wasm'
+      '../../circuits/build/age-verify-signed_js/age-verify-signed.wasm',
     );
-    const zkeyPath = path.resolve(
-      __dirname,
-      '../../circuits/build/age-verify-signed.zkey'
-    );
+    const zkeyPath = path.resolve(__dirname, '../../circuits/build/age-verify-signed.zkey');
     const vkeyPath = path.resolve(
       __dirname,
-      '../../circuits/build/age-verify-signed_verification_key.json'
+      '../../circuits/build/age-verify-signed_verification_key.json',
     );
 
     const nonce = BigInt('0x' + randomBytes(31).toString('hex')).toString();
@@ -131,7 +114,7 @@ describe('Signed Proof Integration', () => {
       requestTimestampMs,
       signatureInputs,
       wasmPath,
-      zkeyPath
+      zkeyPath,
     );
 
     // Create a different issuer with different keys
@@ -141,7 +124,7 @@ describe('Signed Proof Integration', () => {
     const ok = await verifyAgeProofSignedWithIssuer(
       proof,
       vkey,
-      wrongIssuer.getIssuerPublicKeyBits()
+      wrongIssuer.getIssuerPublicKeyBits(),
     );
 
     expect(ok).to.equal(false);

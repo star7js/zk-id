@@ -1,20 +1,20 @@
-name: "Setup Circom"
-description: "Install and cache Circom compiler"
+name: 'Setup Circom'
+description: 'Install and cache Circom compiler'
 inputs:
   version:
-    description: "Circom version to install"
+    description: 'Circom version to install'
     required: false
-    default: "v2.1.8"
+    default: 'v2.1.8'
   sha256:
-    description: "Expected SHA-256 checksum for circom-linux-amd64"
+    description: 'Expected SHA-256 checksum for circom-linux-amd64'
     required: false
-    default: "7a812278477b98cbe69812c382a8921289a2590e0cdfcfe321306445b4593c12"
+    default: '7a812278477b98cbe69812c382a8921289a2590e0cdfcfe321306445b4593c12'
   checksum_url:
-    description: "URL to a SHA-256 checksum file for circom-linux-amd64"
+    description: 'URL to a SHA-256 checksum file for circom-linux-amd64'
     required: false
-    default: ""
+    default: ''
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
     - name: Validate inputs
       shell: bash

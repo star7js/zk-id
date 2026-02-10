@@ -1,8 +1,7 @@
 import { expect } from 'chai';
 import { RedisRateLimiter } from '../src/rate-limiter';
 
-const REDIS_URL =
-  process.env.ZKID_REDIS_URL || process.env.REDIS_URL;
+const REDIS_URL = process.env.ZKID_REDIS_URL || process.env.REDIS_URL;
 
 describe('RedisRateLimiter', function () {
   if (!REDIS_URL) {
@@ -80,7 +79,7 @@ describe('RedisRateLimiter', function () {
     expect(await limiter.allowRequest(id)).to.equal(false);
 
     // Wait for window to expire
-    await new Promise(resolve => setTimeout(resolve, 250));
+    await new Promise((resolve) => setTimeout(resolve, 250));
 
     // Should allow requests again
     expect(await limiter.allowRequest(id)).to.equal(true);
@@ -119,13 +118,13 @@ describe('RedisRateLimiter', function () {
     expect(await limiter.allowRequest(id)).to.equal(true);
 
     // Wait for first request to exit the window
-    await new Promise(resolve => setTimeout(resolve, 250));
+    await new Promise((resolve) => setTimeout(resolve, 250));
 
     // Still blocked because window hasn't fully elapsed
     expect(await limiter.allowRequest(id)).to.equal(false);
 
     // Wait for more of the window to pass
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     // Now should allow again
     expect(await limiter.allowRequest(id)).to.equal(true);

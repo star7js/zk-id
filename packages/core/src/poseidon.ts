@@ -19,7 +19,7 @@ let poseidonInstance: PoseidonHasher | null = null;
  */
 async function getPoseidon(): Promise<PoseidonHasher> {
   if (!poseidonInstance) {
-    poseidonInstance = await buildPoseidon() as unknown as PoseidonHasher;
+    poseidonInstance = (await buildPoseidon()) as unknown as PoseidonHasher;
   }
   return poseidonInstance;
 }

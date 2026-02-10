@@ -65,7 +65,7 @@ describe('External Credential Format Tests', () => {
         vc,
         signed.credential.id,
         signed.credential.salt,
-        signed.credential.createdAt
+        signed.credential.createdAt,
       );
 
       expect(converted.credential.id).to.equal(signed.credential.id);
@@ -86,7 +86,7 @@ describe('External Credential Format Tests', () => {
           vc,
           signed.credential.id,
           signed.credential.salt,
-          signed.credential.createdAt
+          signed.credential.createdAt,
         );
         expect.fail('Should have thrown an error');
       } catch (error) {
@@ -107,7 +107,7 @@ describe('External Credential Format Tests', () => {
         vc,
         signed.credential.id,
         signed.credential.salt,
-        signed.credential.createdAt
+        signed.credential.createdAt,
       );
 
       // Verify signature still works
@@ -123,7 +123,7 @@ describe('External Credential Format Tests', () => {
         vc,
         signed.credential.id,
         signed.credential.salt,
-        signed.credential.createdAt
+        signed.credential.createdAt,
       );
 
       expect(converted.credential.commitment).to.equal(signed.credential.commitment);
@@ -139,7 +139,7 @@ describe('External Credential Format Tests', () => {
         vc,
         signed.credential.id,
         signed.credential.salt,
-        signed.credential.createdAt
+        signed.credential.createdAt,
       );
 
       expect(converted.credential.birthYear).to.equal(birthYear);

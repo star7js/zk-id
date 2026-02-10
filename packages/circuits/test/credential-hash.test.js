@@ -1,20 +1,17 @@
-const path = require("path");
-const snarkjs = require("snarkjs");
-const wasm_tester = require("circom_tester").wasm;
+const path = require('path');
+const _snarkjs = require('snarkjs');
+const wasm_tester = require('circom_tester').wasm;
 
-describe("CredentialHash Circuit Tests", function () {
+describe('CredentialHash Circuit Tests', function () {
   let circuit;
 
   before(async function () {
-    circuit = await wasm_tester(
-      path.join(__dirname, "../src/credential-hash.circom"),
-      {
-        include: path.join(__dirname, "../../../node_modules"),
-      }
-    );
+    circuit = await wasm_tester(path.join(__dirname, '../src/credential-hash.circom'), {
+      include: path.join(__dirname, '../../../node_modules'),
+    });
   });
 
-  it("should compute hash for valid inputs", async function () {
+  it('should compute hash for valid inputs', async function () {
     const input = {
       birthYear: 1990,
       nationality: 840, // USA
@@ -27,11 +24,11 @@ describe("CredentialHash Circuit Tests", function () {
     // Check that output exists and is non-zero
     const output = witness[1]; // First signal after public inputs
     if (output === 0n) {
-      throw new Error("Hash output should not be zero");
+      throw new Error('Hash output should not be zero');
     }
   });
 
-  it("should produce different hashes for different birth years", async function () {
+  it('should produce different hashes for different birth years', async function () {
     const input1 = {
       birthYear: 1990,
       nationality: 840,
@@ -54,11 +51,11 @@ describe("CredentialHash Circuit Tests", function () {
     const hash2 = witness2[1];
 
     if (hash1 === hash2) {
-      throw new Error("Different birth years should produce different hashes");
+      throw new Error('Different birth years should produce different hashes');
     }
   });
 
-  it("should produce different hashes for different salts", async function () {
+  it('should produce different hashes for different salts', async function () {
     const input1 = {
       birthYear: 1990,
       nationality: 840,
@@ -81,11 +78,11 @@ describe("CredentialHash Circuit Tests", function () {
     const hash2 = witness2[1];
 
     if (hash1 === hash2) {
-      throw new Error("Different salts should produce different hashes");
+      throw new Error('Different salts should produce different hashes');
     }
   });
 
-  it("should produce same hash for same inputs (deterministic)", async function () {
+  it('should produce same hash for same inputs (deterministic)', async function () {
     const input = {
       birthYear: 1995,
       nationality: 840,
@@ -102,11 +99,11 @@ describe("CredentialHash Circuit Tests", function () {
     const hash2 = witness2[1];
 
     if (hash1 !== hash2) {
-      throw new Error("Same inputs should produce same hash");
+      throw new Error('Same inputs should produce same hash');
     }
   });
 
-  it("should produce different hashes for different nationalities", async function () {
+  it('should produce different hashes for different nationalities', async function () {
     const input1 = {
       birthYear: 1990,
       nationality: 840, // USA
@@ -129,11 +126,11 @@ describe("CredentialHash Circuit Tests", function () {
     const hash2 = witness2[1];
 
     if (hash1 === hash2) {
-      throw new Error("Different nationalities should produce different hashes");
+      throw new Error('Different nationalities should produce different hashes');
     }
   });
 
-  it("should handle edge case birth years", async function () {
+  it('should handle edge case birth years', async function () {
     const inputs = [
       { birthYear: 1900, nationality: 840, salt: 111 },
       { birthYear: 2023, nationality: 826, salt: 222 },
@@ -151,7 +148,7 @@ describe("CredentialHash Circuit Tests", function () {
     }
   });
 
-  it("should handle large salt values", async function () {
+  it('should handle large salt values', async function () {
     const input = {
       birthYear: 1990,
       nationality: 840,

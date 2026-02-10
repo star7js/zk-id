@@ -21,7 +21,7 @@ function makeAgeProof(
   credentialHash: string,
   minAge: number,
   nonce: string,
-  requestTimestamp: number
+  requestTimestamp: number,
 ): AgeProof {
   return {
     proofType: 'age',
@@ -50,7 +50,7 @@ function makeAgeProofRevocable(
   merkleRoot: string,
   minAge: number,
   nonce: string,
-  requestTimestamp: number
+  requestTimestamp: number,
 ): AgeProofRevocable {
   return {
     proofType: 'age-revocable',
@@ -935,9 +935,20 @@ describe('validateProofResponsePayload', () => {
       claimType: 'age',
       proof: {
         proof: { pi_a: ['1'], pi_b: [['2']], pi_c: ['3'], protocol: 'groth16', curve: 'bn128' },
-        publicSignals: { currentYear: 2026, minAge: 18, credentialHash: 'h', nonce: 'n', requestTimestamp: 123 },
+        publicSignals: {
+          currentYear: 2026,
+          minAge: 18,
+          credentialHash: 'h',
+          nonce: 'n',
+          requestTimestamp: 123,
+        },
       },
-      signedCredential: { credential: {}, issuer: 'test', signature: 'sig', issuedAt: '2026-01-01T00:00:00Z' },
+      signedCredential: {
+        credential: {},
+        issuer: 'test',
+        signature: 'sig',
+        issuedAt: '2026-01-01T00:00:00Z',
+      },
       nonce: 'nonce-1',
       requestTimestamp: '2026-01-01T00:00:00Z',
     };
@@ -1001,7 +1012,7 @@ describe('validateProofResponsePayload', () => {
         requestTimestamp: '2026-01-01T00:00:00Z',
         proof: { proof: {}, publicSignals: {} },
       },
-      false
+      false,
     );
     expect(errors.some((e: { field: string }) => e.field === 'signedCredential')).to.equal(false);
   });
@@ -1027,7 +1038,14 @@ describe('validateSignedProofRequestPayload', () => {
       requestTimestamp: '2026-01-01T00:00:00Z',
       proof: {
         proof: { pi_a: ['1'], pi_b: [['2']], pi_c: ['3'], protocol: 'groth16', curve: 'bn128' },
-        publicSignals: { currentYear: 2026, minAge: 18, credentialHash: 'h', nonce: 'n', requestTimestamp: 123, issuerPublicKey: ['pk'] },
+        publicSignals: {
+          currentYear: 2026,
+          minAge: 18,
+          credentialHash: 'h',
+          nonce: 'n',
+          requestTimestamp: 123,
+          issuerPublicKey: ['pk'],
+        },
       },
     };
     const errors = validateSignedProofRequestPayload(valid);
@@ -1382,7 +1400,12 @@ describe('InMemoryIssuerRegistry - rotationGracePeriodMs', () => {
     const proofResponse: ProofResponse = {
       credentialId: signedCredential.credential.id,
       claimType: 'age',
-      proof: makeAgeProof(signedCredential.credential.commitment, 18, 'nonce-grace', requestTimestampMs),
+      proof: makeAgeProof(
+        signedCredential.credential.commitment,
+        18,
+        'nonce-grace',
+        requestTimestampMs,
+      ),
       signedCredential,
       nonce: 'nonce-grace',
       requestTimestamp: new Date(requestTimestampMs).toISOString(),
@@ -1417,7 +1440,7 @@ describe('validateSignedCredentialBinding - rotationGracePeriodMs', () => {
   function makeSignedCredentialWithKey(
     commitment: string,
     issuer: string,
-    privateKey: any
+    privateKey: any,
   ): SignedCredential {
     const credential = {
       id: 'cred-grace-test',
@@ -1469,7 +1492,7 @@ describe('validateSignedCredentialBinding - rotationGracePeriodMs', () => {
           rotationGracePeriodMs: 60_000, // 1 minute grace period
         },
       ],
-      mockAuditLogger
+      mockAuditLogger,
     );
 
     const server = new ZkIdServer({
@@ -1506,7 +1529,7 @@ describe('validateSignedCredentialBinding - rotationGracePeriodMs', () => {
     const graceAcceptLogs = auditLogs.filter((log) => log.action === 'grace_period_accept');
     expect(graceAcceptLogs.length).to.be.greaterThan(
       0,
-      'Expected at least one grace_period_accept audit log entry'
+      'Expected at least one grace_period_accept audit log entry',
     );
 
     // Verify the audit log entry has the expected structure

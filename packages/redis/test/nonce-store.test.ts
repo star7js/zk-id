@@ -1,8 +1,7 @@
 import { expect } from 'chai';
 import { RedisNonceStore } from '../src/nonce-store';
 
-const REDIS_URL =
-  process.env.ZKID_REDIS_URL || process.env.REDIS_URL;
+const REDIS_URL = process.env.ZKID_REDIS_URL || process.env.REDIS_URL;
 
 describe('RedisNonceStore', function () {
   if (!REDIS_URL) {
@@ -68,7 +67,7 @@ describe('RedisNonceStore', function () {
     expect(await store.has('expiring-nonce')).to.equal(true);
 
     // Wait for expiration
-    await new Promise(resolve => setTimeout(resolve, 1100));
+    await new Promise((resolve) => setTimeout(resolve, 1100));
 
     expect(await store.has('expiring-nonce')).to.equal(false);
   });

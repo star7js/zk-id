@@ -60,9 +60,7 @@ describe('Proving System Abstraction', () => {
     });
 
     it('should throw for unregistered proving system', () => {
-      expect(() => getProvingSystem('unknown' as ProvingSystemType)).to.throw(
-        /not registered/
-      );
+      expect(() => getProvingSystem('unknown' as ProvingSystemType)).to.throw(/not registered/);
     });
 
     it('should allow registering custom proving system', () => {
@@ -91,7 +89,10 @@ describe('Proving System Abstraction', () => {
         system: 'groth16',
         proof: {
           pi_a: ['1', '2'],
-          pi_b: [['3', '4'], ['5', '6']],
+          pi_b: [
+            ['3', '4'],
+            ['5', '6'],
+          ],
           pi_c: ['7', '8'],
           protocol: 'groth16',
           curve: 'bn128',
@@ -135,17 +136,13 @@ describe('Proving System Abstraction', () => {
     });
 
     it('groth16 should require per-circuit trusted setup', () => {
-      const groth16 = PROVING_SYSTEM_COMPARISON.find(
-        (c) => c.system === 'groth16'
-      );
+      const groth16 = PROVING_SYSTEM_COMPARISON.find((c) => c.system === 'groth16');
       expect(groth16!.trustedSetup).to.equal('per-circuit');
       expect(groth16!.maturity).to.equal('production');
     });
 
     it('plonk should use universal setup', () => {
-      const plonk = PROVING_SYSTEM_COMPARISON.find(
-        (c) => c.system === 'plonk'
-      );
+      const plonk = PROVING_SYSTEM_COMPARISON.find((c) => c.system === 'plonk');
       expect(plonk!.trustedSetup).to.equal('universal');
     });
   });

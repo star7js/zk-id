@@ -1,4 +1,9 @@
-import { poseidonHash, RevocationWitness, RevocationRootInfo, ValidCredentialTree } from '@zk-id/core';
+import {
+  poseidonHash,
+  RevocationWitness,
+  RevocationRootInfo,
+  ValidCredentialTree,
+} from '@zk-id/core';
 
 export interface PostgresValidCredentialTreeOptions {
   /** Merkle tree depth (default: 10) */
@@ -16,7 +21,7 @@ export interface PostgresValidCredentialTreeOptions {
 export interface SqlClient {
   query<T = Record<string, unknown>>(
     text: string,
-    params?: (string | number | boolean | null)[]
+    params?: (string | number | boolean | null)[],
   ): Promise<{ rows: T[] }>;
 }
 
@@ -54,7 +59,10 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
     }
     this.schema = this.validateIdentifier(options.schema ?? 'public', 'schema');
     this.table = this.validateIdentifier(options.table ?? 'zkid_valid_credentials', 'table');
-    this.metaTable = this.validateIdentifier(options.metaTable ?? 'zkid_valid_root_meta', 'meta table');
+    this.metaTable = this.validateIdentifier(
+      options.metaTable ?? 'zkid_valid_root_meta',
+      'meta table',
+    );
     if (options.autoInit !== false) {
       this.initPromise = this.init();
     }
@@ -80,13 +88,13 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
         commitment TEXT NOT NULL,
         active BOOLEAN NOT NULL DEFAULT TRUE,
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );`
+      );`,
     );
     await this.client.query(
-      `CREATE UNIQUE INDEX IF NOT EXISTS ${this.table}_commitment_idx ON ${credTable} (commitment);`
+      `CREATE UNIQUE INDEX IF NOT EXISTS ${this.table}_commitment_idx ON ${credTable} (commitment);`,
     );
     await this.client.query(
-      `CREATE INDEX IF NOT EXISTS ${this.table}_active_idx ON ${credTable} (active);`
+      `CREATE INDEX IF NOT EXISTS ${this.table}_active_idx ON ${credTable} (active);`,
     );
 
     await this.client.query(
@@ -95,23 +103,21 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
         version BIGINT NOT NULL,
         updated_at TIMESTAMPTZ NOT NULL,
         depth INTEGER NOT NULL
-      );`
+      );`,
     );
     await this.client.query(
       `INSERT INTO ${metaTable} (id, version, updated_at, depth)
        VALUES (1, 0, NOW(), $1)
        ON CONFLICT (id) DO NOTHING;`,
-      [this.depth]
+      [this.depth],
     );
 
     const { rows } = await this.client.query<{ depth: number }>(
-      `SELECT depth FROM ${metaTable} WHERE id = 1;`
+      `SELECT depth FROM ${metaTable} WHERE id = 1;`,
     );
     const storedDepth = rows[0]?.depth;
     if (storedDepth !== undefined && storedDepth !== this.depth) {
-      throw new Error(
-        `Merkle depth mismatch: configured=${this.depth}, stored=${storedDepth}`
-      );
+      throw new Error(`Merkle depth mismatch: configured=${this.depth}, stored=${storedDepth}`);
     }
   }
 
@@ -124,7 +130,7 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
     try {
       const existing = await this.client.query<{ idx: number; active: boolean }>(
         `SELECT idx, active FROM ${this.qualifiedTable()} WHERE commitment = $1;`,
-        [normalized]
+        [normalized],
       );
       if (existing.rows.length > 0) {
         const row = existing.rows[0];
@@ -133,7 +139,7 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
             `UPDATE ${this.qualifiedTable()}
              SET active = TRUE, updated_at = NOW()
              WHERE idx = $1;`,
-            [row.idx]
+            [row.idx],
           );
           await this.bumpVersion();
           // Update cache if available
@@ -148,7 +154,7 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
          WHERE active = FALSE
          ORDER BY idx ASC
          LIMIT 1
-         FOR UPDATE SKIP LOCKED;`
+         FOR UPDATE SKIP LOCKED;`,
       );
 
       if (free.rows.length > 0) {
@@ -157,7 +163,7 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
           `UPDATE ${this.qualifiedTable()}
            SET commitment = $1, active = TRUE, updated_at = NOW()
            WHERE idx = $2;`,
-          [normalized, idx]
+          [normalized, idx],
         );
         await this.bumpVersion();
         // Update cache if available
@@ -167,7 +173,7 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
       }
 
       const { rows: maxRows } = await this.client.query<{ max_idx: number }>(
-        `SELECT COALESCE(MAX(idx), -1) AS max_idx FROM ${this.qualifiedTable()};`
+        `SELECT COALESCE(MAX(idx), -1) AS max_idx FROM ${this.qualifiedTable()};`,
       );
       const nextIdx = (maxRows[0]?.max_idx ?? -1) + 1;
       if (nextIdx >= maxLeaves) {
@@ -177,7 +183,7 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
       await this.client.query(
         `INSERT INTO ${this.qualifiedTable()} (idx, commitment, active, updated_at)
          VALUES ($1, $2, TRUE, NOW());`,
-        [nextIdx, normalized]
+        [nextIdx, normalized],
       );
       await this.bumpVersion();
       // Update cache if available
@@ -197,7 +203,7 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
     try {
       const { rows } = await this.client.query<{ idx: number; active: boolean }>(
         `SELECT idx, active FROM ${this.qualifiedTable()} WHERE commitment = $1;`,
-        [normalized]
+        [normalized],
       );
       if (rows.length === 0 || !rows[0].active) {
         await this.client.query('COMMIT');
@@ -208,7 +214,7 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
         `UPDATE ${this.qualifiedTable()}
          SET active = FALSE, updated_at = NOW()
          WHERE idx = $1;`,
-        [rows[0].idx]
+        [rows[0].idx],
       );
       await this.bumpVersion();
       // Update cache if available
@@ -228,7 +234,7 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
          SELECT 1 FROM ${this.qualifiedTable()}
          WHERE commitment = $1 AND active = TRUE
        ) AS exists;`,
-      [normalized]
+      [normalized],
     );
     return rows[0]?.exists ?? false;
   }
@@ -250,7 +256,7 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
     }
     const root = this.layers[this.depth][0].toString();
     const { rows } = await this.client.query<{ version: string; updated_at: string }>(
-      `SELECT version, updated_at FROM ${this.qualifiedMetaTable()} WHERE id = 1;`
+      `SELECT version, updated_at FROM ${this.qualifiedMetaTable()} WHERE id = 1;`,
     );
     const version = rows[0]?.version ? Number(rows[0].version) : 0;
     const updatedAt = rows[0]?.updated_at
@@ -270,7 +276,7 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
     const { rows } = await this.client.query<{ idx: number }>(
       `SELECT idx FROM ${this.qualifiedTable()}
        WHERE commitment = $1 AND active = TRUE;`,
-      [normalized]
+      [normalized],
     );
     if (rows.length === 0) {
       return null;
@@ -295,7 +301,7 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
   async size(): Promise<number> {
     await this.ensureInit();
     const { rows } = await this.client.query<{ count: string }>(
-      `SELECT COUNT(*) AS count FROM ${this.qualifiedTable()} WHERE active = TRUE;`
+      `SELECT COUNT(*) AS count FROM ${this.qualifiedTable()} WHERE active = TRUE;`,
     );
     return Number(rows[0]?.count ?? 0);
   }
@@ -318,7 +324,7 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
     }
 
     const { rows } = await this.client.query<{ version: string }>(
-      `SELECT version FROM ${this.qualifiedMetaTable()} WHERE id = 1;`
+      `SELECT version FROM ${this.qualifiedMetaTable()} WHERE id = 1;`,
     );
     const currentVersion = rows[0]?.version ? Number(rows[0].version) : 0;
 
@@ -337,7 +343,7 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
     const totalLeaves = 1 << this.depth;
     const baseLayer: bigint[] = Array.from({ length: totalLeaves }, () => 0n);
     const { rows } = await this.client.query<{ idx: number; commitment: string }>(
-      `SELECT idx, commitment FROM ${this.qualifiedTable()} WHERE active = TRUE;`
+      `SELECT idx, commitment FROM ${this.qualifiedTable()} WHERE active = TRUE;`,
     );
     for (const row of rows) {
       if (row.idx >= 0 && row.idx < totalLeaves) {
@@ -387,17 +393,16 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
 
     // Update cache version to match Postgres after successful update
     const { rows } = await this.client.query<{ version: string }>(
-      `SELECT version FROM ${this.qualifiedMetaTable()} WHERE id = 1;`
+      `SELECT version FROM ${this.qualifiedMetaTable()} WHERE id = 1;`,
     );
     this.cacheVersion = rows[0]?.version ? Number(rows[0].version) : 0;
   }
-
 
   private async bumpVersion(): Promise<void> {
     await this.client.query(
       `UPDATE ${this.qualifiedMetaTable()}
        SET version = version + 1, updated_at = NOW()
-       WHERE id = 1;`
+       WHERE id = 1;`,
     );
   }
 

@@ -28,10 +28,7 @@ describe('Boundary and Concurrency Tests', () => {
       await tree.add(c1.commitment);
       await tree.add(c2.commitment);
 
-      await assert.rejects(
-        () => tree.add(c3.commitment),
-        /tree is full/
-      );
+      await assert.rejects(() => tree.add(c3.commitment), /tree is full/);
     });
 
     it('allows re-adding after removal in a full tree', async () => {
@@ -65,21 +62,12 @@ describe('Boundary and Concurrency Tests', () => {
     it('rejects invalid commitment format', async () => {
       const tree = new InMemoryValidCredentialTree(10);
 
-      await assert.rejects(
-        () => tree.add('not-a-number'),
-        /Invalid commitment format/
-      );
+      await assert.rejects(() => tree.add('not-a-number'), /Invalid commitment format/);
     });
 
     it('rejects invalid depth', () => {
-      assert.throws(
-        () => new InMemoryValidCredentialTree(0),
-        /Invalid Merkle depth/
-      );
-      assert.throws(
-        () => new InMemoryValidCredentialTree(21),
-        /Invalid Merkle depth/
-      );
+      assert.throws(() => new InMemoryValidCredentialTree(0), /Invalid Merkle depth/);
+      assert.throws(() => new InMemoryValidCredentialTree(21), /Invalid Merkle depth/);
     });
 
     it('add is idempotent', async () => {
@@ -182,9 +170,7 @@ describe('Boundary and Concurrency Tests', () => {
     it('handles concurrent adds to tree', async () => {
       const tree = new InMemoryValidCredentialTree(10);
       const creds = await Promise.all(
-        Array.from({ length: 20 }, (_, i) =>
-          createCredential(1970 + i, 1 + (i % 200))
-        )
+        Array.from({ length: 20 }, (_, i) => createCredential(1970 + i, 1 + (i % 200))),
       );
 
       // Add all concurrently
@@ -199,9 +185,7 @@ describe('Boundary and Concurrency Tests', () => {
     it('handles concurrent add + remove on different credentials', async () => {
       const tree = new InMemoryValidCredentialTree(10);
       const creds = await Promise.all(
-        Array.from({ length: 10 }, (_, i) =>
-          createCredential(1970 + i, 1 + (i % 200))
-        )
+        Array.from({ length: 10 }, (_, i) => createCredential(1970 + i, 1 + (i % 200))),
       );
 
       // Add first 5
@@ -230,9 +214,7 @@ describe('Boundary and Concurrency Tests', () => {
       const manager = new UnifiedRevocationManager({ validTree: tree, issuedIndex });
 
       const creds = await Promise.all(
-        Array.from({ length: 10 }, (_, i) =>
-          createCredential(1970 + i, 1 + (i % 200))
-        )
+        Array.from({ length: 10 }, (_, i) => createCredential(1970 + i, 1 + (i % 200))),
       );
 
       // Add all
@@ -257,9 +239,7 @@ describe('Boundary and Concurrency Tests', () => {
       const manager = new UnifiedRevocationManager({ validTree: tree, issuedIndex });
 
       const creds = await Promise.all(
-        Array.from({ length: 10 }, (_, i) =>
-          createCredential(1970 + i, 1 + (i % 200))
-        )
+        Array.from({ length: 10 }, (_, i) => createCredential(1970 + i, 1 + (i % 200))),
       );
 
       for (const c of creds) {
@@ -272,9 +252,7 @@ describe('Boundary and Concurrency Tests', () => {
       }
 
       // Check all concurrently
-      const results = await Promise.all(
-        creds.map((c) => manager.getStatus(c.commitment))
-      );
+      const results = await Promise.all(creds.map((c) => manager.getStatus(c.commitment)));
 
       for (let i = 0; i < 5; i++) {
         assert.strictEqual(results[i], 'revoked', `cred ${i} should be revoked`);
@@ -287,9 +265,7 @@ describe('Boundary and Concurrency Tests', () => {
     it('handles concurrent getWitness calls', async () => {
       const tree = new InMemoryValidCredentialTree(10);
       const creds = await Promise.all(
-        Array.from({ length: 5 }, (_, i) =>
-          createCredential(1970 + i, 1 + (i % 200))
-        )
+        Array.from({ length: 5 }, (_, i) => createCredential(1970 + i, 1 + (i % 200))),
       );
 
       for (const c of creds) {
@@ -297,9 +273,7 @@ describe('Boundary and Concurrency Tests', () => {
       }
 
       // Get all witnesses concurrently
-      const witnesses = await Promise.all(
-        creds.map((c) => tree.getWitness(c.commitment))
-      );
+      const witnesses = await Promise.all(creds.map((c) => tree.getWitness(c.commitment)));
 
       const root = await tree.getRoot();
       for (const w of witnesses) {

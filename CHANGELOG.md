@@ -8,11 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.0] - 2026-02-09
 
 ### Added
+
 - **On-chain Groth16 verifier** (`@zk-id/contracts` package): Solidity BN128 pairing verifier, age + nationality verification contracts, deployment scripts
 - **W3C VC interoperability**: `toW3CVerifiableCredential`, `fromW3CVerifiableCredential`, `ed25519PublicKeyToDidKey`, `didKeyToEd25519PublicKey` in `@zk-id/core`
 - W3C VC documentation (`docs/W3C-VC-INTEROPERABILITY.md`)
 
 ### Security
+
 - Hardened nonce store with configurable TTL and background pruning (`InMemoryNonceStoreOptions`)
 - Added scope validation (`validateBigIntString`, `validateFieldElement`) to nullifier prover
 - Grace period audit logging in `validateSignedCredentialBinding` for forensic completeness
@@ -23,17 +25,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added npm overrides for lodash, tmp, cookie, undici vulnerabilities
 
 ### Fixed
+
 - Grace period in `validateSignedCredentialBinding` now emits `grace_period_accept` audit log entry
 - Cross-reference comments between dual grace period check locations
 - Circuit artifact hashes updated to match CI build environment
 
 ### Tests
+
 - Grace period test for `validateSignedCredentialBinding` path
 - Nonce pruning and nullifier scope validation tests
 
 ## [1.0.0] - 2026-02-09
 
 ### Added
+
 - Comprehensive threat model (`docs/THREAT-MODEL.md`)
 - Circuit signal flow diagrams (`docs/CIRCUIT-DIAGRAMS.md`)
 - Production deployment guide (`docs/DEPLOYMENT.md`)
@@ -43,16 +48,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `maxFutureSkewMs` to prevent time-shifted proof attacks
 
 ### Security
+
 - TypeScript strict mode enabled for all tests
 - Fixed time-shifted proof attack vector
 - Fixed under-constrained circuit signals
 
 ### Fixed
+
 - v1.0.0 implementation gaps found in post-release review
 
 ## [0.6.0] - 2026-02-09
 
 ### Security
+
 - **Constant-time comparisons** — Added `timing-safe.ts` module in `@zk-id/core`
   - `constantTimeEqual()`: string comparison using `crypto.timingSafeEqual`
   - `constantTimeArrayEqual()`: XOR accumulation for array comparison
@@ -60,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Prevents timing attacks on cryptographic comparisons
 
 ### Fixed
+
 - **Test suite failures** — Fixed 3 failing tests that were blocking CI
   - Installed missing `@digitalbazaar/bbs-signatures` optional dependency for BBS+ signature tests
   - Fixed boundary test commitment format to use BigInt-compatible numeric strings
@@ -74,6 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Affects `age-verify.circom`, `age-verify-signed.circom`, `age-verify-revocable.circom`
 
 ### Added
+
 - **KMS/HSM integration** — `EnvelopeKeyManager`, `FileKeyManager` in `@zk-id/issuer`
   - `EnvelopeKeyManager`: AES-256-GCM envelope encryption for Ed25519 private keys with seal/unseal workflow
   - `FileKeyManager`: PEM file-based key loading with `fromPemFiles()` and `fromPemStrings()` constructors
@@ -163,9 +173,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 130+ new tests across all new modules
 
 ### Security
+
 - **Fixed credential signature binding** — `credentialSignaturePayload` now includes issuer identity and issuance timestamp in the signed payload, preventing issuer substitution attacks where an attacker could swap the `issuer` field on a `SignedCredential` without invalidating the signature
 
 ### Changed
+
 - **Revocation model** — replaced dual blacklist+whitelist with two-store architecture (tree + issued index); `RevocationStore` kept as standalone for consumers who need it
 - **`verifyBatch()`** now dispatches on `proof.proofType` discriminated union (no separate `type` parameter needed)
 - Eliminated all `any` types across core, issuer, SDK, and redis packages
@@ -175,6 +187,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.5.0] - 2026-02-09
 
 ### Added
+
 - **Distributed tree sync** — `RedisTreeSyncChannel` and `SyncedValidCredentialTree` in `@zk-id/redis`
   - Redis pub/sub channel for broadcasting tree mutation events across server nodes
   - `SyncedValidCredentialTree` wrapper that publishes root updates on `add()`/`remove()` and notifies on remote changes
@@ -207,26 +220,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.4.5] - 2026-02-09
 
 ### Added
+
 - `isWitnessFresh()` helper method to `ZkIdClient` for checking witness staleness against current root
 - Incremental Merkle tree optimization for `InMemoryValidCredentialTree` with cached layers and path-only updates
 - Layer caching with invalidation to `PostgresValidCredentialTree` for improved read performance
 - Pre-computed zero hashes for efficient tree initialization
 
 ### Changed
+
 - Optimized `InMemoryValidCredentialTree` from O(2^depth) per query to O(depth) per mutation and O(1) per read
 - Optimized `PostgresValidCredentialTree` with in-memory layer cache (first query loads, mutations update incrementally)
 - Workspace build order now sequential to prevent race conditions in CI
 
 ### Removed
+
 - Dead `RevocationAccumulator` scaffold code (unused interface and implementation)
 - Old `buildLayers()` method from `PostgresValidCredentialTree` (replaced by `rebuildCache()`)
 
 ### Performance
+
 - At depth 10: `getRoot()` reduced from 2047 Poseidon hashes to 0 (cached)
 - At depth 10: `add()/remove()` now performs 10 Poseidon hashes (incremental path update)
 - At depth 10: `getWitness()` reduced from 2047 Poseidon hashes to 0 (array lookups)
 
 ### Docs
+
 - Updated ARCHITECTURE.md with comprehensive revocation system documentation
 - Clarified two-layer revocation model (blacklist + ZK Merkle whitelist)
 - Documented circuit integration, root distribution, and privacy properties
@@ -234,27 +252,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.4.4] - 2026-02-08
 
 ### Removed
+
 - Legacy server-side demo endpoints for proof generation (client-side generation is now the default)
 - Dead imports and unused circuit path constants from web app server
 - Signed circuit setup from build process (superseded by revocable proofs)
 
 ### Docs
+
 - Updated README to clarify client-side proof generation workflow
 - Removed references to server-side proof endpoints from OpenAPI spec
 
 ## [0.4.3] - 2026-02-08
 
 ### Added
+
 - Browser-side ZK proof generation using snarkjs and WASM
 - Client-side proof generation UI with progress indicators
 - Circuit artifact streaming via CDN for in-browser proof generation
 
 ### Changed
+
 - Web demo now generates all proofs client-side (browser) instead of server-side
 
 ## [0.4.2] - 2026-02-08
 
 ### Added
+
 - Protocol version parsing + compatibility helpers in core with SDK enforcement policies
 - Server-side protocol enforcement in SDK (strict/warn/off) and demo server header handling
 - Revocation root metadata helpers (`getRevocationRootInfo` / `fetchRevocationRootInfo`) and demo endpoint
@@ -263,26 +286,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Issue templates, PR template, and CODEOWNERS
 
 ### Security
+
 - Temporary mitigation for elliptic ECDSA issue via override to patched fork (pending upstream release)
 
 ### Docs
+
 - Added protocol header CORS guidance and clarified supported vs. future use cases
 - Expanded revocation/production storage examples
 
 ## [0.4.1] - 2026-02-08
 
 ### Fixed
+
 - Stabilized valid-credential tree indexing to avoid witness invalidation on removals
 - Normalized commitment keys in valid-credential tree lookups
 - Enforced Merkle root freshness checks for revocable proofs even when expected root is `'0'`
 
 ### Tests
+
 - Added coverage for commitment normalization in valid-credential tree
 - Added revocable Merkle root mismatch coverage in core + SDK
 
 ## [0.4.0] - 2026-02-08
 
 ### Added
+
 - `AgeProofRevocable` type and `ValidCredentialTree` interface in `@zk-id/core`
 - `InMemoryValidCredentialTree` class (Poseidon Merkle tree with valid-set semantics)
 - `generateAgeProofRevocable` and `generateAgeProofRevocableAuto` prover functions
@@ -296,18 +324,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.0] - 2026-02-07
 
 ### Added
+
 - Merkle inclusion circuit (`age-verify-revocable`) for credential validity (non-revocation)
 - In-memory Merkle revocation accumulator scaffold
 - CI/CD workflow for circuit building and GitHub releases
 - Stub test scripts in examples to fix CI
 
 ### Fixed
+
 - CI circom installation by disabling strict rustflags
 - Mocha `--exit` flag to prevent CI hangs
 
 ## [0.2.0] - 2026-02-07
 
 ### Added
+
 - CHANGELOG.md following Keep a Changelog format
 - Package metadata for npm publishing (license, repository, files, exports) to all packages
 - Build step to CI pipeline before tests
@@ -316,25 +347,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Author field in root package.json
 
 ### Changed
+
 - Bumped all package versions from 0.1.0 to 0.2.0
 - Updated internal dependency ranges to ^0.2.0
 
 ### Removed
+
 - Internal security review notes (findings already addressed in code)
 
 ## [0.1.1] - 2025-01-XX
 
 ### Fixed
+
 - High-severity snarkjs vulnerability (CVE-2024-45811) by upgrading to 0.7.6
 - Nonce generation for signed credentials now uses BigInt to handle values > Number.MAX_SAFE_INTEGER
 - Revocation logic for signed credentials (issuer secret was incorrectly included in proof)
 
 ### Security
+
 - Upgraded snarkjs from 0.7.0 to 0.7.6 to address critical security vulnerability
 
 ## [0.1.0] - 2025-01-XX
 
 ### Added
+
 - Initial release of zk-id system
 - `@zk-id/core` - Core cryptographic primitives and proof generation
 - `@zk-id/sdk` - Client-side SDK for web integration

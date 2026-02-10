@@ -9,15 +9,12 @@ import { InMemoryValidCredentialTree } from '../src/valid-credential-tree';
 describe('Revocable Prover Tests', () => {
   const wasmPath = path.resolve(
     __dirname,
-    '../../circuits/build/age-verify-revocable_js/age-verify-revocable.wasm'
+    '../../circuits/build/age-verify-revocable_js/age-verify-revocable.wasm',
   );
-  const zkeyPath = path.resolve(
-    __dirname,
-    '../../circuits/build/age-verify-revocable.zkey'
-  );
+  const zkeyPath = path.resolve(__dirname, '../../circuits/build/age-verify-revocable.zkey');
   const vkeyPath = path.resolve(
     __dirname,
-    '../../circuits/build/age-verify-revocable_verification_key.json'
+    '../../circuits/build/age-verify-revocable_verification_key.json',
   );
 
   describe('generateAgeProofRevocable', () => {
@@ -46,7 +43,7 @@ describe('Revocable Prover Tests', () => {
         requestTimestampMs,
         witness,
         wasmPath,
-        zkeyPath
+        zkeyPath,
       );
 
       expect(proof).to.have.property('proof');
@@ -55,11 +52,7 @@ describe('Revocable Prover Tests', () => {
       expect(proof.publicSignals.merkleRoot).to.equal(await tree.getRoot());
 
       const vkey = await loadVerificationKey(vkeyPath);
-      const isValid = await verifyAgeProofRevocable(
-        proof,
-        vkey,
-        await tree.getRoot()
-      );
+      const isValid = await verifyAgeProofRevocable(proof, vkey, await tree.getRoot());
       expect(isValid).to.be.true;
     });
 
@@ -92,15 +85,11 @@ describe('Revocable Prover Tests', () => {
         Date.now(),
         witness,
         wasmPath,
-        zkeyPath
+        zkeyPath,
       );
 
       const vkey = await loadVerificationKey(vkeyPath);
-      const isValid = await verifyAgeProofRevocable(
-        proof,
-        vkey,
-        await tree.getRoot()
-      );
+      const isValid = await verifyAgeProofRevocable(proof, vkey, await tree.getRoot());
       expect(isValid).to.be.true;
     });
 
@@ -127,7 +116,7 @@ describe('Revocable Prover Tests', () => {
         requestTimestampMs,
         witness,
         wasmPath,
-        zkeyPath
+        zkeyPath,
       );
 
       expect(proof.publicSignals.currentYear).to.equal(currentYear);
@@ -159,7 +148,7 @@ describe('Revocable Prover Tests', () => {
         Date.now(),
         witness,
         wasmPath,
-        zkeyPath
+        zkeyPath,
       );
 
       const vkey = await loadVerificationKey(vkeyPath);
@@ -191,7 +180,7 @@ describe('Revocable Prover Tests', () => {
           Date.now(),
           witness,
           wasmPath,
-          zkeyPath
+          zkeyPath,
         );
         expect.fail('Should have thrown error');
       } catch (error: any) {
@@ -221,7 +210,7 @@ describe('Revocable Prover Tests', () => {
         18,
         nonce,
         requestTimestampMs,
-        witness
+        witness,
       );
 
       expect(proof).to.have.property('proof');
@@ -230,11 +219,7 @@ describe('Revocable Prover Tests', () => {
       expect(proof.publicSignals.merkleRoot).to.equal(await tree.getRoot());
 
       const vkey = await loadVerificationKey(vkeyPath);
-      const isValid = await verifyAgeProofRevocable(
-        proof,
-        vkey,
-        await tree.getRoot()
-      );
+      const isValid = await verifyAgeProofRevocable(proof, vkey, await tree.getRoot());
       expect(isValid).to.be.true;
     });
 
@@ -258,7 +243,7 @@ describe('Revocable Prover Tests', () => {
         18,
         nonce,
         requestTimestampMs,
-        witness
+        witness,
       );
 
       const proofManual = await generateAgeProofRevocable(
@@ -268,7 +253,7 @@ describe('Revocable Prover Tests', () => {
         requestTimestampMs,
         witness,
         wasmPath,
-        zkeyPath
+        zkeyPath,
       );
 
       // Public signals should match

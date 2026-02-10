@@ -3,39 +3,28 @@ declare module 'snarkjs' {
     export function fullProve(
       input: any,
       wasmFile: string,
-      zkeyFileName: string
+      zkeyFileName: string,
     ): Promise<{
       proof: any;
       publicSignals: string[];
     }>;
 
-    export function verify(
-      vk: any,
-      publicSignals: string[],
-      proof: any
-    ): Promise<boolean>;
+    export function verify(vk: any, publicSignals: string[], proof: any): Promise<boolean>;
 
-    export function exportSolidityCallData(
-      proof: any,
-      publicSignals: string[]
-    ): Promise<string>;
+    export function exportSolidityCallData(proof: any, publicSignals: string[]): Promise<string>;
   }
 
   export namespace plonk {
     export function fullProve(
       input: any,
       wasmFile: string,
-      zkeyFileName: string
+      zkeyFileName: string,
     ): Promise<{
       proof: any;
       publicSignals: string[];
     }>;
 
-    export function verify(
-      vk: any,
-      publicSignals: string[],
-      proof: any
-    ): Promise<boolean>;
+    export function verify(vk: any, publicSignals: string[], proof: any): Promise<boolean>;
   }
 
   export namespace powersOfTau {
@@ -43,7 +32,7 @@ declare module 'snarkjs' {
       curve: any,
       power: number,
       fileName: string,
-      logger: any
+      logger: any,
     ): Promise<void>;
   }
 
@@ -52,7 +41,7 @@ declare module 'snarkjs' {
       r1csFileName: string,
       ptauFileName: string,
       zkeyFileName: string,
-      logger?: any
+      logger?: any,
     ): Promise<void>;
 
     export function contribute(
@@ -60,7 +49,7 @@ declare module 'snarkjs' {
       zkeyFileNameNew: string,
       name: string,
       entropy: string,
-      logger?: any
+      logger?: any,
     ): Promise<any>;
 
     export function exportVerificationKey(zkeyFileName: string): Promise<any>;

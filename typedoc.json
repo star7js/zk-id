@@ -7,13 +7,7 @@
     "packages/redis/src/index.ts"
   ],
   "out": "docs/api",
-  "exclude": [
-    "**/*.test.ts",
-    "**/*.spec.ts",
-    "**/test/**",
-    "**/tests/**",
-    "**/__tests__/**"
-  ],
+  "exclude": ["**/*.test.ts", "**/*.spec.ts", "**/test/**", "**/tests/**", "**/__tests__/**"],
   "excludePrivate": true,
   "excludeProtected": false,
   "excludeInternal": true,
@@ -22,22 +16,9 @@
   "name": "zk-id API Reference",
   "includeVersion": true,
   "sort": ["source-order"],
-  "kindSortOrder": [
-    "Function",
-    "Class",
-    "Interface",
-    "TypeAlias",
-    "Variable",
-    "Enum"
-  ],
+  "kindSortOrder": ["Function", "Class", "Interface", "TypeAlias", "Variable", "Enum"],
   "categorizeByGroup": true,
-  "categoryOrder": [
-    "Core",
-    "SDK",
-    "Issuer",
-    "Redis",
-    "*"
-  ],
+  "categoryOrder": ["Core", "SDK", "Issuer", "Redis", "*"],
   "navigation": {
     "includeCategories": true,
     "includeGroups": true

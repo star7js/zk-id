@@ -1,43 +1,43 @@
 version: 2
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
     open-pull-requests-limit: 10
     labels:
-      - "dependencies"
-      - "security"
+      - 'dependencies'
+      - 'security'
     groups:
       npm-minor-patch:
         update-types:
-          - "minor"
-          - "patch"
+          - 'minor'
+          - 'patch'
     # Ignore transitive dependencies already mitigated via npm overrides in package.json
     ignore:
-      - dependency-name: "lodash"
-        update-types: ["version-update:semver-patch"]
+      - dependency-name: 'lodash'
+        update-types: ['version-update:semver-patch']
         # Mitigated via override: lodash@^4.17.23 in package.json
-      - dependency-name: "tmp"
-        update-types: ["version-update:semver-patch"]
+      - dependency-name: 'tmp'
+        update-types: ['version-update:semver-patch']
         # Mitigated via override: tmp@^0.2.4 in package.json
-      - dependency-name: "cookie"
-        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
+      - dependency-name: 'cookie'
+        update-types: ['version-update:semver-minor', 'version-update:semver-patch']
         # Mitigated via override: cookie@^0.7.2 in package.json
-      - dependency-name: "elliptic"
+      - dependency-name: 'elliptic'
         # Mitigated via override: elliptic@github:drzippie/elliptic#99a867d in package.json
-      - dependency-name: "undici"
-        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
+      - dependency-name: 'undici'
+        update-types: ['version-update:semver-minor', 'version-update:semver-patch']
         # Mitigated via override: undici@^6.23.0 in package.json
 
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
     open-pull-requests-limit: 5
     labels:
-      - "dependencies"
+      - 'dependencies'

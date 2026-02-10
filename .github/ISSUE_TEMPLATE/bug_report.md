@@ -1,14 +1,15 @@
 ---
 name: Bug report
 about: Report a bug or regression
-title: "[Bug] "
-labels: ["bug"]
+title: '[Bug] '
+labels: ['bug']
 assignees: []
 ---
 
 ## Summary
 
 ## Steps to Reproduce
+
 1.
 2.
 3.
@@ -18,9 +19,9 @@ assignees: []
 ## Actual Behavior
 
 ## Environment
+
 - OS:
 - Node.js:
 - Package/version:
 
 ## Additional Context
-

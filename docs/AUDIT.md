@@ -127,11 +127,13 @@ This document tracks the requirements for a production-ready, audit-worthy v1.0.
 ### Files Modified
 
 **Code changes:**
+
 - `packages/sdk/src/server.ts` (error sanitization, grace period, rate limiter JSDoc)
 - `packages/core/src/types.ts` (audit action type, optional signedCredential)
 - `packages/sdk/test/client.test.ts` (test mock fixes)
 
 **Documentation:**
+
 - `docs/THREAT-MODEL.md` (rewritten, 200+ lines)
 - `docs/CIRCUIT-DIAGRAMS.md` (new, comprehensive)
 - `docs/DEPLOYMENT.md` (new, comprehensive)
@@ -139,6 +141,7 @@ This document tracks the requirements for a production-ready, audit-worthy v1.0.
 - `docs/AUDIT.md` (all items updated)
 
 **Configuration:**
+
 - `typedoc.json` (new)
 - `package.json` (added `docs` script, typedoc devDependency)
 - `.gitignore` (added `docs/api/`)

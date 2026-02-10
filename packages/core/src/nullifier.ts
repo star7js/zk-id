@@ -113,7 +113,7 @@ export async function createNullifierScope(scopeId: string): Promise<NullifierSc
  */
 export async function computeNullifier(
   commitment: string,
-  scope: NullifierScope
+  scope: NullifierScope,
 ): Promise<NullifierOutput> {
   validateBigIntString(commitment, 'commitment');
   validateBigIntString(scope.scopeHash, 'scope.scopeHash');
@@ -141,7 +141,7 @@ export async function computeNullifier(
 export async function consumeNullifier(
   nullifier: string,
   scopeId: string,
-  store: NullifierStore
+  store: NullifierStore,
 ): Promise<{ fresh: boolean; error?: string }> {
   const alreadyUsed = await store.hasBeenUsed(nullifier, scopeId);
   if (alreadyUsed) {

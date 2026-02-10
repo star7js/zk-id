@@ -26,6 +26,7 @@ Please include as much of the following information as possible:
 ### Scope
 
 **In scope:**
+
 - Cryptographic vulnerabilities in circuits or protocols
 - Circuit soundness issues that could allow invalid proofs
 - Credential forgery or unauthorized credential operations
@@ -33,6 +34,7 @@ Please include as much of the following information as possible:
 - Authentication/authorization issues in the issuer
 
 **Out of scope:**
+
 - Issues in demo applications or examples (not production systems)
 - Social engineering attacks
 - Denial of service (DoS) attacks
@@ -55,11 +57,11 @@ Thank you for helping keep zk-id and its users secure!
 
 ## Supported Versions
 
-| Version | Supported |
-|---------|-----------|
+| Version | Supported                                    |
+| ------- | -------------------------------------------- |
 | 1.1.x   | Current development — security fixes applied |
-| 1.0.x   | Supported — security fixes applied |
-| < 1.0   | No longer supported |
+| 1.0.x   | Supported — security fixes applied           |
+| < 1.0   | No longer supported                          |
 
 Only the latest release on the `main` branch receives security updates.
 Pre-release (`-draft`) protocol versions may change without notice.
@@ -129,6 +131,7 @@ npm ls lodash tmp cookie elliptic undici
 ```
 
 Expected versions:
+
 - **lodash**: `4.17.23` or higher (fixes prototype pollution, [GHSA-29mw-wpgm-hmr9](https://github.com/advisories/GHSA-29mw-wpgm-hmr9))
 - **tmp**: `0.2.4` or higher (fixes symlink vulnerability, [GHSA-7p7h-4mm5-852v](https://github.com/advisories/GHSA-7p7h-4mm5-852v))
 - **cookie**: `0.7.0` or higher (fixes out-of-bounds characters, [GHSA-pxg6-pf52-xh8x](https://github.com/advisories/GHSA-pxg6-pf52-xh8x))

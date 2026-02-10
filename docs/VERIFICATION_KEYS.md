@@ -16,16 +16,17 @@ All circuit artifacts are built using the following toolchain:
 
 The circuits use pre-computed Powers of Tau (PTAU) files from the Hermez/Polygon ceremony:
 
-| Circuit | Constraints | PTAU File | Source |
-|---------|-------------|-----------|--------|
-| age-verify | ~2,048 | powersOfTau28_hez_final_12.ptau | Hermez Ceremony |
-| credential-hash | ~2,048 | powersOfTau28_hez_final_12.ptau | Hermez Ceremony |
-| nationality-verify | ~2,048 | powersOfTau28_hez_final_12.ptau | Hermez Ceremony |
-| age-verify-signed | ~8,192 | powersOfTau28_hez_final_13.ptau | Hermez Ceremony |
-| nationality-verify-signed | ~8,192 | powersOfTau28_hez_final_13.ptau | Hermez Ceremony |
-| age-verify-revocable | ~32,768 | powersOfTau28_hez_final_16.ptau | Hermez Ceremony |
+| Circuit                   | Constraints | PTAU File                       | Source          |
+| ------------------------- | ----------- | ------------------------------- | --------------- |
+| age-verify                | ~2,048      | powersOfTau28_hez_final_12.ptau | Hermez Ceremony |
+| credential-hash           | ~2,048      | powersOfTau28_hez_final_12.ptau | Hermez Ceremony |
+| nationality-verify        | ~2,048      | powersOfTau28_hez_final_12.ptau | Hermez Ceremony |
+| age-verify-signed         | ~8,192      | powersOfTau28_hez_final_13.ptau | Hermez Ceremony |
+| nationality-verify-signed | ~8,192      | powersOfTau28_hez_final_13.ptau | Hermez Ceremony |
+| age-verify-revocable      | ~32,768     | powersOfTau28_hez_final_16.ptau | Hermez Ceremony |
 
 PTAU files are downloaded from:
+
 ```
 https://storage.googleapis.com/zkevm/ptau/powersOfTau28_hez_final_{12,13,16}.ptau
 ```
@@ -37,6 +38,7 @@ These files are cached in `packages/circuits/build/pot/` and verified by hash on
 ⚠️ **WARNING**: The current phase 2 ceremony uses **hardcoded entropy** for development convenience. These artifacts are **NOT suitable for production use**.
 
 The entropy is deterministic:
+
 ```
 ZK-ID DEVELOPMENT ENTROPY - DO NOT USE IN PRODUCTION
 ```
@@ -87,6 +89,7 @@ npm run verify:hashes
 ```
 
 This computes SHA-256 hashes of all artifacts and compares them against `docs/circuit-hashes.json`. Any mismatch indicates:
+
 - Circuit source code changes
 - Toolchain version differences
 - Build environment issues
@@ -97,12 +100,14 @@ This computes SHA-256 hashes of all artifacts and compares them against `docs/ci
 After modifying circuit source files (`packages/circuits/src/*.circom`):
 
 1. Rebuild all circuits:
+
    ```bash
    npm run compile:circuits
    npm run --workspace=@zk-id/circuits setup
    ```
 
 2. Regenerate the hash manifest:
+
    ```bash
    bash packages/circuits/scripts/generate-hashes.sh > docs/circuit-hashes.json
    ```
@@ -118,6 +123,7 @@ After modifying circuit source files (`packages/circuits/src/*.circom`):
 ### Fast Verification (Every CI Run)
 
 The main CI workflow (`.github/workflows/ci.yml`) verifies artifacts against the manifest on every push. This catches:
+
 - Cache corruption
 - Inconsistent build outputs
 - Toolchain drift
@@ -125,6 +131,7 @@ The main CI workflow (`.github/workflows/ci.yml`) verifies artifacts against the
 ### Full Reproducibility Check (Weekly + On Circuit Changes)
 
 A separate workflow (`.github/workflows/verify-circuits.yml`) performs complete fresh builds:
+
 - Triggered on circuit source changes
 - Runs weekly (Monday 6AM UTC)
 - Builds from scratch (no cache)

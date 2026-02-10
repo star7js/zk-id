@@ -50,9 +50,7 @@ export function validateBirthYear(birthYear: number): void {
     throw new Error('birthYear must be an integer');
   }
   if (birthYear < MIN_BIRTH_YEAR || birthYear > new Date().getFullYear()) {
-    throw new Error(
-      `birthYear must be between ${MIN_BIRTH_YEAR} and ${new Date().getFullYear()}`
-    );
+    throw new Error(`birthYear must be between ${MIN_BIRTH_YEAR} and ${new Date().getFullYear()}`);
   }
 }
 
@@ -65,9 +63,7 @@ export function validateNationality(nationality: number): void {
     throw new Error('nationality must be an integer');
   }
   if (nationality < MIN_NATIONALITY || nationality > MAX_NATIONALITY) {
-    throw new Error(
-      `nationality must be between ${MIN_NATIONALITY} and ${MAX_NATIONALITY}`
-    );
+    throw new Error(`nationality must be between ${MIN_NATIONALITY} and ${MAX_NATIONALITY}`);
   }
 }
 
@@ -99,14 +95,10 @@ export function validateNonce(nonce: string): void {
     throw new Error('nonce must be a string');
   }
   if (nonce.length < MIN_NONCE_LENGTH) {
-    throw new Error(
-      `nonce must be at least ${MIN_NONCE_LENGTH} characters (got ${nonce.length})`
-    );
+    throw new Error(`nonce must be at least ${MIN_NONCE_LENGTH} characters (got ${nonce.length})`);
   }
   if (nonce.length > MAX_NONCE_LENGTH) {
-    throw new Error(
-      `nonce must be at most ${MAX_NONCE_LENGTH} characters (got ${nonce.length})`
-    );
+    throw new Error(`nonce must be at most ${MAX_NONCE_LENGTH} characters (got ${nonce.length})`);
   }
 }
 
@@ -130,9 +122,7 @@ export function validateRequestTimestamp(timestampMs: number): void {
     throw new Error('requestTimestamp is in the future');
   }
   if (now - timestampMs > MAX_REQUEST_AGE_MS) {
-    throw new Error(
-      `requestTimestamp is too old (max age: ${MAX_REQUEST_AGE_MS / 1000}s)`
-    );
+    throw new Error(`requestTimestamp is too old (max age: ${MAX_REQUEST_AGE_MS / 1000}s)`);
   }
 }
 
@@ -184,7 +174,7 @@ export function validateScopeId(scopeId: string): void {
   }
   if (scopeId.length > MAX_SCOPE_ID_LENGTH) {
     throw new Error(
-      `Scope ID must be at most ${MAX_SCOPE_ID_LENGTH} characters (got ${scopeId.length})`
+      `Scope ID must be at most ${MAX_SCOPE_ID_LENGTH} characters (got ${scopeId.length})`,
     );
   }
 }

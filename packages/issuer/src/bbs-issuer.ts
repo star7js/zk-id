@@ -65,7 +65,7 @@ export class BBSCredentialIssuer {
    * Generates a fresh BBS key pair unless one is provided.
    */
   static async create(config: BBSIssuerConfig): Promise<BBSCredentialIssuer> {
-    const keyPair = config.keyPair ?? await generateBBSKeyPair();
+    const keyPair = config.keyPair ?? (await generateBBSKeyPair());
     return new BBSCredentialIssuer({ ...config, keyPair });
   }
 

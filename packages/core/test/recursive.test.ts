@@ -16,7 +16,10 @@ describe('Recursive Proof Aggregation', () => {
       system: 'groth16',
       proof: {
         pi_a: ['1', '2'],
-        pi_b: [['3', '4'], ['5', '6']],
+        pi_b: [
+          ['3', '4'],
+          ['5', '6'],
+        ],
         pi_c: ['7', '8'],
         protocol: 'groth16',
         curve: 'bn128',
@@ -69,14 +72,8 @@ describe('Recursive Proof Aggregation', () => {
 
       const result = await aggregator.aggregate(inputs);
 
-      expect(result.publicSignalsByLabel['claim-1']).to.deep.equal([
-        'c1-signal-1',
-        'c1-signal-2',
-      ]);
-      expect(result.publicSignalsByLabel['claim-2']).to.deep.equal([
-        'c2-signal-1',
-        'c2-signal-2',
-      ]);
+      expect(result.publicSignalsByLabel['claim-1']).to.deep.equal(['c1-signal-1', 'c1-signal-2']);
+      expect(result.publicSignalsByLabel['claim-2']).to.deep.equal(['c2-signal-1', 'c2-signal-2']);
     });
 
     it('should reject empty input array', async () => {

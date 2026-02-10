@@ -100,7 +100,7 @@ export function toW3CVerifiableCredential(
 
     /** Verification method (DID URL or key ID) */
     verificationMethod?: string;
-  }
+  },
 ): W3CVerifiableCredential {
   const { credential, issuer, signature, issuedAt } = signedCredential;
 
@@ -129,9 +129,7 @@ export function toW3CVerifiableCredential(
     proof: {
       type: 'Ed25519Signature2020', // Standard W3C proof type for Ed25519
       created: issuedAt,
-      verificationMethod:
-        options?.verificationMethod ||
-        `${issuerIdentifier}#key-1`, // Default key reference
+      verificationMethod: options?.verificationMethod || `${issuerIdentifier}#key-1`, // Default key reference
       proofPurpose: 'assertionMethod',
       proofValue: signature,
     },
@@ -145,9 +143,7 @@ export function toW3CVerifiableCredential(
  * @returns zk-id SignedCredential
  * @throws Error if the VC is not a valid ZkIdCredential
  */
-export function fromW3CVerifiableCredential(
-  vc: W3CVerifiableCredential
-): SignedCredential {
+export function fromW3CVerifiableCredential(vc: W3CVerifiableCredential): SignedCredential {
   // Validate that this is a ZkIdCredential
   if (!vc.type.includes('ZkIdCredential')) {
     throw new Error('Not a ZkIdCredential');
@@ -162,9 +158,7 @@ export function fromW3CVerifiableCredential(
   }
 
   // Extract credential ID from URN
-  const credentialId = vc.id.startsWith('urn:uuid:')
-    ? vc.id.substring(9)
-    : vc.id;
+  const credentialId = vc.id.startsWith('urn:uuid:') ? vc.id.substring(9) : vc.id;
 
   // Extract issuer identifier
   const issuer = typeof vc.issuer === 'string' ? vc.issuer : vc.issuer.id;
@@ -244,8 +238,7 @@ export function didKeyToEd25519PublicKey(didKey: string): Uint8Array {
 // Base58 encoding/decoding (Bitcoin alphabet)
 // ---------------------------------------------------------------------------
 
-const BASE58_ALPHABET =
-  '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
 function base58Encode(bytes: Uint8Array): string {
   let num = 0n;

@@ -1,9 +1,6 @@
 import { expect } from 'chai';
 import { generateKeyPairSync, KeyObject } from 'crypto';
-import {
-  InMemoryAuditLogger,
-  InMemoryRevocationStore,
-} from '@zk-id/core';
+import { InMemoryAuditLogger, InMemoryRevocationStore } from '@zk-id/core';
 import { InMemoryIssuerRegistry, IssuerRecord } from '../src/server';
 import { IssuerDashboard } from '../src/dashboard';
 
@@ -127,11 +124,7 @@ describe('IssuerDashboard', () => {
       await revStore.revoke('commitment-a');
       await revStore.revoke('commitment-b');
 
-      const dashWithRev = new IssuerDashboard(
-        registry,
-        auditLogger,
-        revStore
-      );
+      const dashWithRev = new IssuerDashboard(registry, auditLogger, revStore);
       dashWithRev.trackIssuer('Gov-ID');
 
       const stats = await dashWithRev.getStats();

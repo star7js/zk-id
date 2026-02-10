@@ -1,0 +1,16 @@
+dist/
+build/
+node_modules/
+coverage/
+*.sol
+*.circom
+*.wasm
+*.zkey
+*.r1cs
+package-lock.json
+artifacts/
+cache/
+typechain-types/
+pot/
+docs/api/
+docs/openapi.yaml

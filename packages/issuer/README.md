@@ -62,10 +62,7 @@ console.log('Issued credential:', credential.id);
 ```typescript
 import { FileKeyManager, ManagedCredentialIssuer } from '@zk-id/issuer';
 
-const keyManager = await FileKeyManager.fromPemFiles(
-  './private-key.pem',
-  './public-key.pem'
-);
+const keyManager = await FileKeyManager.fromPemFiles('./private-key.pem', './public-key.pem');
 
 const issuer = new ManagedCredentialIssuer('Production Issuer', keyManager);
 ```
@@ -91,11 +88,11 @@ const issuer = new ManagedCredentialIssuer('Issuer Name', unsealed);
 
 ### Comparison Table
 
-| Scheme | Use Case | Verification | Proving Time | Constraints |
-|--------|----------|--------------|--------------|-------------|
-| **Ed25519** | Off-chain verification | Fast (~1ms) | N/A | 0 |
-| **BabyJub EdDSA** | In-circuit verification | In-proof (~15s) | ~15s | ~20k |
-| **BBS+** | Selective disclosure | Off-chain (~10ms) | N/A | 0 |
+| Scheme            | Use Case                | Verification      | Proving Time | Constraints |
+| ----------------- | ----------------------- | ----------------- | ------------ | ----------- |
+| **Ed25519**       | Off-chain verification  | Fast (~1ms)       | N/A          | 0           |
+| **BabyJub EdDSA** | In-circuit verification | In-proof (~15s)   | ~15s         | ~20k        |
+| **BBS+**          | Selective disclosure    | Off-chain (~10ms) | N/A          | 0           |
 
 ### Ed25519 (Default)
 

@@ -176,7 +176,7 @@ export class InMemoryValidCredentialTree implements ValidCredentialTree {
   private normalizeCommitment(commitment: string): string {
     try {
       return BigInt(commitment).toString();
-    } catch (error) {
+    } catch {
       throw new Error('Invalid commitment format');
     }
   }

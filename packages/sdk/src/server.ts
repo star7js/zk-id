@@ -253,7 +253,7 @@ export class InMemoryIssuerRegistry implements IssuerRegistry {
       return;
     }
     const idx = records.findIndex(
-      (r) => r.validFrom === record.validFrom && r.validTo === record.validTo
+      (r) => r.validFrom === record.validFrom && r.validTo === record.validTo,
     );
     if (idx >= 0) {
       records[idx] = record;
@@ -405,32 +405,28 @@ export class ZkIdServer extends EventEmitter {
       this.nationalityVerificationKey = config.verificationKeys.nationality;
     } else if (config.nationalityVerificationKeyPath) {
       this.nationalityVerificationKey = this.loadVerificationKey(
-        config.nationalityVerificationKeyPath
+        config.nationalityVerificationKeyPath,
       );
     }
 
     if (config.verificationKeys?.signedAge) {
       this.signedVerificationKey = config.verificationKeys.signedAge;
     } else if (config.signedVerificationKeyPath) {
-      this.signedVerificationKey = this.loadVerificationKey(
-        config.signedVerificationKeyPath
-      );
+      this.signedVerificationKey = this.loadVerificationKey(config.signedVerificationKeyPath);
     }
 
     if (config.verificationKeys?.signedNationality) {
       this.signedNationalityVerificationKey = config.verificationKeys.signedNationality;
     } else if (config.signedNationalityVerificationKeyPath) {
       this.signedNationalityVerificationKey = this.loadVerificationKey(
-        config.signedNationalityVerificationKeyPath
+        config.signedNationalityVerificationKeyPath,
       );
     }
 
     if (config.verificationKeys?.ageRevocable) {
       this.revocableVerificationKey = config.verificationKeys.ageRevocable;
     } else if (config.revocableVerificationKeyPath) {
-      this.revocableVerificationKey = this.loadVerificationKey(
-        config.revocableVerificationKeyPath
-      );
+      this.revocableVerificationKey = this.loadVerificationKey(config.revocableVerificationKeyPath);
     }
   }
 
@@ -500,7 +496,7 @@ export class ZkIdServer extends EventEmitter {
   static async createWithKeyProvider(
     config: Omit<ZkIdServerConfig, 'verificationKeys'> & {
       verificationKeyProvider: VerificationKeyProvider;
-    }
+    },
   ): Promise<ZkIdServer> {
     const { verificationKeyProvider, ...rest } = config;
     const verificationKeys = await verificationKeyProvider.getVerificationKeys();
@@ -517,7 +513,7 @@ export class ZkIdServer extends EventEmitter {
   async verifyProof(
     proofResponse: ProofResponse,
     clientIdentifier?: string,
-    clientProtocolVersion?: string
+    clientProtocolVersion?: string,
   ): Promise<VerificationResult> {
     const startTime = Date.now();
     const requireSigned = this.config.requireSignedCredentials !== false;
@@ -528,8 +524,17 @@ export class ZkIdServer extends EventEmitter {
       if (payloadErrors.length > 0) {
         const msg = payloadErrors.map((e) => `${e.field}: ${e.message}`).join('; ');
         const internalError = `Invalid payload: ${msg}`;
-        const result: VerificationResult = { verified: false, error: this.sanitizeError(internalError) };
-        this.emitVerificationEvent(proofResponse?.claimType ?? 'unknown', result, startTime, clientIdentifier, internalError);
+        const result: VerificationResult = {
+          verified: false,
+          error: this.sanitizeError(internalError),
+        };
+        this.emitVerificationEvent(
+          proofResponse?.claimType ?? 'unknown',
+          result,
+          startTime,
+          clientIdentifier,
+          internalError,
+        );
         return result;
       }
     }
@@ -543,7 +548,13 @@ export class ZkIdServer extends EventEmitter {
           verified: false,
           error: this.sanitizeError(internalError),
         };
-        this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier, internalError);
+        this.emitVerificationEvent(
+          proofResponse.claimType,
+          result,
+          startTime,
+          clientIdentifier,
+          internalError,
+        );
         return result;
       }
     }
@@ -553,7 +564,7 @@ export class ZkIdServer extends EventEmitter {
       clientProtocolVersion,
       proofResponse.claimType,
       startTime,
-      clientIdentifier
+      clientIdentifier,
     );
     if (protocolResult) {
       return protocolResult;
@@ -565,18 +576,30 @@ export class ZkIdServer extends EventEmitter {
       if (!signedCredential) {
         const internalError = 'Signed credential required';
         const result = { verified: false, error: this.sanitizeError(internalError) };
-        this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier, internalError);
+        this.emitVerificationEvent(
+          proofResponse.claimType,
+          result,
+          startTime,
+          clientIdentifier,
+          internalError,
+        );
         return result;
       }
 
       const bindingCheck = await this.validateSignedCredentialBinding(
         signedCredential,
-        proofResponse
+        proofResponse,
       );
       if (!bindingCheck.valid) {
         const internalError = bindingCheck.error!;
         const result = { verified: false, error: this.sanitizeError(internalError) };
-        this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier, internalError);
+        this.emitVerificationEvent(
+          proofResponse.claimType,
+          result,
+          startTime,
+          clientIdentifier,
+          internalError,
+        );
         return result;
       }
     }
@@ -593,7 +616,13 @@ export class ZkIdServer extends EventEmitter {
             verified: false,
             error: this.sanitizeError(internalError),
           };
-          this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier, internalError);
+          this.emitVerificationEvent(
+            proofResponse.claimType,
+            result,
+            startTime,
+            clientIdentifier,
+            internalError,
+          );
           return result;
         }
       }
@@ -608,14 +637,19 @@ export class ZkIdServer extends EventEmitter {
             verified: false,
             error: this.sanitizeError(internalError),
           };
-          this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier, internalError);
+          this.emitVerificationEvent(
+            proofResponse.claimType,
+            result,
+            startTime,
+            clientIdentifier,
+            internalError,
+          );
           return result;
         }
       }
     }
     if (proofResponse.claimType === 'nationality') {
-      const requiredNationality =
-        requiredPolicy?.nationality ?? this.config.requiredNationality;
+      const requiredNationality = requiredPolicy?.nationality ?? this.config.requiredNationality;
       if (requiredNationality !== undefined) {
         const proof = proofResponse.proof as NationalityProof;
         if (proof.publicSignals.targetNationality !== requiredNationality) {
@@ -624,7 +658,13 @@ export class ZkIdServer extends EventEmitter {
             verified: false,
             error: this.sanitizeError(internalError),
           };
-          this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier, internalError);
+          this.emitVerificationEvent(
+            proofResponse.claimType,
+            result,
+            startTime,
+            clientIdentifier,
+            internalError,
+          );
           return result;
         }
       }
@@ -638,7 +678,13 @@ export class ZkIdServer extends EventEmitter {
         verified: false,
         error: this.sanitizeError(internalError),
       };
-      this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier, internalError);
+      this.emitVerificationEvent(
+        proofResponse.claimType,
+        result,
+        startTime,
+        clientIdentifier,
+        internalError,
+      );
       return result;
     }
     const requestMs = Date.parse(requestTimestamp);
@@ -648,7 +694,13 @@ export class ZkIdServer extends EventEmitter {
         verified: false,
         error: this.sanitizeError(internalError),
       };
-      this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier, internalError);
+      this.emitVerificationEvent(
+        proofResponse.claimType,
+        result,
+        startTime,
+        clientIdentifier,
+        internalError,
+      );
       return result;
     }
     // Check for future timestamps (time-shifted proofs)
@@ -660,7 +712,13 @@ export class ZkIdServer extends EventEmitter {
         verified: false,
         error: this.sanitizeError(internalError),
       };
-      this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier, internalError);
+      this.emitVerificationEvent(
+        proofResponse.claimType,
+        result,
+        startTime,
+        clientIdentifier,
+        internalError,
+      );
       return result;
     }
 
@@ -673,7 +731,13 @@ export class ZkIdServer extends EventEmitter {
           verified: false,
           error: this.sanitizeError(internalError),
         };
-        this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier, internalError);
+        this.emitVerificationEvent(
+          proofResponse.claimType,
+          result,
+          startTime,
+          clientIdentifier,
+          internalError,
+        );
         return result;
       }
     }
@@ -681,7 +745,13 @@ export class ZkIdServer extends EventEmitter {
     const challengeError = await this.validateChallenge(proofResponse.nonce, requestMs);
     if (challengeError) {
       const result = { verified: false, error: this.sanitizeError(challengeError) };
-      this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier, challengeError);
+      this.emitVerificationEvent(
+        proofResponse.claimType,
+        result,
+        startTime,
+        clientIdentifier,
+        challengeError,
+      );
       return result;
     }
 
@@ -693,7 +763,13 @@ export class ZkIdServer extends EventEmitter {
         verified: false,
         error: this.sanitizeError(internalError),
       };
-      this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier, internalError);
+      this.emitVerificationEvent(
+        proofResponse.claimType,
+        result,
+        startTime,
+        clientIdentifier,
+        internalError,
+      );
       return result;
     }
 
@@ -706,7 +782,13 @@ export class ZkIdServer extends EventEmitter {
           verified: false,
           error: this.sanitizeError(internalError),
         };
-        this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier, internalError);
+        this.emitVerificationEvent(
+          proofResponse.claimType,
+          result,
+          startTime,
+          clientIdentifier,
+          internalError,
+        );
         return result;
       }
     }
@@ -720,7 +802,13 @@ export class ZkIdServer extends EventEmitter {
           verified: false,
           error: this.sanitizeError(internalError),
         };
-        this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier, internalError);
+        this.emitVerificationEvent(
+          proofResponse.claimType,
+          result,
+          startTime,
+          clientIdentifier,
+          internalError,
+        );
         return result;
       }
     }
@@ -735,7 +823,13 @@ export class ZkIdServer extends EventEmitter {
           verified: false,
           error: this.sanitizeError(internalError),
         };
-        this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier, internalError);
+        this.emitVerificationEvent(
+          proofResponse.claimType,
+          result,
+          startTime,
+          clientIdentifier,
+          internalError,
+        );
         return result;
       }
     }
@@ -763,7 +857,13 @@ export class ZkIdServer extends EventEmitter {
       };
     }
 
-    this.emitVerificationEvent(proofResponse.claimType, result, startTime, clientIdentifier, internalError);
+    this.emitVerificationEvent(
+      proofResponse.claimType,
+      result,
+      startTime,
+      clientIdentifier,
+      internalError,
+    );
     return result;
   }
 
@@ -778,7 +878,7 @@ export class ZkIdServer extends EventEmitter {
   async verifySignedProof(
     request: SignedProofRequest,
     clientIdentifier?: string,
-    clientProtocolVersion?: string
+    clientProtocolVersion?: string,
   ): Promise<VerificationResult> {
     const startTime = Date.now();
 
@@ -788,8 +888,17 @@ export class ZkIdServer extends EventEmitter {
       if (payloadErrors.length > 0) {
         const msg = payloadErrors.map((e) => `${e.field}: ${e.message}`).join('; ');
         const internalError = `Invalid payload: ${msg}`;
-        const result: VerificationResult = { verified: false, error: this.sanitizeError(internalError) };
-        this.emitVerificationEvent(request?.claimType ?? 'unknown', result, startTime, clientIdentifier, internalError);
+        const result: VerificationResult = {
+          verified: false,
+          error: this.sanitizeError(internalError),
+        };
+        this.emitVerificationEvent(
+          request?.claimType ?? 'unknown',
+          result,
+          startTime,
+          clientIdentifier,
+          internalError,
+        );
         return result;
       }
     }
@@ -800,7 +909,13 @@ export class ZkIdServer extends EventEmitter {
       if (!allowed) {
         const internalError = 'Rate limit exceeded';
         const result = { verified: false, error: this.sanitizeError(internalError) };
-        this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier, internalError);
+        this.emitVerificationEvent(
+          request.claimType,
+          result,
+          startTime,
+          clientIdentifier,
+          internalError,
+        );
         return result;
       }
     }
@@ -810,7 +925,7 @@ export class ZkIdServer extends EventEmitter {
       clientProtocolVersion,
       request.claimType,
       startTime,
-      clientIdentifier
+      clientIdentifier,
     );
     if (protocolResult) {
       return protocolResult;
@@ -821,7 +936,13 @@ export class ZkIdServer extends EventEmitter {
     if (Number.isNaN(requestMs)) {
       const internalError = 'Invalid request timestamp';
       const result = { verified: false, error: this.sanitizeError(internalError) };
-      this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier, internalError);
+      this.emitVerificationEvent(
+        request.claimType,
+        result,
+        startTime,
+        clientIdentifier,
+        internalError,
+      );
       return result;
     }
 
@@ -831,7 +952,13 @@ export class ZkIdServer extends EventEmitter {
     if (timeDiffMs > maxFutureSkew) {
       const internalError = 'Request timestamp is too far in the future';
       const result = { verified: false, error: this.sanitizeError(internalError) };
-      this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier, internalError);
+      this.emitVerificationEvent(
+        request.claimType,
+        result,
+        startTime,
+        clientIdentifier,
+        internalError,
+      );
       return result;
     }
 
@@ -841,7 +968,13 @@ export class ZkIdServer extends EventEmitter {
       if (ageMs > this.config.maxRequestAgeMs) {
         const internalError = 'Request timestamp is too old';
         const result = { verified: false, error: this.sanitizeError(internalError) };
-        this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier, internalError);
+        this.emitVerificationEvent(
+          request.claimType,
+          result,
+          startTime,
+          clientIdentifier,
+          internalError,
+        );
         return result;
       }
     }
@@ -849,7 +982,13 @@ export class ZkIdServer extends EventEmitter {
     const challengeError = await this.validateChallenge(request.nonce, requestMs);
     if (challengeError) {
       const result = { verified: false, error: this.sanitizeError(challengeError) };
-      this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier, challengeError);
+      this.emitVerificationEvent(
+        request.claimType,
+        result,
+        startTime,
+        clientIdentifier,
+        challengeError,
+      );
       return result;
     }
 
@@ -862,7 +1001,13 @@ export class ZkIdServer extends EventEmitter {
           verified: false,
           error: this.sanitizeError(internalError),
         };
-        this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier, internalError);
+        this.emitVerificationEvent(
+          request.claimType,
+          result,
+          startTime,
+          clientIdentifier,
+          internalError,
+        );
         return result;
       }
     }
@@ -871,7 +1016,13 @@ export class ZkIdServer extends EventEmitter {
     if (!trustedBits) {
       const internalError = 'Unknown or untrusted issuer';
       const result = { verified: false, error: this.sanitizeError(internalError) };
-      this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier, internalError);
+      this.emitVerificationEvent(
+        request.claimType,
+        result,
+        startTime,
+        clientIdentifier,
+        internalError,
+      );
       return result;
     }
 
@@ -880,7 +1031,13 @@ export class ZkIdServer extends EventEmitter {
     if (!constantTimeEqual(proofNonce, request.nonce)) {
       const internalError = 'Proof nonce does not match request nonce';
       const result = { verified: false, error: this.sanitizeError(internalError) };
-      this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier, internalError);
+      this.emitVerificationEvent(
+        request.claimType,
+        result,
+        startTime,
+        clientIdentifier,
+        internalError,
+      );
       return result;
     }
     const proofTimestamp = this.getSignedProofTimestamp(request.proof, request.claimType);
@@ -890,7 +1047,13 @@ export class ZkIdServer extends EventEmitter {
         verified: false,
         error: this.sanitizeError(internalError),
       };
-      this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier, internalError);
+      this.emitVerificationEvent(
+        request.claimType,
+        result,
+        startTime,
+        clientIdentifier,
+        internalError,
+      );
       return result;
     }
 
@@ -906,14 +1069,19 @@ export class ZkIdServer extends EventEmitter {
             verified: false,
             error: this.sanitizeError(internalError),
           };
-          this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier, internalError);
+          this.emitVerificationEvent(
+            request.claimType,
+            result,
+            startTime,
+            clientIdentifier,
+            internalError,
+          );
           return result;
         }
       }
     }
     if (request.claimType === 'nationality') {
-      const requiredNationality =
-        requiredPolicy?.nationality ?? this.config.requiredNationality;
+      const requiredNationality = requiredPolicy?.nationality ?? this.config.requiredNationality;
       if (requiredNationality !== undefined) {
         const proof = request.proof as NationalityProofSigned;
         if (proof.publicSignals.targetNationality !== requiredNationality) {
@@ -922,7 +1090,13 @@ export class ZkIdServer extends EventEmitter {
             verified: false,
             error: this.sanitizeError(internalError),
           };
-          this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier, internalError);
+          this.emitVerificationEvent(
+            request.claimType,
+            result,
+            startTime,
+            clientIdentifier,
+            internalError,
+          );
           return result;
         }
       }
@@ -938,7 +1112,13 @@ export class ZkIdServer extends EventEmitter {
           verified: false,
           error: this.sanitizeError(internalError),
         };
-        this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier, internalError);
+        this.emitVerificationEvent(
+          request.claimType,
+          result,
+          startTime,
+          clientIdentifier,
+          internalError,
+        );
         return result;
       }
     }
@@ -950,31 +1130,49 @@ export class ZkIdServer extends EventEmitter {
         if (!this.signedVerificationKey) {
           internalError = 'Signed age verification key not configured';
           const result = { verified: false, error: this.sanitizeError(internalError) };
-          this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier, internalError);
+          this.emitVerificationEvent(
+            request.claimType,
+            result,
+            startTime,
+            clientIdentifier,
+            internalError,
+          );
           return result;
         }
         verified = await verifyAgeProofSignedWithIssuer(
           request.proof as AgeProofSigned,
           this.signedVerificationKey,
-          trustedBits
+          trustedBits,
         );
       } else {
         if (!this.signedNationalityVerificationKey) {
           internalError = 'Signed nationality verification key not configured';
           const result = { verified: false, error: this.sanitizeError(internalError) };
-          this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier, internalError);
+          this.emitVerificationEvent(
+            request.claimType,
+            result,
+            startTime,
+            clientIdentifier,
+            internalError,
+          );
           return result;
         }
         verified = await verifyNationalityProofSignedWithIssuer(
           request.proof as NationalityProofSigned,
           this.signedNationalityVerificationKey,
-          trustedBits
+          trustedBits,
         );
       }
     } catch (error) {
       internalError = `Verification error: ${error}`;
       const result = { verified: false, error: this.sanitizeError(internalError) };
-      this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier, internalError);
+      this.emitVerificationEvent(
+        request.claimType,
+        result,
+        startTime,
+        clientIdentifier,
+        internalError,
+      );
       return result;
     }
 
@@ -996,9 +1194,16 @@ export class ZkIdServer extends EventEmitter {
               : undefined,
           protocolVersion: PROTOCOL_VERSION,
         }
-      : ((internalError = 'Proof verification failed'), { verified: false, error: this.sanitizeError(internalError) });
+      : ((internalError = 'Proof verification failed'),
+        { verified: false, error: this.sanitizeError(internalError) });
 
-    this.emitVerificationEvent(request.claimType, result, startTime, clientIdentifier, internalError);
+    this.emitVerificationEvent(
+      request.claimType,
+      result,
+      startTime,
+      clientIdentifier,
+      internalError,
+    );
     return result;
   }
 
@@ -1006,7 +1211,7 @@ export class ZkIdServer extends EventEmitter {
    * Internal age proof verification
    */
   private async verifyAgeProofInternal(
-    proofResponse: ProofResponse
+    proofResponse: ProofResponse,
   ): Promise<{ result: VerificationResult; internalError?: string }> {
     const proof = proofResponse.proof as AgeProof;
 
@@ -1067,7 +1272,7 @@ export class ZkIdServer extends EventEmitter {
    * Internal nationality proof verification
    */
   private async verifyNationalityProofInternal(
-    proofResponse: ProofResponse
+    proofResponse: ProofResponse,
   ): Promise<{ result: VerificationResult; internalError?: string }> {
     const proof = proofResponse.proof as NationalityProof;
 
@@ -1139,7 +1344,7 @@ export class ZkIdServer extends EventEmitter {
    * Internal revocable age proof verification
    */
   private async verifyAgeProofRevocableInternal(
-    proofResponse: ProofResponse
+    proofResponse: ProofResponse,
   ): Promise<{ result: VerificationResult; internalError?: string }> {
     const proof = proofResponse.proof as AgeProofRevocable;
 
@@ -1196,7 +1401,7 @@ export class ZkIdServer extends EventEmitter {
       const isValid = await verifyAgeProofRevocable(
         proof,
         this.revocableVerificationKey,
-        expectedRoot
+        expectedRoot,
       );
 
       if (isValid) {
@@ -1248,7 +1453,7 @@ export class ZkIdServer extends EventEmitter {
    */
   private async validateSignedCredentialBinding(
     signedCredential: SignedCredential,
-    proofResponse: ProofResponse
+    proofResponse: ProofResponse,
   ): Promise<{ valid: boolean; error?: string }> {
     const issuerRecord = await this.getIssuerRecord(signedCredential.issuer);
     const issuerKey = issuerRecord?.publicKey;
@@ -1298,7 +1503,7 @@ export class ZkIdServer extends EventEmitter {
     const payload = credentialSignaturePayload(
       signedCredential.credential,
       signedCredential.issuer,
-      signedCredential.issuedAt
+      signedCredential.issuedAt,
     );
     const signature = Buffer.from(signedCredential.signature, 'base64');
     const signatureValid = cryptoVerify(null, Buffer.from(payload), issuerKey, signature);
@@ -1306,7 +1511,10 @@ export class ZkIdServer extends EventEmitter {
       return { valid: false, error: this.sanitizeError('Invalid credential signature') };
     }
 
-    if (proofResponse.credentialId && proofResponse.credentialId !== signedCredential.credential.id) {
+    if (
+      proofResponse.credentialId &&
+      proofResponse.credentialId !== signedCredential.credential.id
+    ) {
       return { valid: false, error: this.sanitizeError('Credential ID mismatch') };
     }
 
@@ -1360,7 +1568,10 @@ export class ZkIdServer extends EventEmitter {
     return 0;
   }
 
-  private async validateChallenge(nonce: string, requestTimestampMs: number): Promise<string | null> {
+  private async validateChallenge(
+    nonce: string,
+    requestTimestampMs: number,
+  ): Promise<string | null> {
     if (!this.config.challengeStore) {
       return null;
     }
@@ -1379,7 +1590,7 @@ export class ZkIdServer extends EventEmitter {
 
   private getSignedProofNonce(
     proof: AgeProofSigned | NationalityProofSigned,
-    claimType: 'age' | 'nationality'
+    claimType: 'age' | 'nationality',
   ): string {
     if (claimType === 'age') {
       return (proof as AgeProofSigned).publicSignals.nonce;
@@ -1389,7 +1600,7 @@ export class ZkIdServer extends EventEmitter {
 
   private getSignedProofTimestamp(
     proof: AgeProofSigned | NationalityProofSigned,
-    claimType: 'age' | 'nationality'
+    claimType: 'age' | 'nationality',
   ): number {
     if (claimType === 'age') {
       return (proof as AgeProofSigned).publicSignals.requestTimestamp;
@@ -1399,7 +1610,7 @@ export class ZkIdServer extends EventEmitter {
 
   private getSignedProofCommitment(
     proof: AgeProofSigned | NationalityProofSigned,
-    claimType: 'age' | 'nationality'
+    claimType: 'age' | 'nationality',
   ): string {
     if (claimType === 'age') {
       return (proof as AgeProofSigned).publicSignals.credentialHash;
@@ -1426,7 +1637,7 @@ export class ZkIdServer extends EventEmitter {
     result: VerificationResult,
     startTime: number,
     clientIdentifier?: string,
-    internalError?: string
+    internalError?: string,
   ): void {
     const timestamp = new Date().toISOString();
     const event: VerificationEvent = {
@@ -1449,7 +1660,11 @@ export class ZkIdServer extends EventEmitter {
         success: result.verified,
         metadata: {
           verificationTimeMs: event.verificationTimeMs,
-          ...(internalError ? { error: internalError } : result.error ? { error: result.error } : {}),
+          ...(internalError
+            ? { error: internalError }
+            : result.error
+              ? { error: result.error }
+              : {}),
         },
       });
     } catch {
@@ -1505,7 +1720,7 @@ export class ZkIdServer extends EventEmitter {
     clientProtocolVersion: string | undefined,
     claimType: string,
     startTime: number,
-    clientIdentifier?: string
+    clientIdentifier?: string,
   ): VerificationResult | null {
     const policy: ProtocolVersionPolicy = this.config.protocolVersionPolicy ?? 'warn';
     if (policy === 'off') {
@@ -1524,7 +1739,7 @@ export class ZkIdServer extends EventEmitter {
       }
       console.warn(
         `[zk-id] Protocol version header missing for claimType=${claimType}. ` +
-          `Server=${PROTOCOL_VERSION}`
+          `Server=${PROTOCOL_VERSION}`,
       );
       return null;
     }
@@ -1541,7 +1756,7 @@ export class ZkIdServer extends EventEmitter {
       }
       console.warn(
         `[zk-id] Protocol version mismatch for claimType=${claimType}. ` +
-          `Client=${clientProtocolVersion}, Server=${PROTOCOL_VERSION}`
+          `Client=${clientProtocolVersion}, Server=${PROTOCOL_VERSION}`,
       );
     }
 
@@ -1722,7 +1937,7 @@ export class SimpleRateLimiter implements RateLimiter {
     const requests = this.requests.get(identifier) || [];
 
     // Remove old requests outside the window
-    const recentRequests = requests.filter(time => now - time < this.windowMs);
+    const recentRequests = requests.filter((time) => now - time < this.windowMs);
 
     if (recentRequests.length >= this.limit) {
       return false;
@@ -1750,7 +1965,7 @@ export interface PayloadValidationError {
  */
 export function validateProofResponsePayload(
   body: unknown,
-  requireSignedCredential: boolean = true
+  requireSignedCredential: boolean = true,
 ): PayloadValidationError[] {
   const errors: PayloadValidationError[] = [];
   if (!body || typeof body !== 'object') {
@@ -1758,8 +1973,14 @@ export function validateProofResponsePayload(
   }
   const obj = body as Record<string, unknown>;
 
-  if (typeof obj.claimType !== 'string' || !['age', 'nationality', 'age-revocable'].includes(obj.claimType)) {
-    errors.push({ field: 'claimType', message: "Must be 'age', 'nationality', or 'age-revocable'" });
+  if (
+    typeof obj.claimType !== 'string' ||
+    !['age', 'nationality', 'age-revocable'].includes(obj.claimType)
+  ) {
+    errors.push({
+      field: 'claimType',
+      message: "Must be 'age', 'nationality', or 'age-revocable'",
+    });
   }
   if (typeof obj.nonce !== 'string' || obj.nonce.length === 0) {
     errors.push({ field: 'nonce', message: 'Must be a non-empty string' });

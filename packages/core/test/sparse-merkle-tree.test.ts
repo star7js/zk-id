@@ -69,26 +69,17 @@ describe('SparseMerkleTree', () => {
 
     it('rejects invalid commitment format', async () => {
       const tree = new SparseMerkleTree(10);
-      await assert.rejects(
-        () => tree.add('not-a-number'),
-        /Invalid commitment format/
-      );
+      await assert.rejects(() => tree.add('not-a-number'), /Invalid commitment format/);
     });
   });
 
   describe('constructor validation', () => {
     it('rejects depth 0', () => {
-      assert.throws(
-        () => new SparseMerkleTree(0),
-        /Invalid SMT depth/
-      );
+      assert.throws(() => new SparseMerkleTree(0), /Invalid SMT depth/);
     });
 
     it('rejects depth > 254', () => {
-      assert.throws(
-        () => new SparseMerkleTree(255),
-        /Invalid SMT depth/
-      );
+      assert.throws(() => new SparseMerkleTree(255), /Invalid SMT depth/);
     });
 
     it('accepts depth 1', async () => {
@@ -385,9 +376,7 @@ describe('SparseMerkleTree', () => {
     it('handles 50 credentials', async () => {
       const tree = new SparseMerkleTree(20);
       const creds = await Promise.all(
-        Array.from({ length: 50 }, (_, i) =>
-          createCredential(1970 + i, 1 + (i % 200))
-        )
+        Array.from({ length: 50 }, (_, i) => createCredential(1970 + i, 1 + (i % 200))),
       );
 
       for (const c of creds) {
@@ -406,9 +395,7 @@ describe('SparseMerkleTree', () => {
     it('handles interleaved add/remove', async () => {
       const tree = new SparseMerkleTree(10);
       const creds = await Promise.all(
-        Array.from({ length: 10 }, (_, i) =>
-          createCredential(1980 + i, 840)
-        )
+        Array.from({ length: 10 }, (_, i) => createCredential(1980 + i, 840)),
       );
 
       // Add all
@@ -504,9 +491,7 @@ describe('SparseMerkleTree', () => {
     it('handles concurrent adds', async () => {
       const tree = new SparseMerkleTree(20);
       const creds = await Promise.all(
-        Array.from({ length: 20 }, (_, i) =>
-          createCredential(1970 + i, 1 + (i % 200))
-        )
+        Array.from({ length: 20 }, (_, i) => createCredential(1970 + i, 1 + (i % 200))),
       );
 
       await Promise.all(creds.map((c) => tree.add(c.commitment)));
@@ -516,18 +501,14 @@ describe('SparseMerkleTree', () => {
     it('handles concurrent getWitness calls', async () => {
       const tree = new SparseMerkleTree(10);
       const creds = await Promise.all(
-        Array.from({ length: 5 }, (_, i) =>
-          createCredential(1970 + i, 1 + (i % 200))
-        )
+        Array.from({ length: 5 }, (_, i) => createCredential(1970 + i, 1 + (i % 200))),
       );
 
       for (const c of creds) {
         await tree.add(c.commitment);
       }
 
-      const witnesses = await Promise.all(
-        creds.map((c) => tree.getWitness(c.commitment))
-      );
+      const witnesses = await Promise.all(creds.map((c) => tree.getWitness(c.commitment)));
 
       const root = await tree.getRoot();
       for (const w of witnesses) {

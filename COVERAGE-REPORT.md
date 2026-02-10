@@ -4,11 +4,11 @@ Generated: 2026-02-10
 
 ## Summary
 
-| Package | Lines | Branches | Functions | Statements |
-|---------|-------|----------|-----------|------------|
-| **@zk-id/core** | 64.2% | 84.58% | 55.01% | 64.2% |
-| **@zk-id/sdk** | 55.86% | 75.35% | 52.38% | 55.86% |
-| **@zk-id/issuer** | 63.42% | 80.88% | 48.02% | 63.42% |
+| Package           | Lines  | Branches | Functions | Statements |
+| ----------------- | ------ | -------- | --------- | ---------- |
+| **@zk-id/core**   | 64.2%  | 84.58%   | 55.01%    | 64.2%      |
+| **@zk-id/sdk**    | 55.86% | 75.35%   | 52.38%    | 55.86%     |
+| **@zk-id/issuer** | 63.42% | 80.88%   | 48.02%    | 63.42%     |
 
 ## Coverage Goals
 
@@ -22,6 +22,7 @@ Generated: 2026-02-10
 ### 🔴 Critical (Need Immediate Attention)
 
 **prover.ts** - 39.47% lines, 16.66% functions
+
 - Missing: Signed proof generation (`generateAgeProofSigned`, `generateNationalityProofSigned`)
 - Missing: Revocable proof generation (`generateAgeProofRevocable`)
 - Missing: Nullifier proof generation (`generateNullifierProof`)
@@ -29,6 +30,7 @@ Generated: 2026-02-10
 - **Impact**: These are core features used in production
 
 **signature.ts** - 43.24% lines, 0% functions
+
 - Missing: All circuit signature functions
 - Missing: `circuitSignatureInputs`, `verifyCircuitSignature`
 - **Impact**: Required for in-circuit EdDSA signature verification
@@ -36,16 +38,19 @@ Generated: 2026-02-10
 ### 🟡 Important (Should Be Added)
 
 **proving-system.ts** - 76.42% lines, 55.55% functions
+
 - Missing: Batch proof generation
 - Missing: Proof system abstraction methods
 - Missing: Error handling paths
 
 **verifier.ts** - 78.34% lines, 84.61% functions
+
 - Missing: Batch verification functions
 - Missing: Some signed verifier variants
 - Missing: Edge case handling
 
 **timing-safe.ts** - 90% lines, 71.42% branches
+
 - Missing: Some timing attack mitigation branches
 - **Impact**: Security-sensitive code
 
@@ -199,6 +204,7 @@ npm run coverage:issuer       # Issuer package only, text output
 ## Coverage Trends
 
 Target for v1.0:
+
 - Core: 80%+ lines, 90%+ for critical paths
 - SDK: 75%+ lines
 - Issuer: 75%+ lines

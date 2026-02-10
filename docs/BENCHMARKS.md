@@ -8,45 +8,45 @@ All targets assume a typical server environment: 4-core x86_64, 8 GB RAM, Node.j
 
 ### Cryptographic Primitives
 
-| Operation | Avg (ms) | p95 (ms) | Notes |
-|-----------|----------|----------|-------|
-| Poseidon hash (2 inputs) | ≤ 5 | ≤ 10 | After Poseidon instance warmup |
-| Poseidon hash (3 inputs) | ≤ 5 | ≤ 10 | Credential commitment computation |
-| Credential creation | ≤ 10 | ≤ 20 | Includes random salt generation + Poseidon hash |
+| Operation                | Avg (ms) | p95 (ms) | Notes                                           |
+| ------------------------ | -------- | -------- | ----------------------------------------------- |
+| Poseidon hash (2 inputs) | ≤ 5      | ≤ 10     | After Poseidon instance warmup                  |
+| Poseidon hash (3 inputs) | ≤ 5      | ≤ 10     | Credential commitment computation               |
+| Credential creation      | ≤ 10     | ≤ 20     | Includes random salt generation + Poseidon hash |
 
 ### Merkle Tree Operations (depth 10)
 
-| Operation | Avg (ms) | p95 (ms) | Notes |
-|-----------|----------|----------|-------|
-| `add()` | ≤ 15 | ≤ 30 | O(depth) Poseidon hashes along affected path |
-| `remove()` | ≤ 15 | ≤ 30 | O(depth) Poseidon hashes along affected path |
-| `getRoot()` | ≤ 1 | ≤ 2 | O(1) cached read |
-| `getWitness()` | ≤ 1 | ≤ 2 | O(1) array lookups from cached layers |
-| `contains()` | ≤ 1 | ≤ 2 | O(1) Map lookup |
+| Operation      | Avg (ms) | p95 (ms) | Notes                                        |
+| -------------- | -------- | -------- | -------------------------------------------- |
+| `add()`        | ≤ 15     | ≤ 30     | O(depth) Poseidon hashes along affected path |
+| `remove()`     | ≤ 15     | ≤ 30     | O(depth) Poseidon hashes along affected path |
+| `getRoot()`    | ≤ 1      | ≤ 2      | O(1) cached read                             |
+| `getWitness()` | ≤ 1      | ≤ 2      | O(1) array lookups from cached layers        |
+| `contains()`   | ≤ 1      | ≤ 2      | O(1) Map lookup                              |
 
 ### Constraint Validation (non-cryptographic)
 
-| Operation | Avg (ms) | p95 (ms) | Notes |
-|-----------|----------|----------|-------|
-| Age proof constraints | ≤ 1 | ≤ 2 | Field checks only, no crypto |
-| Nationality proof constraints | ≤ 1 | ≤ 2 | Field checks only, no crypto |
+| Operation                     | Avg (ms) | p95 (ms) | Notes                        |
+| ----------------------------- | -------- | -------- | ---------------------------- |
+| Age proof constraints         | ≤ 1      | ≤ 2      | Field checks only, no crypto |
+| Nationality proof constraints | ≤ 1      | ≤ 2      | Field checks only, no crypto |
 
 ### Proof Generation (requires circuit artifacts)
 
-| Operation | Avg (ms) | p95 (ms) | Notes |
-|-----------|----------|----------|-------|
-| Age proof (Groth16) | ≤ 3000 | ≤ 5000 | WASM witness + snarkjs prover |
-| Nationality proof (Groth16) | ≤ 3000 | ≤ 5000 | WASM witness + snarkjs prover |
-| Age proof revocable (Groth16) | ≤ 5000 | ≤ 8000 | Larger circuit with Merkle inclusion |
+| Operation                     | Avg (ms) | p95 (ms) | Notes                                |
+| ----------------------------- | -------- | -------- | ------------------------------------ |
+| Age proof (Groth16)           | ≤ 3000   | ≤ 5000   | WASM witness + snarkjs prover        |
+| Nationality proof (Groth16)   | ≤ 3000   | ≤ 5000   | WASM witness + snarkjs prover        |
+| Age proof revocable (Groth16) | ≤ 5000   | ≤ 8000   | Larger circuit with Merkle inclusion |
 
 ### Proof Verification
 
-| Operation | Avg (ms) | p95 (ms) | Notes |
-|-----------|----------|----------|-------|
-| Age proof verification | ≤ 100 | ≤ 200 | Groth16 pairing check |
-| Nationality proof verification | ≤ 100 | ≤ 200 | Groth16 pairing check |
-| Revocable proof verification | ≤ 100 | ≤ 200 | Groth16 pairing check (same verifier) |
-| Batch verification (10 proofs) | ≤ 500 | ≤ 800 | Parallel verification via `verifyBatch()` |
+| Operation                      | Avg (ms) | p95 (ms) | Notes                                     |
+| ------------------------------ | -------- | -------- | ----------------------------------------- |
+| Age proof verification         | ≤ 100    | ≤ 200    | Groth16 pairing check                     |
+| Nationality proof verification | ≤ 100    | ≤ 200    | Groth16 pairing check                     |
+| Revocable proof verification   | ≤ 100    | ≤ 200    | Groth16 pairing check (same verifier)     |
+| Batch verification (10 proofs) | ≤ 500    | ≤ 800    | Parallel verification via `verifyBatch()` |
 
 ## Running Benchmarks
 
@@ -83,9 +83,11 @@ import { poseidonHash } from '@zk-id/core';
 
 const result = await runBenchmark(
   'poseidon-hash-2',
-  async () => { await poseidonHash([1990, 840]); },
-  100,  // iterations
-  5     // warmup
+  async () => {
+    await poseidonHash([1990, 840]);
+  },
+  100, // iterations
+  5, // warmup
 );
 
 console.log(formatResult(result));

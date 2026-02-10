@@ -78,7 +78,7 @@ export interface ProvingSystem {
    */
   prove(
     circuitInputs: Record<string, unknown>,
-    artifacts: CircuitArtifacts
+    artifacts: CircuitArtifacts,
   ): Promise<SerializedProof>;
 
   /**
@@ -88,10 +88,7 @@ export interface ProvingSystem {
    * @param artifacts - Verification key
    * @returns true if the proof is valid
    */
-  verify(
-    proof: SerializedProof,
-    artifacts: VerifierArtifacts
-  ): Promise<boolean>;
+  verify(proof: SerializedProof, artifacts: VerifierArtifacts): Promise<boolean>;
 }
 
 // ---------------------------------------------------------------------------
@@ -109,22 +106,21 @@ export class Groth16ProvingSystem implements ProvingSystem {
 
   async prove(
     circuitInputs: Record<string, unknown>,
-    artifacts: CircuitArtifacts
+    artifacts: CircuitArtifacts,
   ): Promise<SerializedProof> {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const snarkjs = require('snarkjs');
     const { proof, publicSignals } = await snarkjs.groth16.fullProve(
       circuitInputs,
       artifacts.wasmPath,
-      artifacts.provingKeyPath
+      artifacts.provingKeyPath,
     );
 
     return {
       system: 'groth16',
       proof: {
         pi_a: proof.pi_a.slice(0, 2).map((x: unknown) => String(x)),
-        pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) =>
-          arr.map((x: unknown) => String(x))
-        ),
+        pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) => arr.map((x: unknown) => String(x))),
         pi_c: proof.pi_c.slice(0, 2).map((x: unknown) => String(x)),
         protocol: proof.protocol,
         curve: proof.curve,
@@ -133,16 +129,10 @@ export class Groth16ProvingSystem implements ProvingSystem {
     };
   }
 
-  async verify(
-    proof: SerializedProof,
-    artifacts: VerifierArtifacts
-  ): Promise<boolean> {
+  async verify(proof: SerializedProof, artifacts: VerifierArtifacts): Promise<boolean> {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const snarkjs = require('snarkjs');
-    return snarkjs.groth16.verify(
-      artifacts.verificationKey,
-      proof.publicSignals,
-      proof.proof
-    );
+    return snarkjs.groth16.verify(artifacts.verificationKey, proof.publicSignals, proof.proof);
   }
 }
 
@@ -166,13 +156,14 @@ export class PLONKProvingSystem implements ProvingSystem {
 
   async prove(
     circuitInputs: Record<string, unknown>,
-    artifacts: CircuitArtifacts
+    artifacts: CircuitArtifacts,
   ): Promise<SerializedProof> {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const snarkjs = require('snarkjs');
     const { proof, publicSignals } = await snarkjs.plonk.fullProve(
       circuitInputs,
       artifacts.wasmPath,
-      artifacts.provingKeyPath
+      artifacts.provingKeyPath,
     );
 
     return {
@@ -188,16 +179,10 @@ export class PLONKProvingSystem implements ProvingSystem {
     };
   }
 
-  async verify(
-    proof: SerializedProof,
-    artifacts: VerifierArtifacts
-  ): Promise<boolean> {
+  async verify(proof: SerializedProof, artifacts: VerifierArtifacts): Promise<boolean> {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const snarkjs = require('snarkjs');
-    return snarkjs.plonk.verify(
-      artifacts.verificationKey,
-      proof.publicSignals,
-      proof.proof
-    );
+    return snarkjs.plonk.verify(artifacts.verificationKey, proof.publicSignals, proof.proof);
   }
 }
 
@@ -222,7 +207,7 @@ export function getProvingSystem(type: ProvingSystemType): ProvingSystem {
   if (!system) {
     throw new Error(
       `Proving system '${type}' not registered. ` +
-      `Available: ${[...PROVING_SYSTEMS.keys()].join(', ') || 'none'}`
+        `Available: ${[...PROVING_SYSTEMS.keys()].join(', ') || 'none'}`,
     );
   }
   return system;

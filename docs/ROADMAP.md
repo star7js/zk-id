@@ -60,6 +60,7 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 ## Now (Next 2–6 Weeks)
 
 **Priority 1: Developer Experience**
+
 1. **Compliance Regulation Mapping**
    - UK Online Safety Act compliance documentation
    - EU Digital Services Act and Age Verification Regulation mapping
@@ -67,6 +68,7 @@ This roadmap focuses on security, interoperability, and production readiness. Da
    - Regulatory requirement checklist for deployers
 
 **Previous "Now" items (completed)**
+
 - ✅ Revocation Root Distribution (MVP): root versioning, TTL policy, witness refresh rules, endpoint caching
 - ✅ Security Readiness: security policy, threat model, circuit artifact hashes, reproducible builds
 - ✅ Issuer Trust & Key Lifecycle: registry spec, metadata, onboarding/deactivation workflow
@@ -75,6 +77,7 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 ## Near Term (Q2 2026)
 
 **Mobile & Cross-Platform (Moved up from Q4+)**
+
 1. **Mobile SDK (React Native)**
    - React Native wrapper around core TypeScript libraries
    - Proof generation on iOS and Android
@@ -94,6 +97,7 @@ This roadmap focuses on security, interoperability, and production readiness. Da
    - API reference with code examples in multiple languages
 
 **Previous Near Term items (completed)**
+
 - ✅ Revocation Lifecycle & Root Distribution: versioning, dissemination, incremental tree optimization, distributed sync
 - ✅ Production Storage & Reliability: Postgres tree, Redis store, rate limiting, audit logging
 - ✅ Wallet Integration: browser wallet prototype, credential backup/recovery
@@ -114,11 +118,13 @@ This roadmap focuses on security, interoperability, and production readiness. Da
    - Integration with ceremony coordination tools (e.g., perpetual powers of tau)
 
 **Previous Mid Term items (completed or deprioritized)**
+
 - ✅ Standards Alignment: ISO 18013-5/7 mappings, external credential formats
 - ✅ Completed cryptography: Multi-claim proofs, proving system abstraction, nullifiers, BBS disclosure, sparse Merkle tree
 - ✅ Operational Tooling: issuer dashboard, key rotation, KMS/HSM examples
 
 **Deprioritized (moved to Long Term or deferred)**
+
 - Recursive proof circuit implementation (Groth16-in-Groth16 / Nova / Halo2) - interesting but low near-term impact
 - PLONK SRS generation - flexibility improvement, not critical for current use cases
 - BBS+SNARK hybrid - niche cryptography, defer until demand proven
@@ -131,7 +137,7 @@ This roadmap focuses on security, interoperability, and production readiness. Da
    - Formal verification of core constraints
    - Production-ready trusted setup (coordinated via MPC ceremony)
 
-2. **Nullifier Circuit Integration** ✅ *Partially Complete (v0.6.0)*
+2. **Nullifier Circuit Integration** ✅ _Partially Complete (v0.6.0)_
    - ✅ Circom circuit that computes `Poseidon(commitment, scopeHash)` and exposes the nullifier as a public signal
    - Integrate nullifier proof with age/nationality verification (combined circuit)
    - On-chain nullifier set for trustless sybil detection (now more feasible with `@zk-id/contracts`)
@@ -141,7 +147,7 @@ This roadmap focuses on security, interoperability, and production readiness. Da
    - Multi-issuer credentials and threshold issuance
    - Cross-border identity verification agreements
 
-4. **Advanced W3C VC/DID Interoperability** ✅ *Initial items complete (v1.1.0)*
+4. **Advanced W3C VC/DID Interoperability** ✅ _Initial items complete (v1.1.0)_
    - ✅ Basic W3C VC conversion: `toW3CVerifiableCredential`, `fromW3CVerifiableCredential` in `@zk-id/core`
    - ✅ DID key support: `ed25519PublicKeyToDidKey`, `didKeyToEd25519PublicKey` utilities
    - **Full W3C VC v2.0 compliance:** Credential envelope passes VC validators (not yet complete)
@@ -202,6 +208,7 @@ The roadmap has been reordered to prioritize **ecosystem integration** over **cr
 4. **Compliance documentation** (UK/EU regulations) transforms zk-id from a "tech project" to a "compliance solution" — this drives enterprise demand.
 
 Advanced cryptography (recursive proofs, PLONK, BBS+SNARK hybrid) has been deprioritized to Q4 2026+ because:
+
 - Current Groth16 implementation works well for the core use case
 - Ecosystem gaps (on-chain, mobile, W3C) are more critical than marginal cryptographic improvements
 - Resources are better spent on adoption (developer experience, standards compliance) than optimization

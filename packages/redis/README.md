@@ -32,7 +32,7 @@ import {
   RedisChallengeStore,
   RedisRevocationStore,
   RedisRateLimiter,
-  RedisIssuerRegistry
+  RedisIssuerRegistry,
 } from '@zk-id/redis';
 
 const redis = new Redis(process.env.REDIS_URL);
@@ -54,7 +54,7 @@ const server = createZkIdServer({
 ```typescript
 new RedisNonceStore(client, {
   keyPrefix: 'zkid:nonce:', // Default key prefix
-  ttlSeconds: 300,          // TTL in seconds (default: 300)
+  ttlSeconds: 300, // TTL in seconds (default: 300)
 });
 ```
 
@@ -79,8 +79,8 @@ new RedisRevocationStore(client, {
 ```typescript
 new RedisRateLimiter(client, {
   keyPrefix: 'zkid:rate:', // Default key prefix
-  limit: 10,               // Max requests per window (default: 10)
-  windowMs: 60000,         // Window size in ms (default: 60000)
+  limit: 10, // Max requests per window (default: 10)
+  windowMs: 60000, // Window size in ms (default: 60000)
 });
 ```
 

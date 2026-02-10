@@ -45,7 +45,10 @@
       "properties": {
         "currentYear": { "type": "integer", "description": "Current year used in age calculation" },
         "minAge": { "type": "integer", "minimum": 0, "description": "Minimum age threshold" },
-        "credentialHash": { "type": "string", "description": "Poseidon hash commitment to credential" },
+        "credentialHash": {
+          "type": "string",
+          "description": "Poseidon hash commitment to credential"
+        },
         "nonce": { "type": "string", "description": "Anti-replay nonce" },
         "requestTimestamp": { "type": "integer", "description": "Request timestamp (epoch ms)" }
       },
@@ -56,8 +59,14 @@
       "description": "Public signals for a nationality proof",
       "required": ["targetNationality", "credentialHash", "nonce", "requestTimestamp"],
       "properties": {
-        "targetNationality": { "type": "integer", "description": "ISO 3166-1 numeric nationality code" },
-        "credentialHash": { "type": "string", "description": "Poseidon hash commitment to credential" },
+        "targetNationality": {
+          "type": "integer",
+          "description": "ISO 3166-1 numeric nationality code"
+        },
+        "credentialHash": {
+          "type": "string",
+          "description": "Poseidon hash commitment to credential"
+        },
         "nonce": { "type": "string", "description": "Anti-replay nonce" },
         "requestTimestamp": { "type": "integer", "description": "Request timestamp (epoch ms)" }
       },
@@ -66,12 +75,25 @@
     "AgeProofRevocablePublicSignals": {
       "type": "object",
       "description": "Public signals for a revocable age proof (includes Merkle root)",
-      "required": ["currentYear", "minAge", "credentialHash", "merkleRoot", "nonce", "requestTimestamp"],
+      "required": [
+        "currentYear",
+        "minAge",
+        "credentialHash",
+        "merkleRoot",
+        "nonce",
+        "requestTimestamp"
+      ],
       "properties": {
         "currentYear": { "type": "integer", "description": "Current year used in age calculation" },
         "minAge": { "type": "integer", "minimum": 0, "description": "Minimum age threshold" },
-        "credentialHash": { "type": "string", "description": "Poseidon hash commitment to credential" },
-        "merkleRoot": { "type": "string", "description": "Merkle root of the valid-credential tree" },
+        "credentialHash": {
+          "type": "string",
+          "description": "Poseidon hash commitment to credential"
+        },
+        "merkleRoot": {
+          "type": "string",
+          "description": "Merkle root of the valid-credential tree"
+        },
         "nonce": { "type": "string", "description": "Anti-replay nonce" },
         "requestTimestamp": { "type": "integer", "description": "Request timestamp (epoch ms)" }
       },
@@ -80,7 +102,14 @@
     "AgeProofSignedPublicSignals": {
       "type": "object",
       "description": "Public signals for a signed age proof (includes issuer public key)",
-      "required": ["currentYear", "minAge", "credentialHash", "nonce", "requestTimestamp", "issuerPublicKey"],
+      "required": [
+        "currentYear",
+        "minAge",
+        "credentialHash",
+        "nonce",
+        "requestTimestamp",
+        "issuerPublicKey"
+      ],
       "properties": {
         "currentYear": { "type": "integer" },
         "minAge": { "type": "integer", "minimum": 0 },
@@ -98,7 +127,13 @@
     "NationalityProofSignedPublicSignals": {
       "type": "object",
       "description": "Public signals for a signed nationality proof (includes issuer public key)",
-      "required": ["targetNationality", "credentialHash", "nonce", "requestTimestamp", "issuerPublicKey"],
+      "required": [
+        "targetNationality",
+        "credentialHash",
+        "nonce",
+        "requestTimestamp",
+        "issuerPublicKey"
+      ],
       "properties": {
         "targetNationality": { "type": "integer" },
         "credentialHash": { "type": "string" },
@@ -122,7 +157,11 @@
         "nationality": { "type": "integer", "description": "ISO 3166-1 numeric nationality code" },
         "salt": { "type": "string", "description": "Random salt for commitment privacy" },
         "commitment": { "type": "string", "description": "Poseidon hash commitment" },
-        "createdAt": { "type": "string", "format": "date-time", "description": "ISO 8601 creation timestamp" }
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 creation timestamp"
+        }
       },
       "additionalProperties": false
     },
@@ -134,7 +173,11 @@
         "credential": { "$ref": "#/definitions/Credential" },
         "issuer": { "type": "string", "description": "Issuer name or DID" },
         "signature": { "type": "string", "description": "Base64-encoded Ed25519 signature" },
-        "issuedAt": { "type": "string", "format": "date-time", "description": "ISO 8601 issuance timestamp" }
+        "issuedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 issuance timestamp"
+        }
       },
       "additionalProperties": false
     },
@@ -170,9 +213,21 @@
       "properties": {
         "root": { "type": "string", "description": "Current Merkle root (decimal string)" },
         "version": { "type": "integer", "minimum": 0, "description": "Monotonic root version" },
-        "updatedAt": { "type": "string", "format": "date-time", "description": "ISO 8601 last mutation timestamp" },
-        "expiresAt": { "type": "string", "format": "date-time", "description": "ISO 8601 expiry for caching" },
-        "ttlSeconds": { "type": "integer", "minimum": 0, "description": "Recommended cache TTL in seconds" },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 last mutation timestamp"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 expiry for caching"
+        },
+        "ttlSeconds": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Recommended cache TTL in seconds"
+        },
         "source": { "type": "string", "description": "Identifier for the root source" }
       },
       "additionalProperties": false

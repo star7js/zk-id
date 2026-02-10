@@ -12,7 +12,7 @@ import { validateBirthYear, validateNationality, validateHexString } from './val
  */
 export async function createCredential(
   birthYear: number,
-  nationality: number
+  nationality: number,
 ): Promise<Credential> {
   validateBirthYear(birthYear);
   validateNationality(nationality);
@@ -27,11 +27,7 @@ export async function createCredential(
   // - circomlibjs Poseidon automatically performs modular reduction (value mod p)
   // - No truncation occurs - reduction is cryptographically sound
   // - Same encoding pattern used consistently in prover.ts
-  const commitment = await poseidonHash([
-    birthYear,
-    nationality,
-    BigInt('0x' + salt),
-  ]);
+  const commitment = await poseidonHash([birthYear, nationality, BigInt('0x' + salt)]);
 
   // Generate unique ID
   const id = randomBytes(16).toString('hex');
@@ -79,7 +75,7 @@ export function validateCredential(credential: Credential): boolean {
 export async function deriveCommitment(
   birthYear: number,
   nationality: number,
-  salt: string
+  salt: string,
 ): Promise<string> {
   validateBirthYear(birthYear);
   validateNationality(nationality);
@@ -87,10 +83,6 @@ export async function deriveCommitment(
 
   // NOTE: 256-bit salt → BigInt conversion is safe for BN128 field (~254 bits)
   // Poseidon hash performs automatic modular reduction if needed
-  const commitment = await poseidonHash([
-    birthYear,
-    nationality,
-    BigInt('0x' + salt),
-  ]);
+  const commitment = await poseidonHash([birthYear, nationality, BigInt('0x' + salt)]);
   return commitment.toString();
 }

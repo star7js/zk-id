@@ -88,7 +88,7 @@ export async function runBenchmark(
   name: string,
   fn: () => Promise<void>,
   iterations: number = 100,
-  warmup: number = 5
+  warmup: number = 5,
 ): Promise<BenchmarkResult> {
   // Warmup runs (not measured)
   for (let i = 0; i < warmup; i++) {
@@ -135,21 +135,17 @@ export async function runBenchmark(
  *          otherwise an object with pass/fail and details.
  */
 export function checkTarget(
-  result: BenchmarkResult
+  result: BenchmarkResult,
 ): { passed: boolean; target: BenchmarkTarget; violations: string[] } | null {
   const target = PERFORMANCE_TARGETS.find((t) => t.name === result.name);
   if (!target) return null;
 
   const violations: string[] = [];
   if (result.avgMs > target.maxAvgMs) {
-    violations.push(
-      `avg ${result.avgMs.toFixed(2)}ms exceeds target ${target.maxAvgMs}ms`
-    );
+    violations.push(`avg ${result.avgMs.toFixed(2)}ms exceeds target ${target.maxAvgMs}ms`);
   }
   if (result.p95Ms > target.maxP95Ms) {
-    violations.push(
-      `p95 ${result.p95Ms.toFixed(2)}ms exceeds target ${target.maxP95Ms}ms`
-    );
+    violations.push(`p95 ${result.p95Ms.toFixed(2)}ms exceeds target ${target.maxP95Ms}ms`);
   }
 
   return {

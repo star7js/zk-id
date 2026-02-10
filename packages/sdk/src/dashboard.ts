@@ -6,12 +6,7 @@
  * This is a data-layer prototype; a full dashboard UI is out of scope.
  */
 
-import {
-  AuditLogger,
-  InMemoryAuditLogger,
-  AuditEntry,
-  RevocationStore,
-} from '@zk-id/core';
+import { InMemoryAuditLogger, RevocationStore } from '@zk-id/core';
 import { IssuerRegistry, IssuerRecord } from './server';
 
 // ---------------------------------------------------------------------------
@@ -105,7 +100,7 @@ export class IssuerDashboard {
   constructor(
     registry: DashboardIssuerRegistry,
     auditLogger: InMemoryAuditLogger,
-    revocationStore?: RevocationStore
+    revocationStore?: RevocationStore,
   ) {
     this.registry = registry;
     this.auditLogger = auditLogger;
@@ -138,21 +133,11 @@ export class IssuerDashboard {
     }
 
     const activeIssuers = issuers.filter((i) => i.status === 'active').length;
-    const suspendedIssuers = issuers.filter(
-      (i) => i.status === 'suspended'
-    ).length;
-    const revokedIssuers = issuers.filter(
-      (i) => i.status === 'revoked'
-    ).length;
+    const suspendedIssuers = issuers.filter((i) => i.status === 'suspended').length;
+    const revokedIssuers = issuers.filter((i) => i.status === 'revoked').length;
 
-    const totalCredentialsIssued = issuers.reduce(
-      (sum, i) => sum + i.credentialsIssued,
-      0
-    );
-    const totalCredentialsRevoked = issuers.reduce(
-      (sum, i) => sum + i.credentialsRevoked,
-      0
-    );
+    const totalCredentialsIssued = issuers.reduce((sum, i) => sum + i.credentialsIssued, 0);
+    const totalCredentialsRevoked = issuers.reduce((sum, i) => sum + i.credentialsRevoked, 0);
 
     let revokedCredentialCount: number | null = null;
     if (this.revocationStore) {
@@ -191,10 +176,10 @@ export class IssuerDashboard {
 
     // Count audit events
     const issueEntries = this.auditLogger.entries.filter(
-      (e) => e.action === 'issue' && e.actor === issuerName
+      (e) => e.action === 'issue' && e.actor === issuerName,
     );
     const revokeEntries = this.auditLogger.entries.filter(
-      (e) => e.action === 'revoke' && e.actor === issuerName
+      (e) => e.action === 'revoke' && e.actor === issuerName,
     );
 
     // Find most recent issuance

@@ -8,7 +8,7 @@ function makeAgeProofRevocable(
   merkleRoot: string,
   minAge: number,
   nonce: string,
-  requestTimestamp: number
+  requestTimestamp: number,
 ): AgeProofRevocable {
   return {
     proofType: 'age-revocable',

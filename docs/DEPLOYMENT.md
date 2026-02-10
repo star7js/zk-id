@@ -41,6 +41,7 @@ npm install @zk-id/issuer @zk-id/core
 ```
 
 **Packages:**
+
 - `@zk-id/issuer` — Credential issuance, signing, key management
 - `@zk-id/core` — Shared types, credential schema, Poseidon hashing
 
@@ -53,10 +54,12 @@ npm install @zk-id/sdk @zk-id/core
 ```
 
 **Packages:**
+
 - `@zk-id/sdk` — Server-side verification, nonce/revocation stores
 - `@zk-id/core` — Shared types, verification logic
 
 **Optional:**
+
 - `@zk-id/redis` — Redis-backed nonce and revocation stores (recommended for production)
 
 **Use case:** Websites, APIs validating age/nationality proofs
@@ -68,6 +71,7 @@ npm install @zk-id/core
 ```
 
 **Packages:**
+
 - `@zk-id/core` — Client-side proof generation (browser or Node.js)
 
 **Use case:** Frontend applications generating proofs in users' browsers
@@ -212,7 +216,7 @@ import { EnvelopeKeyManager } from '@zk-id/issuer';
 
 const keyManager = new EnvelopeKeyManager(
   process.env.MASTER_KEY, // AES-256-GCM key (store in environment)
-  './encrypted-keys'
+  './encrypted-keys',
 );
 // Keys encrypted at rest with AES-256-GCM
 ```
@@ -229,6 +233,7 @@ const keyManager = new KMSKeyManager(kms, 'arn:aws:kms:...');
 ```
 
 **Supported HSM/KMS:**
+
 - AWS KMS (recommended for AWS deployments)
 - Azure Key Vault (recommended for Azure deployments)
 - HashiCorp Vault (cross-cloud)
@@ -383,6 +388,7 @@ server {
 **Redis deployment options:**
 
 1. **AWS ElastiCache** (managed, recommended for AWS)
+
    ```typescript
    const redis = new Redis({
      host: 'zk-id.abc123.cache.amazonaws.com',
@@ -392,6 +398,7 @@ server {
    ```
 
 2. **Redis Cluster** (self-managed, high availability)
+
    ```bash
    # redis.conf
    cluster-enabled yes
@@ -505,11 +512,13 @@ const tree = new ValidCredentialTree(treeStore);
 ### 9.1 Key Metrics
 
 **Verification metrics:**
+
 - `verification_total{result="success|failure"}` — Total verifications
 - `verification_duration_seconds` — Proof verification latency (histogram)
 - `verification_errors{error_type="..."}` — Errors by category
 
 **System metrics:**
+
 - `nonce_store_size` — Number of active nonces
 - `rate_limit_rejects_total` — Rate limit rejections
 - `issuer_registry_cache_hits` — Issuer lookup cache efficiency
@@ -538,10 +547,7 @@ server.onVerification((event) => {
     claim_type: event.claimType,
   });
 
-  verificationDuration.observe(
-    { claim_type: event.claimType },
-    event.verificationTimeMs / 1000,
-  );
+  verificationDuration.observe({ claim_type: event.claimType }, event.verificationTimeMs / 1000);
 });
 ```
 
@@ -562,22 +568,27 @@ server.onVerification((event) => {
 ### 10.1 Common Issues
 
 **Issue:** `Error: Verification key not configured`
+
 - **Cause:** Missing verification key file
 - **Fix:** Ensure verification key paths are correct in config
 
 **Issue:** `Error: Invalid proof constraints`
+
 - **Cause:** Proof generated with mismatched circuit or public signals
 - **Fix:** Verify client and server use same circuit version
 
 **Issue:** `Error: Nonce already used (replay attack detected)`
+
 - **Cause:** Proof submitted twice or nonce store failure
 - **Fix:** Check Redis connectivity, verify nonce TTL is configured
 
 **Issue:** `Error: Request timestamp is too far in the future`
+
 - **Cause:** Clock skew between client and server
 - **Fix:** Enable NTP on servers, increase `maxFutureSkewMs` cautiously
 
 **Issue:** `Error: Rate limit exceeded`
+
 - **Cause:** Client exceeded rate limit
 - **Fix:** Implement exponential backoff on client side
 
@@ -615,15 +626,17 @@ class S3AuditLogger implements AuditLogger {
 
   async log(entry: AuditEntry): Promise<void> {
     const key = `audit/${entry.timestamp.slice(0, 10)}/${Date.now()}.json`;
-    await this.s3.putObject({
-      Bucket: this.bucket,
-      Key: key,
-      Body: JSON.stringify(entry),
-      ContentType: 'application/json',
-      ServerSideEncryption: 'AES256',
-      ObjectLockMode: 'COMPLIANCE', // WORM (write-once-read-many)
-      ObjectLockRetainUntilDate: new Date(Date.now() + 7 * 365 * 24 * 60 * 60 * 1000), // 7 years
-    }).promise();
+    await this.s3
+      .putObject({
+        Bucket: this.bucket,
+        Key: key,
+        Body: JSON.stringify(entry),
+        ContentType: 'application/json',
+        ServerSideEncryption: 'AES256',
+        ObjectLockMode: 'COMPLIANCE', // WORM (write-once-read-many)
+        ObjectLockRetainUntilDate: new Date(Date.now() + 7 * 365 * 24 * 60 * 60 * 1000), // 7 years
+      })
+      .promise();
   }
 }
 ```

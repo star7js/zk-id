@@ -63,45 +63,39 @@ describe('Protocol Version', () => {
     it('should throw on missing prefix', () => {
       assert.throws(
         () => parseProtocolVersion('1.0-draft'),
-        /Invalid protocol version format: 1.0-draft/
+        /Invalid protocol version format: 1.0-draft/,
       );
     });
 
     it('should throw on wrong prefix', () => {
       assert.throws(
         () => parseProtocolVersion('zkid/1.0'),
-        /Invalid protocol version format: zkid\/1.0/
+        /Invalid protocol version format: zkid\/1.0/,
       );
     });
 
     it('should throw on missing minor version', () => {
       assert.throws(
         () => parseProtocolVersion('zk-id/1'),
-        /Invalid protocol version format: zk-id\/1/
+        /Invalid protocol version format: zk-id\/1/,
       );
     });
 
     it('should throw on non-numeric versions', () => {
       assert.throws(
         () => parseProtocolVersion('zk-id/v1.0'),
-        /Invalid protocol version format: zk-id\/v1.0/
+        /Invalid protocol version format: zk-id\/v1.0/,
       );
     });
 
     it('should throw on empty string', () => {
-      assert.throws(
-        () => parseProtocolVersion(''),
-        /Invalid protocol version format: /
-      );
+      assert.throws(() => parseProtocolVersion(''), /Invalid protocol version format: /);
     });
   });
 
   describe('isProtocolCompatible', () => {
     it('should return true for identical versions', () => {
-      assert.strictEqual(
-        isProtocolCompatible('zk-id/1.0-draft', 'zk-id/1.0-draft'),
-        true
-      );
+      assert.strictEqual(isProtocolCompatible('zk-id/1.0-draft', 'zk-id/1.0-draft'), true);
     });
 
     it('should return true for same major, different minor', () => {
@@ -147,11 +141,11 @@ describe('Protocol Version', () => {
         for (const entry of DEPRECATION_SCHEDULE) {
           assert.doesNotThrow(
             () => parseProtocolVersion(entry.version),
-            `Schedule entry version ${entry.version} should be parseable`
+            `Schedule entry version ${entry.version} should be parseable`,
           );
           assert.ok(
             ['active', 'deprecated', 'sunset'].includes(entry.status),
-            `Invalid status: ${entry.status}`
+            `Invalid status: ${entry.status}`,
           );
         }
       });
@@ -291,16 +285,17 @@ describe('Protocol Version', () => {
           deprecatedAt: '2025-06-01T00:00:00Z',
         };
 
-        const headers = buildDeprecationHeaders(
-          entry,
-          'https://docs.example.com/migration'
-        );
+        const headers = buildDeprecationHeaders(entry, 'https://docs.example.com/migration');
         assert.ok(headers['Link']);
 
         // Extract URL from Link header format: <URL>; rel="..."
         const linkMatch = headers['Link'].match(/<(.+?)>/);
         assert.ok(linkMatch, 'Link header should contain a URL in angle brackets');
-        assert.strictEqual(linkMatch[1], 'https://docs.example.com/migration', 'URL should match exactly');
+        assert.strictEqual(
+          linkMatch[1],
+          'https://docs.example.com/migration',
+          'URL should match exactly',
+        );
 
         assert.ok(headers['Link'].includes('rel="sunset"'));
       });

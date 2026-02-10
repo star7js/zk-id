@@ -1,8 +1,7 @@
 import { expect } from 'chai';
 import { PostgresValidCredentialTree } from '../src/postgres-valid-credential-tree';
 
-const PG_URL =
-  process.env.ZKID_PG_URL || process.env.POSTGRES_URL || process.env.PG_URL;
+const PG_URL = process.env.ZKID_PG_URL || process.env.POSTGRES_URL || process.env.PG_URL;
 
 describe('PostgresValidCredentialTree', function () {
   if (!PG_URL) {

@@ -1,4 +1,12 @@
-import { createCredential, Credential, RevocationStore, SignedCredential, credentialSignaturePayload, AuditLogger, ConsoleAuditLogger } from '@zk-id/core';
+import {
+  createCredential,
+  Credential,
+  RevocationStore,
+  SignedCredential,
+  credentialSignaturePayload,
+  AuditLogger,
+  ConsoleAuditLogger,
+} from '@zk-id/core';
 import { generateKeyPairSync, sign, verify, KeyObject } from 'crypto';
 
 /**
@@ -46,7 +54,7 @@ export class CredentialIssuer {
   async issueCredential(
     birthYear: number,
     nationality: number,
-    userId?: string
+    userId?: string,
   ): Promise<SignedCredential> {
     // In production, this would first verify the user's identity
     // through government ID, biometrics, or trusted identity provider
@@ -78,11 +86,7 @@ export class CredentialIssuer {
    * preventing issuer substitution attacks.
    */
   private signCredential(credential: Credential, issuedAt: string): string {
-    const message = credentialSignaturePayload(
-      credential,
-      this.config.name,
-      issuedAt
-    );
+    const message = credentialSignaturePayload(credential, this.config.name, issuedAt);
 
     // Ed25519 signature using the issuer's private key
     const signature = sign(null, Buffer.from(message), this.config.signingKey);
@@ -100,7 +104,7 @@ export class CredentialIssuer {
     const message = credentialSignaturePayload(
       signedCredential.credential,
       signedCredential.issuer,
-      signedCredential.issuedAt
+      signedCredential.issuedAt,
     );
 
     try {

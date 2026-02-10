@@ -1,10 +1,6 @@
 import { expect } from 'chai';
-import { generateKeyPairSync, randomBytes, KeyObject, sign, verify } from 'crypto';
-import {
-  EnvelopeKeyManager,
-  FileKeyManager,
-  SealedKeyBundle,
-} from '../src/kms';
+import { generateKeyPairSync, randomBytes, KeyObject, sign as _sign, verify } from 'crypto';
+import { EnvelopeKeyManager, FileKeyManager, SealedKeyBundle } from '../src/kms';
 import { ManagedCredentialIssuer } from '../src/managed-issuer';
 import { CredentialIssuer } from '../src/issuer';
 import { credentialSignaturePayload } from '@zk-id/core';
@@ -36,9 +32,9 @@ describe('KMS Integration', () => {
       const manager = await EnvelopeKeyManager.unseal(bundle, masterKey);
 
       const payload = Buffer.from('test message');
-      const signature = await manager.sign(payload);
+      const _signature = await manager.sign(payload);
 
-      const isValid = verify(null, payload, manager.getPublicKey(), signature);
+      const isValid = verify(null, payload, manager.getPublicKey(), sign as _signature);
       expect(isValid).to.be.true;
     });
 
@@ -84,9 +80,7 @@ describe('KMS Integration', () => {
       const bundle2 = await EnvelopeKeyManager.seal('Test', masterKey);
 
       expect(bundle1.iv).to.not.equal(bundle2.iv);
-      expect(bundle1.encryptedPrivateKey).to.not.equal(
-        bundle2.encryptedPrivateKey
-      );
+      expect(bundle1.encryptedPrivateKey).to.not.equal(bundle2.encryptedPrivateKey);
     });
   });
 
@@ -105,36 +99,24 @@ describe('KMS Integration', () => {
     });
 
     it('should create from PEM strings', () => {
-      const manager = FileKeyManager.fromPemStrings(
-        'PEM Issuer',
-        privateKeyPem,
-        publicKeyPem
-      );
+      const manager = FileKeyManager.fromPemStrings('PEM Issuer', privateKeyPem, publicKeyPem);
 
       expect(manager.getIssuerName()).to.equal('PEM Issuer');
       expect(manager.getPublicKey()).to.be.an.instanceOf(KeyObject);
     });
 
     it('should produce valid signatures', async () => {
-      const manager = FileKeyManager.fromPemStrings(
-        'Sig PEM',
-        privateKeyPem,
-        publicKeyPem
-      );
+      const manager = FileKeyManager.fromPemStrings('Sig PEM', privateKeyPem, publicKeyPem);
 
       const payload = Buffer.from('hello world');
-      const signature = await manager.sign(payload);
+      const _signature = await manager.sign(payload);
 
-      const isValid = verify(null, payload, manager.getPublicKey(), signature);
+      const isValid = verify(null, payload, manager.getPublicKey(), sign as _signature);
       expect(isValid).to.be.true;
     });
 
     it('should work with ManagedCredentialIssuer', async () => {
-      const manager = FileKeyManager.fromPemStrings(
-        'File Issuer',
-        privateKeyPem,
-        publicKeyPem
-      );
+      const manager = FileKeyManager.fromPemStrings('File Issuer', privateKeyPem, publicKeyPem);
       const issuer = new ManagedCredentialIssuer(manager);
 
       const signed = await issuer.issueCredential(1985, 826);
@@ -142,27 +124,20 @@ describe('KMS Integration', () => {
       expect(signed.credential.birthYear).to.equal(1985);
 
       // Cross-verify with CredentialIssuer.verifySignature
-      const isValid = CredentialIssuer.verifySignature(
-        signed,
-        manager.getPublicKey()
-      );
+      const isValid = CredentialIssuer.verifySignature(signed, manager.getPublicKey());
       expect(isValid).to.be.true;
     });
 
     it('should reject invalid private key PEM', () => {
       const invalidPem = '-----BEGIN INVALID KEY-----\ngarbage\n-----END INVALID KEY-----';
 
-      expect(() =>
-        FileKeyManager.fromPemStrings('Test', invalidPem, publicKeyPem)
-      ).to.throw();
+      expect(() => FileKeyManager.fromPemStrings('Test', invalidPem, publicKeyPem)).to.throw();
     });
 
     it('should reject invalid public key PEM', () => {
       const invalidPem = '-----BEGIN INVALID KEY-----\ngarbage\n-----END INVALID KEY-----';
 
-      expect(() =>
-        FileKeyManager.fromPemStrings('Test', privateKeyPem, invalidPem)
-      ).to.throw();
+      expect(() => FileKeyManager.fromPemStrings('Test', privateKeyPem, invalidPem)).to.throw();
     });
 
     it('should reject empty PEM strings', () => {
@@ -178,16 +153,12 @@ describe('KMS Integration', () => {
       }) as string;
 
       // Create manager with mismatched keys
-      const manager = FileKeyManager.fromPemStrings(
-        'Mismatched',
-        privateKeyPem,
-        otherPublicKeyPem
-      );
+      const manager = FileKeyManager.fromPemStrings('Mismatched', privateKeyPem, otherPublicKeyPem);
 
       // Signature will be valid with private key but won't verify with the public key
       const payload = Buffer.from('test');
-      manager.sign(payload).then((signature) => {
-        const isValid = verify(null, payload, manager.getPublicKey(), signature);
+      manager.sign(payload).then((_signature) => {
+        const isValid = verify(null, payload, manager.getPublicKey(), _signature);
         expect(isValid).to.be.false; // Mismatched keys
       });
     });
@@ -212,14 +183,14 @@ describe('KMS Integration', () => {
       // Verify with old key works
       const oldKeyValid = CredentialIssuer.verifySignature(
         credWithOldKey,
-        oldManager.getPublicKey()
+        oldManager.getPublicKey(),
       );
       expect(oldKeyValid).to.be.true;
 
       // Verify with new key fails (different key)
       const newKeyValid = CredentialIssuer.verifySignature(
         credWithOldKey,
-        newManager.getPublicKey()
+        newManager.getPublicKey(),
       );
       expect(newKeyValid).to.be.false;
 
@@ -230,7 +201,7 @@ describe('KMS Integration', () => {
       // Verify with new key works
       const newKeyValid2 = CredentialIssuer.verifySignature(
         credWithNewKey,
-        newManager.getPublicKey()
+        newManager.getPublicKey(),
       );
       expect(newKeyValid2).to.be.true;
     });
@@ -249,20 +220,14 @@ describe('KMS Integration', () => {
       const oldIssuer = new ManagedCredentialIssuer(oldManager);
       const oldCred = await oldIssuer.issueCredential(1995, 840);
 
-      const stillValid = CredentialIssuer.verifySignature(
-        oldCred,
-        oldManager.getPublicKey()
-      );
+      const stillValid = CredentialIssuer.verifySignature(oldCred, oldManager.getPublicKey());
       expect(stillValid).to.be.true;
 
       // New credentials use new key
       const newIssuer = new ManagedCredentialIssuer(newManager);
       const newCred = await newIssuer.issueCredential(1995, 840);
 
-      const newValid = CredentialIssuer.verifySignature(
-        newCred,
-        newManager.getPublicKey()
-      );
+      const newValid = CredentialIssuer.verifySignature(newCred, newManager.getPublicKey());
       expect(newValid).to.be.true;
     });
   });
@@ -278,8 +243,8 @@ describe('KMS Integration', () => {
         expect(manager.getIssuerName()).to.equal(`Issuer-${i}`);
 
         const payload = Buffer.from(`message-${i}`);
-        const signature = await manager.sign(payload);
-        const isValid = verify(null, payload, manager.getPublicKey(), signature);
+        const _signature = await manager.sign(payload);
+        const isValid = verify(null, payload, manager.getPublicKey(), sign as _signature);
         expect(isValid).to.be.true;
       }
     });
@@ -389,12 +354,8 @@ describe('KMS Integration', () => {
       // Each issuer should have unique keys
       for (let i = 0; i < issuers.length; i++) {
         for (let j = i + 1; j < issuers.length; j++) {
-          const pub1 = issuers[i].manager
-            .getPublicKey()
-            .export({ type: 'spki', format: 'pem' });
-          const pub2 = issuers[j].manager
-            .getPublicKey()
-            .export({ type: 'spki', format: 'pem' });
+          const pub1 = issuers[i].manager.getPublicKey().export({ type: 'spki', format: 'pem' });
+          const pub2 = issuers[j].manager.getPublicKey().export({ type: 'spki', format: 'pem' });
 
           expect(pub1).to.not.equal(pub2);
         }

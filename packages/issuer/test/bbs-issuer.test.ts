@@ -236,7 +236,7 @@ describe('BBSCredentialIssuer', () => {
           cred.issuerPublicKey,
           cred.signature,
           cred.messages,
-          cred.header
+          cred.header,
         );
         expect(valid).to.be.true;
       }
@@ -269,12 +269,7 @@ describe('BBSCredentialIssuer', () => {
       cred.signature[0] = cred.signature[0] ^ 0xff;
 
       try {
-        await verifyBBSSignature(
-          cred.issuerPublicKey,
-          cred.signature,
-          cred.messages,
-          cred.header
-        );
+        await verifyBBSSignature(cred.issuerPublicKey, cred.signature, cred.messages, cred.header);
         expect.fail('Should have thrown or returned false');
       } catch (error: any) {
         // Tampered signature may throw during deserialization
@@ -293,7 +288,7 @@ describe('BBSCredentialIssuer', () => {
         cred.issuerPublicKey,
         cred.signature,
         wrongMessages,
-        cred.header
+        cred.header,
       );
       expect(valid).to.be.false;
     });
@@ -314,13 +309,13 @@ describe('BBSCredentialIssuer', () => {
         issuer1.getPublicKey(),
         cred1.signature,
         cred1.messages,
-        cred1.header
+        cred1.header,
       );
       const valid2 = await verifyBBSSignature(
         issuer2.getPublicKey(),
         cred2.signature,
         cred2.messages,
-        cred2.header
+        cred2.header,
       );
 
       expect(valid1).to.be.true;
@@ -331,13 +326,13 @@ describe('BBSCredentialIssuer', () => {
         issuer2.getPublicKey(),
         cred1.signature,
         cred1.messages,
-        cred1.header
+        cred1.header,
       );
       const cross2 = await verifyBBSSignature(
         issuer1.getPublicKey(),
         cred2.signature,
         cred2.messages,
-        cred2.header
+        cred2.header,
       );
 
       expect(cross1).to.be.false;

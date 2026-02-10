@@ -17,7 +17,7 @@ import { Credential } from './types';
 export function credentialSignaturePayload(
   credential: Credential,
   issuer?: string,
-  issuedAt?: string
+  issuedAt?: string,
 ): string {
   const payload: Record<string, unknown> = {
     id: credential.id,

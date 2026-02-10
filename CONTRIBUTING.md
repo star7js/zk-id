@@ -59,6 +59,7 @@ npm run build
 ```
 
 Build order matters! The build script compiles packages in the correct order:
+
 1. `@zk-id/circuits` (no TypeScript build, just circuits)
 2. `@zk-id/core` (depended on by all other packages)
 3. `@zk-id/sdk` (depends on core)
@@ -115,14 +116,12 @@ Workspaces are defined in the root `package.json`:
 
 ```json
 {
-  "workspaces": [
-    "packages/*",
-    "examples/*"
-  ]
+  "workspaces": ["packages/*", "examples/*"]
 }
 ```
 
 **Benefits:**
+
 - Shared dependencies (single `node_modules`)
 - Cross-package linking (no `npm link` needed)
 - Unified commands (`npm test` runs tests for all packages)
@@ -160,12 +159,14 @@ npm run test --workspaces
 ### Daily Development
 
 1. **Pull latest changes**
+
    ```bash
    git checkout main
    git pull upstream main
    ```
 
 2. **Create a feature branch**
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
@@ -176,6 +177,7 @@ npm run test --workspaces
    - Update documentation
 
 4. **Build affected packages**
+
    ```bash
    # Build specific package
    npm run build --workspace=@zk-id/core
@@ -185,6 +187,7 @@ npm run test --workspaces
    ```
 
 5. **Run tests**
+
    ```bash
    # Test specific package
    npm test --workspace=@zk-id/core
@@ -229,12 +232,14 @@ npm run build
 ### Adding a New Circuit
 
 1. **Create the circuit file**
+
    ```bash
    # In packages/circuits/src/
    touch packages/circuits/src/my-new-circuit.circom
    ```
 
 2. **Write the circuit**
+
    ```circom
    pragma circom 2.1.6;
 
@@ -252,6 +257,7 @@ npm run build
    Edit `packages/circuits/scripts/compile.sh` to include your circuit.
 
 4. **Compile and setup**
+
    ```bash
    npm run compile --workspace=@zk-id/circuits
    npm run setup --workspace=@zk-id/circuits
@@ -268,12 +274,14 @@ npm run build
 ### Adding a New Package
 
 1. **Create package directory**
+
    ```bash
    mkdir -p packages/my-new-package/src
    cd packages/my-new-package
    ```
 
 2. **Create package.json**
+
    ```json
    {
      "name": "@zk-id/my-new-package",
@@ -374,6 +382,7 @@ describe('MyCircuit', () => {
 ### Test Coverage
 
 While we don't enforce strict coverage targets, aim for:
+
 - **Core functionality**: 80%+ coverage
 - **Critical paths**: 100% coverage
 - **Edge cases**: Well documented tests
@@ -391,10 +400,7 @@ While we don't enforce strict coverage targets, aim for:
 
 ```typescript
 // Good
-export async function generateProof(
-  credential: Credential,
-  minAge: number
-): Promise<AgeProof> {
+export async function generateProof(credential: Credential, minAge: number): Promise<AgeProof> {
   validateCredential(credential);
   validateMinAge(minAge);
 
@@ -502,6 +508,7 @@ Follow the **Conventional Commits** style:
 ```
 
 **Types:**
+
 - `feat:` — New feature
 - `fix:` — Bug fix
 - `docs:` — Documentation changes
@@ -575,6 +582,7 @@ docs: Update GETTING-STARTED guide
 ### PR Description
 
 Include:
+
 - **What**: What changes does this PR make?
 - **Why**: Why are these changes needed?
 - **How**: How do the changes work?
@@ -603,7 +611,7 @@ Include:
 
 ## Release Process
 
-*(For maintainers)*
+_(For maintainers)_
 
 ### Version Numbering
 
@@ -616,6 +624,7 @@ We follow [Semantic Versioning](https://semver.org/):
 ### Pre-1.0 Status
 
 Currently at version **0.6.0** (pre-release):
+
 - APIs may change
 - Not recommended for production use
 - Development Powers of Tau (not production-ready)

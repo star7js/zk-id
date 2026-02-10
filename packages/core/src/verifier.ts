@@ -21,7 +21,7 @@ import { constantTimeEqual, constantTimeArrayEqual } from './timing-safe';
  */
 export async function verifyAgeProof(
   proof: AgeProof,
-  verificationKey: VerificationKey
+  verificationKey: VerificationKey,
 ): Promise<boolean> {
   // Convert proof to snarkjs format
   const snarkProof = {
@@ -42,11 +42,7 @@ export async function verifyAgeProof(
   ];
 
   // Verify the proof
-  const isValid = await snarkjs.groth16.verify(
-    verificationKey,
-    publicSignals,
-    snarkProof
-  );
+  const isValid = await snarkjs.groth16.verify(verificationKey, publicSignals, snarkProof);
 
   return isValid;
 }
@@ -86,8 +82,10 @@ export function validateProofConstraints(proof: AgeProof): {
   }
   // Check timestamp staleness (5 minutes)
   const nowMs = Date.now();
-  if (proof.publicSignals.requestTimestamp > 0 &&
-      nowMs - proof.publicSignals.requestTimestamp > 5 * 60 * 1000) {
+  if (
+    proof.publicSignals.requestTimestamp > 0 &&
+    nowMs - proof.publicSignals.requestTimestamp > 5 * 60 * 1000
+  ) {
     errors.push('Request timestamp is stale (> 5 minutes old)');
   }
 
@@ -106,7 +104,7 @@ export function validateProofConstraints(proof: AgeProof): {
  */
 export async function verifyNationalityProof(
   proof: NationalityProof,
-  verificationKey: VerificationKey
+  verificationKey: VerificationKey,
 ): Promise<boolean> {
   // Convert proof to snarkjs format
   const snarkProof = {
@@ -126,11 +124,7 @@ export async function verifyNationalityProof(
   ];
 
   // Verify the proof
-  const isValid = await snarkjs.groth16.verify(
-    verificationKey,
-    publicSignals,
-    snarkProof
-  );
+  const isValid = await snarkjs.groth16.verify(verificationKey, publicSignals, snarkProof);
 
   return isValid;
 }
@@ -144,7 +138,7 @@ export async function verifyNationalityProof(
  */
 export async function verifyAgeProofSigned(
   proof: AgeProofSigned,
-  verificationKey: VerificationKey
+  verificationKey: VerificationKey,
 ): Promise<boolean> {
   const snarkProof = {
     pi_a: proof.proof.pi_a,
@@ -163,11 +157,7 @@ export async function verifyAgeProofSigned(
     ...proof.publicSignals.issuerPublicKey,
   ];
 
-  const isValid = await snarkjs.groth16.verify(
-    verificationKey,
-    publicSignals,
-    snarkProof
-  );
+  const isValid = await snarkjs.groth16.verify(verificationKey, publicSignals, snarkProof);
 
   return isValid;
 }
@@ -183,7 +173,7 @@ export async function verifyAgeProofSigned(
 export async function verifyAgeProofSignedWithIssuer(
   proof: AgeProofSigned,
   verificationKey: VerificationKey,
-  trustedIssuerPublicKeyBits: string[]
+  trustedIssuerPublicKeyBits: string[],
 ): Promise<boolean> {
   if (!constantTimeArrayEqual(trustedIssuerPublicKeyBits, proof.publicSignals.issuerPublicKey)) {
     return false;
@@ -200,7 +190,7 @@ export async function verifyAgeProofSignedWithIssuer(
  */
 export async function verifyNationalityProofSigned(
   proof: NationalityProofSigned,
-  verificationKey: VerificationKey
+  verificationKey: VerificationKey,
 ): Promise<boolean> {
   const snarkProof = {
     pi_a: proof.proof.pi_a,
@@ -218,11 +208,7 @@ export async function verifyNationalityProofSigned(
     ...proof.publicSignals.issuerPublicKey,
   ];
 
-  const isValid = await snarkjs.groth16.verify(
-    verificationKey,
-    publicSignals,
-    snarkProof
-  );
+  const isValid = await snarkjs.groth16.verify(verificationKey, publicSignals, snarkProof);
 
   return isValid;
 }
@@ -238,7 +224,7 @@ export async function verifyNationalityProofSigned(
 export async function verifyNationalityProofSignedWithIssuer(
   proof: NationalityProofSigned,
   verificationKey: VerificationKey,
-  trustedIssuerPublicKeyBits: string[]
+  trustedIssuerPublicKeyBits: string[],
 ): Promise<boolean> {
   if (!constantTimeArrayEqual(trustedIssuerPublicKeyBits, proof.publicSignals.issuerPublicKey)) {
     return false;
@@ -274,8 +260,10 @@ export function validateNationalityProofConstraints(proof: NationalityProof): {
     errors.push('Invalid request timestamp');
   }
   const nowMs2 = Date.now();
-  if (proof.publicSignals.requestTimestamp > 0 &&
-      nowMs2 - proof.publicSignals.requestTimestamp > 5 * 60 * 1000) {
+  if (
+    proof.publicSignals.requestTimestamp > 0 &&
+    nowMs2 - proof.publicSignals.requestTimestamp > 5 * 60 * 1000
+  ) {
     errors.push('Request timestamp is stale (> 5 minutes old)');
   }
 
@@ -296,10 +284,13 @@ export function validateNationalityProofConstraints(proof: NationalityProof): {
 export async function verifyAgeProofRevocable(
   proof: AgeProofRevocable,
   verificationKey: VerificationKey,
-  expectedMerkleRoot?: string
+  expectedMerkleRoot?: string,
 ): Promise<boolean> {
   // Optional server-side freshness check
-  if (expectedMerkleRoot != null && !constantTimeEqual(proof.publicSignals.merkleRoot, expectedMerkleRoot)) {
+  if (
+    expectedMerkleRoot != null &&
+    !constantTimeEqual(proof.publicSignals.merkleRoot, expectedMerkleRoot)
+  ) {
     return false;
   }
 
@@ -324,11 +315,7 @@ export async function verifyAgeProofRevocable(
   ];
 
   // Verify the proof
-  const isValid = await snarkjs.groth16.verify(
-    verificationKey,
-    publicSignals,
-    snarkProof
-  );
+  const isValid = await snarkjs.groth16.verify(verificationKey, publicSignals, snarkProof);
 
   return isValid;
 }
@@ -374,8 +361,10 @@ export function validateAgeProofRevocableConstraints(proof: AgeProofRevocable): 
     errors.push('Invalid request timestamp');
   }
   const nowMs3 = Date.now();
-  if (proof.publicSignals.requestTimestamp > 0 &&
-      nowMs3 - proof.publicSignals.requestTimestamp > 5 * 60 * 1000) {
+  if (
+    proof.publicSignals.requestTimestamp > 0 &&
+    nowMs3 - proof.publicSignals.requestTimestamp > 5 * 60 * 1000
+  ) {
     errors.push('Request timestamp is stale (> 5 minutes old)');
   }
 
@@ -392,6 +381,7 @@ export function validateAgeProofRevocableConstraints(proof: AgeProofRevocable): 
  * @returns The parsed verification key object
  */
 export async function loadVerificationKey(path: string): Promise<VerificationKey> {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const fs = require('fs').promises;
   const data = await fs.readFile(path, 'utf8');
   return JSON.parse(data);
@@ -410,7 +400,7 @@ export async function verifyBatch(
   proofs: Array<{
     proof: ZkProof;
     verificationKey: VerificationKey;
-  }>
+  }>,
 ): Promise<BatchVerificationResult> {
   // Handle empty array
   if (proofs.length === 0) {
@@ -460,7 +450,7 @@ export async function verifyBatch(
 
   const results = await Promise.all(verificationPromises);
 
-  const verifiedCount = results.filter(r => r.verified).length;
+  const verifiedCount = results.filter((r) => r.verified).length;
   const allVerified = verifiedCount === results.length;
 
   return {
@@ -480,7 +470,7 @@ export async function verifyBatch(
  */
 export async function verifyNullifierProof(
   proof: NullifierProof,
-  verificationKey: VerificationKey
+  verificationKey: VerificationKey,
 ): Promise<boolean> {
   // Convert proof to snarkjs format
   const snarkProof = {
@@ -498,11 +488,7 @@ export async function verifyNullifierProof(
   ];
 
   // Verify the proof
-  const isValid = await snarkjs.groth16.verify(
-    verificationKey,
-    publicSignals,
-    snarkProof
-  );
+  const isValid = await snarkjs.groth16.verify(verificationKey, publicSignals, snarkProof);
 
   return isValid;
 }

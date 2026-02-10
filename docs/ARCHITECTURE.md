@@ -21,10 +21,12 @@ The cryptographic foundation. Written in Circom, compiled to R1CS and WASM.
 Proves that `currentYear - birthYear >= minAge` without revealing `birthYear` or `nationality`.
 
 **Inputs:**
+
 - Private: `birthYear`, `nationality`, `salt`
 - Public: `currentYear`, `minAge`, `credentialHash`
 
 **Constraints:**
+
 - Age calculation: `age = currentYear - birthYear`
 - Range check: `age >= minAge`
 - Birth year validity: `birthYear <= currentYear`
@@ -39,10 +41,12 @@ Proves that `currentYear - birthYear >= minAge` without revealing `birthYear` or
 Proves that `nationality === targetNationality` without revealing `birthYear`.
 
 **Inputs:**
+
 - Private: `birthYear`, `nationality`, `salt`
 - Public: `targetNationality`, `credentialHash`
 
 **Constraints:**
+
 - Nationality check: `nationality === targetNationality`
 - Credential binding: `credentialHash = Poseidon(birthYear, nationality, salt)`
 
@@ -55,6 +59,7 @@ Proves that `nationality === targetNationality` without revealing `birthYear`.
 Computes a Poseidon hash commitment to credential attributes.
 
 **Inputs:**
+
 - `birthYear`: The user's birth year
 - `nationality`: The user's nationality (ISO 3166-1 numeric code)
 - `salt`: Random value for hiding
@@ -62,6 +67,7 @@ Computes a Poseidon hash commitment to credential attributes.
 **Output:** `commitment = Poseidon(birthYear, nationality, salt)`
 
 This commitment:
+
 - Binds proofs to a specific credential (prevents proof reuse)
 - Binds all attributes together (can't prove mismatched age/nationality)
 - Hides the attributes (can't be reversed without knowing the salt)
@@ -87,10 +93,24 @@ TypeScript library that wraps the circuits and provides a developer-friendly API
 const credential = await createCredential(birthYear, nationality);
 
 // Generate age proof (selective disclosure: hides nationality)
-const ageProof = await generateAgeProof(credential, minAge, nonce, requestTimestampMs, wasmPath, zkeyPath);
+const ageProof = await generateAgeProof(
+  credential,
+  minAge,
+  nonce,
+  requestTimestampMs,
+  wasmPath,
+  zkeyPath,
+);
 
 // Generate nationality proof (selective disclosure: hides birth year)
-const nationalityProof = await generateNationalityProof(credential, targetNationality, nonce, requestTimestampMs, wasmPath, zkeyPath);
+const nationalityProof = await generateNationalityProof(
+  credential,
+  targetNationality,
+  nonce,
+  requestTimestampMs,
+  wasmPath,
+  zkeyPath,
+);
 
 // Verify proofs
 const ageValid = await verifyAgeProof(ageProof, verificationKey);
@@ -108,12 +128,14 @@ Service for credential issuance. In production, this would:
 - Handle credential revocation
 
 **Current Implementation:**
+
 - Ed25519 (EdDSA) signatures for production-grade credential signing
 - In-memory key storage (demo - use HSM/KMS in production)
 - Console audit logging (demo)
 - InMemoryRevocationStore for credential revocation
 
 **Production Requirements:**
+
 - Store keys in HSM or cloud KMS (currently in-memory for demo)
 - Implement comprehensive audit logging
 - Add rate limiting and abuse prevention
@@ -134,7 +156,7 @@ Runs in the user's browser. Responsibilities:
 
 ```typescript
 const client = new ZkIdClient({
-  verificationEndpoint: '/api/verify-age'
+  verificationEndpoint: '/api/verify-age',
 });
 
 const verified = await client.verifyAge(18);
@@ -204,11 +226,13 @@ const result = await server.verifyProof(proofResponse);
 ### Threat Model
 
 **Assumptions:**
+
 - Issuers are trusted to verify identity correctly
 - Users keep their credentials and salt values private
 - Verification keys are authentic (from trusted setup)
 
 **Protections Against:**
+
 - ✅ Privacy leakage: Birth year never revealed
 - ✅ Proof forgery: Cryptographically impossible without valid credential
 - ✅ Proof replay: Nonce-based replay protection
@@ -216,6 +240,7 @@ const result = await server.verifyProof(proofResponse);
 - ✅ Rate limit abuse: Server-side rate limiting
 
 **Out of Scope:**
+
 - Issuer compromise (if issuer is malicious, it can issue fake credentials)
 - User credential theft (if attacker gets credential + salt, they can impersonate)
 - Circuit bugs (circuits must be audited before production use)
@@ -223,17 +248,20 @@ const result = await server.verifyProof(proofResponse);
 ### Cryptographic Primitives
 
 **Groth16 ZK-SNARKs:**
+
 - Proof system used for age verification
 - Properties: Succinctness (small proofs), zero-knowledge (reveals nothing beyond validity)
 - Trust setup required (Powers of Tau ceremony)
 - Widely used in production (Zcash, Filecoin, Polygon)
 
 **Poseidon Hash:**
+
 - ZK-friendly hash function (efficient inside SNARKs)
 - Used for credential commitments
 - Much more efficient than SHA-256 in circuits
 
 **BN128 Curve:**
+
 - Elliptic curve used for pairing-based cryptography
 - Standard for Ethereum ZK applications
 
@@ -285,31 +313,31 @@ The credential commitment (`Poseidon(birthYear, nationality, salt)`) is:
 
 ### vs. Traditional ID Upload
 
-| Property | zk-id | ID Upload |
-|----------|-------|-----------|
-| Privacy | ✅ Full | ❌ None |
-| Speed | ✅ Fast | ⚠️ Slow |
-| UX | ✅ Simple | ❌ Complex |
-| Data Breach Risk | ✅ Low | ❌ High |
+| Property         | zk-id     | ID Upload  |
+| ---------------- | --------- | ---------- |
+| Privacy          | ✅ Full   | ❌ None    |
+| Speed            | ✅ Fast   | ⚠️ Slow    |
+| UX               | ✅ Simple | ❌ Complex |
+| Data Breach Risk | ✅ Low    | ❌ High    |
 
 ### vs. OAuth Age Token
 
-| Property | zk-id | OAuth |
-|----------|-------|-------|
-| Privacy | ✅ Full | ⚠️ Partial |
-| Decentralized | ✅ Yes | ❌ No |
-| Vendor Lock-in | ✅ None | ❌ High |
-| Tracking | ✅ No | ❌ Yes |
+| Property       | zk-id   | OAuth      |
+| -------------- | ------- | ---------- |
+| Privacy        | ✅ Full | ⚠️ Partial |
+| Decentralized  | ✅ Yes  | ❌ No      |
+| Vendor Lock-in | ✅ None | ❌ High    |
+| Tracking       | ✅ No   | ❌ Yes     |
 
 ### vs. BBS+ Signatures
 
-| Property | zk-id (SNARKs) | BBS+ |
-|----------|----------------|------|
-| Proof Size | ✅ Small | ✅ Small |
-| Verification Speed | ✅ Fast | ✅ Fast |
-| Circuit Complexity | ⚠️ Requires circuits | ✅ No circuits |
-| Range Proofs | ✅ Native | ⚠️ Requires ZKP layer |
-| Maturity | ✅ Production ready | ⚠️ Emerging |
+| Property           | zk-id (SNARKs)       | BBS+                  |
+| ------------------ | -------------------- | --------------------- |
+| Proof Size         | ✅ Small             | ✅ Small              |
+| Verification Speed | ✅ Fast              | ✅ Fast               |
+| Circuit Complexity | ⚠️ Requires circuits | ✅ No circuits        |
+| Range Proofs       | ✅ Native            | ⚠️ Requires ZKP layer |
+| Maturity           | ✅ Production ready  | ⚠️ Emerging           |
 
 ## Extension Points
 
@@ -331,14 +359,15 @@ Current credentials contain birth year and nationality with selective disclosure
 ```typescript
 interface Credential {
   id: string;
-  birthYear: number;      // Can prove age without revealing nationality
-  nationality: number;    // Can prove nationality without revealing age
+  birthYear: number; // Can prove age without revealing nationality
+  nationality: number; // Can prove nationality without revealing age
   salt: string;
-  commitment: string;     // Binds both attributes together
+  commitment: string; // Binds both attributes together
 }
 ```
 
 **Selective Disclosure Design:**
+
 - Single commitment binds all attributes: `Poseidon(birthYear, nationality, salt)`
 - Each proof circuit includes ALL attributes as private inputs
 - Each circuit only constrains the attributes being proven
@@ -363,12 +392,14 @@ Each attribute can be selectively disclosed using separate ZK proof circuits.
 ZK-ID implements a **two-layer revocation model** for privacy-preserving credential lifecycle management:
 
 #### 1. Simple Blacklist (`RevocationStore`)
+
 - Tracks revoked credential commitments in a traditional key-value store
 - Implementations: `InMemoryRevocationStore`, `PostgresRevocationStore`, `RedisRevocationStore`
 - Used by issuers for administrative revocation checks
 - Does **not** appear in ZK proofs
 
 #### 2. ZK Merkle Whitelist (`ValidCredentialTree`)
+
 - Sparse Merkle tree (depth 10, 1024 leaves) of **valid** (non-revoked) credential commitments
 - Provers generate a **Merkle inclusion witness** at credential issuance time
 - The circuit (`age-verify-revocable.circom`) proves the credential commitment is **in** the valid-set tree
@@ -376,7 +407,9 @@ ZK-ID implements a **two-layer revocation model** for privacy-preserving credent
 - Implementations: `InMemoryValidCredentialTree`, `PostgresValidCredentialTree`
 
 #### Circuit Integration
+
 The `age-verify-revocable` circuit accepts:
+
 - Public input: Merkle root of the valid-set tree
 - Private inputs: credential commitment, Merkle witness (siblings + path indices)
 - Constraints: Verify Merkle path from commitment to root AND age threshold proof
@@ -384,17 +417,20 @@ The `age-verify-revocable` circuit accepts:
 Verifiers accept proofs referencing a recent root (TTL-based), rejecting stale witnesses.
 
 #### Root Distribution & Freshness
+
 - **Root info** includes: root hash, monotonic version, updatedAt timestamp, optional expiresAt/TTL
 - Issuers publish root updates via REST API (GET `/revocation/root`)
 - Clients cache witnesses and check freshness via `isWitnessFresh()` helper
 - **Staleness guard**: Verifiers reject proofs with roots older than TTL (e.g., 7 days)
 
 #### Production Storage
+
 - **Postgres**: Persistent, ACID-compliant storage for revocation state and tree leaves
 - **Redis**: High-throughput caching layer for root distribution and read-heavy workloads
 - Both implementations maintain root versioning and atomic tree updates
 
 #### Privacy Properties
+
 - **Verifier learns**: Only the Merkle root (timestamp via version)
 - **Verifier does NOT learn**: Which credential was used, position in tree, or total valid credential count
 - **Issuer learns**: Revocation events (unavoidable for lifecycle management)

@@ -1,22 +1,20 @@
 import { expect } from 'chai';
-import {
-  BrowserWallet,
-  InMemoryCredentialStore,
-  CredentialStore,
-} from '../src/browser-wallet';
-import { ProofRequest, SignedCredential } from '@zk-id/core';
+import { BrowserWallet, InMemoryCredentialStore, CredentialStore } from '../src/browser-wallet';
+import { SignedCredential } from '@zk-id/core';
 
 // ---------------------------------------------------------------------------
 // Test fixtures
 // ---------------------------------------------------------------------------
 
-function makeSignedCredential(overrides: Partial<{
-  id: string;
-  birthYear: number;
-  nationality: number;
-  issuer: string;
-  issuedAt: string;
-}> = {}): SignedCredential {
+function makeSignedCredential(
+  overrides: Partial<{
+    id: string;
+    birthYear: number;
+    nationality: number;
+    issuer: string;
+    issuedAt: string;
+  }> = {},
+): SignedCredential {
   return {
     credential: {
       id: overrides.id ?? `cred-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -79,7 +77,7 @@ describe('InMemoryCredentialStore', () => {
 
     const result = await store.get('dup');
     expect(result!.issuer).to.equal('IssuerB');
-    expect((await store.getAll())).to.have.length(1);
+    expect(await store.getAll()).to.have.length(1);
   });
 
   it('deletes a credential', async () => {

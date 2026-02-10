@@ -71,11 +71,7 @@ export class EnvelopeKeyManager implements IssuerKeyManager {
   private privateKey: KeyObject;
   private publicKey: KeyObject;
 
-  private constructor(
-    issuerName: string,
-    privateKey: KeyObject,
-    publicKey: KeyObject
-  ) {
+  private constructor(issuerName: string, privateKey: KeyObject, publicKey: KeyObject) {
     this.issuerName = issuerName;
     this.privateKey = privateKey;
     this.publicKey = publicKey;
@@ -119,35 +115,27 @@ export class EnvelopeKeyManager implements IssuerKeyManager {
    * @param masterKey - 32-byte AES-256 master key
    * @returns Sealed key bundle for persistent storage
    */
-  static async seal(
-    issuerName: string,
-    masterKey: Buffer
-  ): Promise<SealedKeyBundle> {
+  static async seal(issuerName: string, masterKey: Buffer): Promise<SealedKeyBundle> {
     if (masterKey.length !== 32) {
       throw new Error('Master key must be 32 bytes (AES-256)');
     }
 
     const { privateKey, publicKey } = await import('crypto').then((c) =>
-      c.generateKeyPairSync('ed25519')
+      c.generateKeyPairSync('ed25519'),
     );
 
     const iv = randomBytes(12);
     const cipher = createCipheriv('aes-256-gcm', masterKey, iv);
     const pkDer = privateKey.export({ type: 'pkcs8', format: 'der' });
 
-    const encrypted = Buffer.concat([
-      cipher.update(pkDer),
-      cipher.final(),
-    ]);
+    const encrypted = Buffer.concat([cipher.update(pkDer), cipher.final()]);
     const authTag = cipher.getAuthTag();
 
     return {
       encryptedPrivateKey: encrypted.toString('hex'),
       iv: iv.toString('hex'),
       authTag: authTag.toString('hex'),
-      publicKeyPem: publicKey
-        .export({ type: 'spki', format: 'pem' })
-        .toString(),
+      publicKeyPem: publicKey.export({ type: 'spki', format: 'pem' }).toString(),
       issuerName,
     };
   }
@@ -159,10 +147,7 @@ export class EnvelopeKeyManager implements IssuerKeyManager {
    * @param masterKey - Same 32-byte master key used to seal
    * @returns EnvelopeKeyManager ready for signing
    */
-  static async unseal(
-    bundle: SealedKeyBundle,
-    masterKey: Buffer
-  ): Promise<EnvelopeKeyManager> {
+  static async unseal(bundle: SealedKeyBundle, masterKey: Buffer): Promise<EnvelopeKeyManager> {
     if (masterKey.length !== 32) {
       throw new Error('Master key must be 32 bytes (AES-256)');
     }
@@ -176,10 +161,7 @@ export class EnvelopeKeyManager implements IssuerKeyManager {
     });
     decipher.setAuthTag(authTag);
 
-    const decrypted = Buffer.concat([
-      decipher.update(encrypted),
-      decipher.final(),
-    ]);
+    const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
 
     const privateKey = createPrivateKey({
       key: decrypted,
@@ -217,11 +199,7 @@ export class FileKeyManager implements IssuerKeyManager {
   private privateKey: KeyObject;
   private publicKey: KeyObject;
 
-  constructor(
-    issuerName: string,
-    privateKey: KeyObject,
-    publicKey: KeyObject
-  ) {
+  constructor(issuerName: string, privateKey: KeyObject, publicKey: KeyObject) {
     this.issuerName = issuerName;
     this.privateKey = privateKey;
     this.publicKey = publicKey;
@@ -268,8 +246,9 @@ export class FileKeyManager implements IssuerKeyManager {
   static fromPemFiles(
     issuerName: string,
     privateKeyPath: string,
-    publicKeyPath: string
+    publicKeyPath: string,
   ): FileKeyManager {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const fs = require('fs');
     const privateKeyPem = fs.readFileSync(privateKeyPath, 'utf8');
     const publicKeyPem = fs.readFileSync(publicKeyPath, 'utf8');
@@ -294,7 +273,7 @@ export class FileKeyManager implements IssuerKeyManager {
   static fromPemStrings(
     issuerName: string,
     privateKeyPem: string,
-    publicKeyPem: string
+    publicKeyPem: string,
   ): FileKeyManager {
     const privateKey = createPrivateKey(privateKeyPem);
     const publicKey = createPublicKey(publicKeyPem);

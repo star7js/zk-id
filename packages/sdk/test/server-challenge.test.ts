@@ -7,7 +7,7 @@ function makeAgeProof(
   credentialHash: string,
   minAge: number,
   nonce: string,
-  requestTimestamp: number
+  requestTimestamp: number,
 ): AgeProof {
   return {
     proofType: 'age',

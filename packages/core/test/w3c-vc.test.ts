@@ -60,9 +60,7 @@ describe('W3C Verifiable Credentials', () => {
         issuerDID: 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
       });
 
-      expect(vc.issuer).to.equal(
-        'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK'
-      );
+      expect(vc.issuer).to.equal('did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK');
     });
 
     it('should accept subject DID', () => {
@@ -71,7 +69,7 @@ describe('W3C Verifiable Credentials', () => {
       });
 
       expect(vc.credentialSubject.id).to.equal(
-        'did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH'
+        'did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH',
       );
     });
 
@@ -149,7 +147,7 @@ describe('W3C Verifiable Credentials', () => {
       } as unknown as W3CVerifiableCredential;
 
       expect(() => fromW3CVerifiableCredential(invalidVC)).to.throw(
-        'Missing zkCredential in credentialSubject'
+        'Missing zkCredential in credentialSubject',
       );
     });
 
@@ -169,9 +167,7 @@ describe('W3C Verifiable Credentials', () => {
         // Missing proof
       } as unknown as W3CVerifiableCredential;
 
-      expect(() => fromW3CVerifiableCredential(invalidVC)).to.throw(
-        'Missing proof or proofValue'
-      );
+      expect(() => fromW3CVerifiableCredential(invalidVC)).to.throw('Missing proof or proofValue');
     });
   });
 
@@ -205,16 +201,14 @@ describe('W3C Verifiable Credentials', () => {
       const invalidKey = new Uint8Array(16); // Wrong length
 
       expect(() => ed25519PublicKeyToDIDKey(invalidKey)).to.throw(
-        'Ed25519 public key must be 32 bytes'
+        'Ed25519 public key must be 32 bytes',
       );
     });
 
     it('should throw error for invalid did:key format', () => {
-      expect(() => didKeyToEd25519PublicKey('not-a-did')).to.throw(
-        'Invalid did:key format'
-      );
+      expect(() => didKeyToEd25519PublicKey('not-a-did')).to.throw('Invalid did:key format');
       expect(() => didKeyToEd25519PublicKey('did:web:example.com')).to.throw(
-        'Invalid did:key format'
+        'Invalid did:key format',
       );
     });
   });

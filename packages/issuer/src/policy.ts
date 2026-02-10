@@ -88,7 +88,7 @@ export interface KeyRotationStatus {
 export function checkKeyRotation(
   keyCreatedAt: string,
   policy: IssuerPolicy = DEFAULT_ISSUER_POLICY,
-  now: number = Date.now()
+  now: number = Date.now(),
 ): KeyRotationStatus {
   const createdMs = Date.parse(keyCreatedAt);
   if (isNaN(createdMs)) {
@@ -174,7 +174,7 @@ export interface IssuerRecordForPolicy {
 export function validateIssuerPolicy(
   record: IssuerRecordForPolicy,
   policy: IssuerPolicy = DEFAULT_ISSUER_POLICY,
-  credentialsIssued: number = 0
+  credentialsIssued: number = 0,
 ): PolicyValidationResult {
   const violations: string[] = [];
   const warnings: string[] = [];
@@ -188,7 +188,7 @@ export function validateIssuerPolicy(
   const keyType = record.publicKey.asymmetricKeyType;
   if (keyType && keyType !== policy.requiredAlgorithm) {
     violations.push(
-      `Key algorithm '${keyType}' does not match required '${policy.requiredAlgorithm}'`
+      `Key algorithm '${keyType}' does not match required '${policy.requiredAlgorithm}'`,
     );
   }
 
@@ -211,19 +211,16 @@ export function validateIssuerPolicy(
   }
 
   // Check credential issuance limit
-  if (
-    policy.maxCredentialsPerKey > 0 &&
-    credentialsIssued >= policy.maxCredentialsPerKey
-  ) {
+  if (policy.maxCredentialsPerKey > 0 && credentialsIssued >= policy.maxCredentialsPerKey) {
     violations.push(
-      `Credential limit reached (${credentialsIssued}/${policy.maxCredentialsPerKey})`
+      `Credential limit reached (${credentialsIssued}/${policy.maxCredentialsPerKey})`,
     );
   } else if (
     policy.maxCredentialsPerKey > 0 &&
     credentialsIssued >= policy.maxCredentialsPerKey * 0.9
   ) {
     warnings.push(
-      `Approaching credential limit (${credentialsIssued}/${policy.maxCredentialsPerKey})`
+      `Approaching credential limit (${credentialsIssued}/${policy.maxCredentialsPerKey})`,
     );
   }
 
@@ -265,42 +262,32 @@ export interface RotationPlanStep {
  */
 export function generateRotationPlan(
   keyCreatedAt: string,
-  policy: IssuerPolicy = DEFAULT_ISSUER_POLICY
+  policy: IssuerPolicy = DEFAULT_ISSUER_POLICY,
 ): RotationPlanStep[] {
   const createdMs = Date.parse(keyCreatedAt);
   if (isNaN(createdMs)) {
     return [{ action: 'Fix invalid key creation date', scheduledAt: new Date().toISOString() }];
   }
 
-  const expiryMs =
-    createdMs + policy.maxKeyAgeDays * 24 * 60 * 60 * 1000;
-  const newKeyActivationMs =
-    expiryMs - policy.minRotationOverlapDays * 24 * 60 * 60 * 1000;
-  const warningMs =
-    expiryMs - policy.rotationWarningDays * 24 * 60 * 60 * 1000;
+  const expiryMs = createdMs + policy.maxKeyAgeDays * 24 * 60 * 60 * 1000;
+  const newKeyActivationMs = expiryMs - policy.minRotationOverlapDays * 24 * 60 * 60 * 1000;
+  const _warningMs = expiryMs - policy.rotationWarningDays * 24 * 60 * 60 * 1000;
 
   const steps: RotationPlanStep[] = [];
 
   steps.push({
     action: 'Generate new Ed25519 key pair and register in issuer registry',
-    scheduledAt: new Date(
-      Math.max(newKeyActivationMs, Date.now())
-    ).toISOString(),
+    scheduledAt: new Date(Math.max(newKeyActivationMs, Date.now())).toISOString(),
   });
 
   steps.push({
-    action:
-      'Activate new key in registry with overlapping validFrom/validTo window',
-    scheduledAt: new Date(
-      Math.max(newKeyActivationMs, Date.now())
-    ).toISOString(),
+    action: 'Activate new key in registry with overlapping validFrom/validTo window',
+    scheduledAt: new Date(Math.max(newKeyActivationMs, Date.now())).toISOString(),
   });
 
   steps.push({
     action: 'Begin issuing credentials with new key',
-    scheduledAt: new Date(
-      Math.max(newKeyActivationMs, Date.now())
-    ).toISOString(),
+    scheduledAt: new Date(Math.max(newKeyActivationMs, Date.now())).toISOString(),
   });
 
   steps.push({

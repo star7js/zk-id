@@ -23,10 +23,7 @@ describe('Multi-Claim Proofs', () => {
     });
 
     it('should reject empty claims array', () => {
-      assert.throws(
-        () => createMultiClaimRequest([], 'nonce-valid-16chars'),
-        /at least one claim/
-      );
+      assert.throws(() => createMultiClaimRequest([], 'nonce-valid-16chars'), /at least one claim/);
     });
 
     it('should reject duplicate claim labels', () => {
@@ -37,29 +34,25 @@ describe('Multi-Claim Proofs', () => {
 
       assert.throws(
         () => createMultiClaimRequest(claims, 'nonce-valid-16chars'),
-        /Duplicate claim label/
+        /Duplicate claim label/,
       );
     });
 
     it('should reject age claim without minAge', () => {
-      const claims: ClaimSpec[] = [
-        { label: 'age', claimType: 'age' },
-      ];
+      const claims: ClaimSpec[] = [{ label: 'age', claimType: 'age' }];
 
       assert.throws(
         () => createMultiClaimRequest(claims, 'nonce-valid-16chars'),
-        /minAge is required/
+        /minAge is required/,
       );
     });
 
     it('should reject nationality claim without targetNationality', () => {
-      const claims: ClaimSpec[] = [
-        { label: 'nat', claimType: 'nationality' },
-      ];
+      const claims: ClaimSpec[] = [{ label: 'nat', claimType: 'nationality' }];
 
       assert.throws(
         () => createMultiClaimRequest(claims, 'nonce-valid-16chars'),
-        /targetNationality is required/
+        /targetNationality is required/,
       );
     });
 
@@ -70,14 +63,12 @@ describe('Multi-Claim Proofs', () => {
 
       assert.throws(
         () => createMultiClaimRequest(claims, 'nonce-valid-16chars'),
-        /nationality must be between/
+        /nationality must be between/,
       );
     });
 
     it('should accept age-revocable claim', () => {
-      const claims: ClaimSpec[] = [
-        { label: 'age-rev', claimType: 'age-revocable', minAge: 21 },
-      ];
+      const claims: ClaimSpec[] = [{ label: 'age-rev', claimType: 'age-revocable', minAge: 21 }];
 
       const request = createMultiClaimRequest(claims, 'nonce-valid-16chars');
       assert.strictEqual(request.claims[0].claimType, 'age-revocable');
@@ -176,9 +167,7 @@ describe('Multi-Claim Proofs', () => {
     });
 
     it('should handle single-claim results', () => {
-      const results: ClaimVerificationResult[] = [
-        { label: 'only', verified: true },
-      ];
+      const results: ClaimVerificationResult[] = [{ label: 'only', verified: true }];
 
       const aggregate = aggregateVerificationResults(results);
 

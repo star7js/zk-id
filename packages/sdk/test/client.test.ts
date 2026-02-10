@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { ZkIdClient, WalletConnector, InMemoryWallet } from '../src/client';
-import { ProofRequest, ProofResponse, SignedCredential } from '@zk-id/core';
+import { ProofRequest, SignedCredential } from '@zk-id/core';
 
 describe('SDK Client Tests', () => {
   const mockSignedCredential: SignedCredential = {
@@ -92,7 +92,7 @@ describe('SDK Client Tests', () => {
 
         const mockWallet: WalletConnector = {
           isAvailable: async () => true,
-          requestProof: async (req) => {
+          requestProof: async (_req) => {
             capturedRequest = req;
             return {
               credentialId: 'test-cred',
@@ -106,7 +106,7 @@ describe('SDK Client Tests', () => {
         };
 
         // Mock fetch
-        (global as any).fetch = async (url: string, options: any) => ({
+        (global as any).fetch = async (_url: string, _options: any) => ({
           ok: true,
           json: async () => ({ verified: true }),
           statusText: 'OK',
@@ -143,7 +143,7 @@ describe('SDK Client Tests', () => {
         };
 
         // Mock fetch
-        (global as any).fetch = async (url: string, options: any) => {
+        (global as any).fetch = async (_url: string, _options: any) => {
           capturedUrl = url;
           capturedBody = JSON.parse(options.body);
           return {
@@ -179,7 +179,7 @@ describe('SDK Client Tests', () => {
         };
 
         // Mock fetch
-        (global as any).fetch = async (url: string, options: any) => ({
+        (global as any).fetch = async (_url: string, _options: any) => ({
           ok: true,
           json: async () => ({ verified: true }),
           statusText: 'OK',
@@ -212,7 +212,7 @@ describe('SDK Client Tests', () => {
         };
 
         // Mock fetch
-        (global as any).fetch = async (url: string, options: any) => ({
+        (global as any).fetch = async (_url: string, _options: any) => ({
           ok: true,
           json: async () => ({ verified: false }),
           statusText: 'OK',
@@ -234,7 +234,7 @@ describe('SDK Client Tests', () => {
       it('should return false when wallet throws error', async () => {
         const mockWallet: WalletConnector = {
           isAvailable: async () => true,
-          requestProof: async (req) => {
+          requestProof: async (_req) => {
             throw new Error('Wallet error');
           },
         };
@@ -433,7 +433,7 @@ describe('SDK Client Tests', () => {
 
         const mockWallet: WalletConnector = {
           isAvailable: async () => true,
-          requestProof: async (req) => {
+          requestProof: async (_req) => {
             capturedRequest = req;
             return {
               credentialId: 'test-cred',
@@ -447,7 +447,7 @@ describe('SDK Client Tests', () => {
         };
 
         // Mock fetch
-        (global as any).fetch = async (url: string, options: any) => ({
+        (global as any).fetch = async (_url: string, _options: any) => ({
           ok: true,
           json: async () => ({ verified: true }),
           statusText: 'OK',
@@ -480,7 +480,7 @@ describe('SDK Client Tests', () => {
         };
 
         // Mock fetch
-        (global as any).fetch = async (url: string, options: any) => ({
+        (global as any).fetch = async (_url: string, _options: any) => ({
           ok: true,
           json: async () => ({ verified: true }),
           statusText: 'OK',
@@ -513,7 +513,7 @@ describe('SDK Client Tests', () => {
         };
 
         // Mock fetch
-        (global as any).fetch = async (url: string, options: any) => ({
+        (global as any).fetch = async (_url: string, _options: any) => ({
           ok: true,
           json: async () => ({ verified: false }),
           statusText: 'OK',
@@ -554,7 +554,7 @@ describe('SDK Client Tests', () => {
           updatedAt: new Date().toISOString(),
         };
 
-        (global as any).fetch = async (url: string, options: any) => {
+        (global as any).fetch = async (_url: string, _options: any) => {
           expect(url).to.equal('http://localhost:3000/api/revocation/root');
           expect(options.method).to.equal('GET');
           return {

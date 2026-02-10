@@ -13,15 +13,9 @@ import {
 import { BN128_FIELD_ORDER } from '../src/validation';
 
 describe('Nullifier Prover Tests', () => {
-  const wasmPath = path.resolve(
-    __dirname,
-    '../../circuits/build/nullifier_js/nullifier.wasm'
-  );
+  const wasmPath = path.resolve(__dirname, '../../circuits/build/nullifier_js/nullifier.wasm');
   const zkeyPath = path.resolve(__dirname, '../../circuits/build/nullifier.zkey');
-  const vkeyPath = path.resolve(
-    __dirname,
-    '../../circuits/build/nullifier_verification_key.json'
-  );
+  const vkeyPath = path.resolve(__dirname, '../../circuits/build/nullifier_verification_key.json');
 
   describe('generateNullifierProof', () => {
     it('should generate a valid nullifier proof', async function () {
@@ -30,12 +24,7 @@ describe('Nullifier Prover Tests', () => {
       const credential = await createCredential(1995, 840);
       const scope = await createNullifierScope('election-2026');
 
-      const proof = await generateNullifierProof(
-        credential,
-        scope.scopeHash,
-        wasmPath,
-        zkeyPath
-      );
+      const proof = await generateNullifierProof(credential, scope.scopeHash, wasmPath, zkeyPath);
 
       expect(proof).to.have.property('proof');
       expect(proof).to.have.property('publicSignals');
@@ -55,24 +44,12 @@ describe('Nullifier Prover Tests', () => {
       const credential = await createCredential(1995, 840);
       const scope = await createNullifierScope('voting-round-1');
 
-      const proof1 = await generateNullifierProof(
-        credential,
-        scope.scopeHash,
-        wasmPath,
-        zkeyPath
-      );
+      const proof1 = await generateNullifierProof(credential, scope.scopeHash, wasmPath, zkeyPath);
 
-      const proof2 = await generateNullifierProof(
-        credential,
-        scope.scopeHash,
-        wasmPath,
-        zkeyPath
-      );
+      const proof2 = await generateNullifierProof(credential, scope.scopeHash, wasmPath, zkeyPath);
 
       expect(proof1.publicSignals.nullifier).to.equal(proof2.publicSignals.nullifier);
-      expect(proof1.publicSignals.credentialHash).to.equal(
-        proof2.publicSignals.credentialHash
-      );
+      expect(proof1.publicSignals.credentialHash).to.equal(proof2.publicSignals.credentialHash);
       expect(proof1.publicSignals.scopeHash).to.equal(proof2.publicSignals.scopeHash);
     });
 
@@ -83,26 +60,14 @@ describe('Nullifier Prover Tests', () => {
       const scope1 = await createNullifierScope('election-2026');
       const scope2 = await createNullifierScope('airdrop-round-3');
 
-      const proof1 = await generateNullifierProof(
-        credential,
-        scope1.scopeHash,
-        wasmPath,
-        zkeyPath
-      );
+      const proof1 = await generateNullifierProof(credential, scope1.scopeHash, wasmPath, zkeyPath);
 
-      const proof2 = await generateNullifierProof(
-        credential,
-        scope2.scopeHash,
-        wasmPath,
-        zkeyPath
-      );
+      const proof2 = await generateNullifierProof(credential, scope2.scopeHash, wasmPath, zkeyPath);
 
       expect(proof1.publicSignals.nullifier).to.not.equal(proof2.publicSignals.nullifier);
       expect(proof1.publicSignals.scopeHash).to.not.equal(proof2.publicSignals.scopeHash);
       // But credential hash should be the same
-      expect(proof1.publicSignals.credentialHash).to.equal(
-        proof2.publicSignals.credentialHash
-      );
+      expect(proof1.publicSignals.credentialHash).to.equal(proof2.publicSignals.credentialHash);
     });
 
     it('should produce different nullifiers for different credentials in same scope', async function () {
@@ -116,9 +81,7 @@ describe('Nullifier Prover Tests', () => {
       const proof2 = await generateNullifierProof(cred2, scope.scopeHash, wasmPath, zkeyPath);
 
       expect(proof1.publicSignals.nullifier).to.not.equal(proof2.publicSignals.nullifier);
-      expect(proof1.publicSignals.credentialHash).to.not.equal(
-        proof2.publicSignals.credentialHash
-      );
+      expect(proof1.publicSignals.credentialHash).to.not.equal(proof2.publicSignals.credentialHash);
       // But scope should be the same
       expect(proof1.publicSignals.scopeHash).to.equal(proof2.publicSignals.scopeHash);
     });
@@ -129,12 +92,7 @@ describe('Nullifier Prover Tests', () => {
       const credential = await createCredential(1995, 840);
       const scope = await createNullifierScope('test-scope');
 
-      const proof = await generateNullifierProof(
-        credential,
-        scope.scopeHash,
-        wasmPath,
-        zkeyPath
-      );
+      const proof = await generateNullifierProof(credential, scope.scopeHash, wasmPath, zkeyPath);
 
       // Compute nullifier using the utility function
       const computed = await computeNullifier(credential.commitment, scope);
@@ -149,12 +107,7 @@ describe('Nullifier Prover Tests', () => {
       const scope = await createNullifierScope('voting-2026');
       const store = new InMemoryNullifierStore();
 
-      const proof = await generateNullifierProof(
-        credential,
-        scope.scopeHash,
-        wasmPath,
-        zkeyPath
-      );
+      const proof = await generateNullifierProof(credential, scope.scopeHash, wasmPath, zkeyPath);
 
       // First use should be fresh
       const result1 = await consumeNullifier(proof.publicSignals.nullifier, scope.id, store);
@@ -174,18 +127,8 @@ describe('Nullifier Prover Tests', () => {
       const scope2 = await createNullifierScope('airdrop-2026');
       const store = new InMemoryNullifierStore();
 
-      const proof1 = await generateNullifierProof(
-        credential,
-        scope1.scopeHash,
-        wasmPath,
-        zkeyPath
-      );
-      const proof2 = await generateNullifierProof(
-        credential,
-        scope2.scopeHash,
-        wasmPath,
-        zkeyPath
-      );
+      const proof1 = await generateNullifierProof(credential, scope1.scopeHash, wasmPath, zkeyPath);
+      const proof2 = await generateNullifierProof(credential, scope2.scopeHash, wasmPath, zkeyPath);
 
       // Use in scope 1
       const result1 = await consumeNullifier(proof1.publicSignals.nullifier, scope1.id, store);
@@ -200,7 +143,7 @@ describe('Nullifier Prover Tests', () => {
       const credential = await createCredential(1990, 840);
       await assert.rejects(
         () => generateNullifierProof(credential, 'not-a-number', 'missing', 'missing'),
-        /scopeHash/
+        /scopeHash/,
       );
     });
 
@@ -209,7 +152,7 @@ describe('Nullifier Prover Tests', () => {
       const tooLarge = (BN128_FIELD_ORDER + 1n).toString();
       await assert.rejects(
         () => generateNullifierProof(credential, tooLarge, 'missing', 'missing'),
-        /scopeHash/
+        /scopeHash/,
       );
     });
 
@@ -220,12 +163,7 @@ describe('Nullifier Prover Tests', () => {
       const scope = await createNullifierScope('test-scope');
 
       try {
-        await generateNullifierProof(
-          credential,
-          scope.scopeHash,
-          '/invalid/path.wasm',
-          zkeyPath
-        );
+        await generateNullifierProof(credential, scope.scopeHash, '/invalid/path.wasm', zkeyPath);
         expect.fail('Should have thrown error');
       } catch (error: any) {
         expect(error.message).to.match(/ENOENT|Cannot find|not found/i);
@@ -264,7 +202,7 @@ describe('Nullifier Prover Tests', () => {
         credential,
         scope.scopeHash,
         wasmPath,
-        zkeyPath
+        zkeyPath,
       );
 
       // Public signals should match
@@ -276,12 +214,7 @@ describe('Nullifier Prover Tests', () => {
       this.timeout(20000);
 
       const credential = await createCredential(1995, 840);
-      const scopes = [
-        'election-2026',
-        'airdrop-round-3',
-        'forum-post-2026-01-15',
-        'zkp-workshop',
-      ];
+      const scopes = ['election-2026', 'airdrop-round-3', 'forum-post-2026-01-15', 'zkp-workshop'];
 
       for (const scopeId of scopes) {
         const scope = await createNullifierScope(scopeId);

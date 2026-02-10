@@ -51,18 +51,76 @@ export const MDL_ELEMENTS = {
  * This table covers the most common codes. Extend as needed.
  */
 export const ISO_3166_NUMERIC_TO_ALPHA2: Record<number, string> = {
-  4: 'AF', 8: 'AL', 12: 'DZ', 20: 'AD', 24: 'AO', 32: 'AR', 36: 'AU',
-  40: 'AT', 48: 'BH', 50: 'BD', 56: 'BE', 76: 'BR', 100: 'BG', 124: 'CA',
-  156: 'CN', 170: 'CO', 203: 'CZ', 208: 'DK', 218: 'EC', 818: 'EG',
-  233: 'EE', 246: 'FI', 250: 'FR', 276: 'DE', 300: 'GR', 344: 'HK',
-  348: 'HU', 352: 'IS', 356: 'IN', 360: 'ID', 364: 'IR', 368: 'IQ',
-  372: 'IE', 376: 'IL', 380: 'IT', 392: 'JP', 400: 'JO', 410: 'KR',
-  414: 'KW', 428: 'LV', 440: 'LT', 442: 'LU', 458: 'MY', 484: 'MX',
-  528: 'NL', 554: 'NZ', 578: 'NO', 586: 'PK', 604: 'PE', 608: 'PH',
-  616: 'PL', 620: 'PT', 634: 'QA', 642: 'RO', 643: 'RU', 682: 'SA',
-  702: 'SG', 703: 'SK', 705: 'SI', 710: 'ZA', 724: 'ES', 752: 'SE',
-  756: 'CH', 764: 'TH', 792: 'TR', 784: 'AE', 826: 'GB', 840: 'US',
-  804: 'UA', 704: 'VN',
+  4: 'AF',
+  8: 'AL',
+  12: 'DZ',
+  20: 'AD',
+  24: 'AO',
+  32: 'AR',
+  36: 'AU',
+  40: 'AT',
+  48: 'BH',
+  50: 'BD',
+  56: 'BE',
+  76: 'BR',
+  100: 'BG',
+  124: 'CA',
+  156: 'CN',
+  170: 'CO',
+  203: 'CZ',
+  208: 'DK',
+  218: 'EC',
+  818: 'EG',
+  233: 'EE',
+  246: 'FI',
+  250: 'FR',
+  276: 'DE',
+  300: 'GR',
+  344: 'HK',
+  348: 'HU',
+  352: 'IS',
+  356: 'IN',
+  360: 'ID',
+  364: 'IR',
+  368: 'IQ',
+  372: 'IE',
+  376: 'IL',
+  380: 'IT',
+  392: 'JP',
+  400: 'JO',
+  410: 'KR',
+  414: 'KW',
+  428: 'LV',
+  440: 'LT',
+  442: 'LU',
+  458: 'MY',
+  484: 'MX',
+  528: 'NL',
+  554: 'NZ',
+  578: 'NO',
+  586: 'PK',
+  604: 'PE',
+  608: 'PH',
+  616: 'PL',
+  620: 'PT',
+  634: 'QA',
+  642: 'RO',
+  643: 'RU',
+  682: 'SA',
+  702: 'SG',
+  703: 'SK',
+  705: 'SI',
+  710: 'ZA',
+  724: 'ES',
+  752: 'SE',
+  756: 'CH',
+  764: 'TH',
+  792: 'TR',
+  784: 'AE',
+  826: 'GB',
+  840: 'US',
+  804: 'UA',
+  704: 'VN',
 };
 
 /**
@@ -116,7 +174,7 @@ export interface AgeOverAttestation {
  */
 export function toMdlElements(
   credential: SignedCredential,
-  issuerCountryAlpha2?: string
+  issuerCountryAlpha2?: string,
 ): MdlDataElement[] {
   const elements: MdlDataElement[] = [];
 
@@ -127,8 +185,7 @@ export function toMdlElements(
   });
 
   // Nationality
-  const alpha2 =
-    ISO_3166_NUMERIC_TO_ALPHA2[credential.credential.nationality];
+  const alpha2 = ISO_3166_NUMERIC_TO_ALPHA2[credential.credential.nationality];
   if (alpha2) {
     elements.push({
       identifier: MDL_ELEMENTS.NATIONALITY,
@@ -235,7 +292,8 @@ export const STANDARDS_MAPPINGS: StandardsMapping[] = [
     standard: 'ISO 18013-5',
     standardConcept: 'IssuerAuth signature',
     fidelity: 'partial',
-    notes: 'Both sign credential data; different signature algorithms (Ed25519 vs ECDSA/EdDSA over COSE)',
+    notes:
+      'Both sign credential data; different signature algorithms (Ed25519 vs ECDSA/EdDSA over COSE)',
   },
   {
     zkIdConcept: 'Issuer registry',
@@ -256,7 +314,8 @@ export const STANDARDS_MAPPINGS: StandardsMapping[] = [
     standard: 'ISO 18013-7',
     standardConcept: 'Online presentation',
     fidelity: 'conceptual',
-    notes: 'ISO 18013-7 defines online age verification flow; zk-id adds zero-knowledge privacy guarantees',
+    notes:
+      'ISO 18013-7 defines online age verification flow; zk-id adds zero-knowledge privacy guarantees',
   },
   {
     zkIdConcept: 'Protocol version (zk-id/1.0-draft)',

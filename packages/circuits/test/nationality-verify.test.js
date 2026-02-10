@@ -1,19 +1,16 @@
-const path = require("path");
-const snarkjs = require("snarkjs");
-const wasm_tester = require("circom_tester").wasm;
-const { buildPoseidon } = require("circomlibjs");
+const path = require('path');
+const _snarkjs = require('snarkjs');
+const wasm_tester = require('circom_tester').wasm;
+const { buildPoseidon } = require('circomlibjs');
 
-describe("NationalityVerify Circuit Tests", function () {
+describe('NationalityVerify Circuit Tests', function () {
   let circuit;
   let poseidon;
 
   before(async function () {
-    circuit = await wasm_tester(
-      path.join(__dirname, "../src/nationality-verify.circom"),
-      {
-        include: path.join(__dirname, "../../../node_modules"),
-      }
-    );
+    circuit = await wasm_tester(path.join(__dirname, '../src/nationality-verify.circom'), {
+      include: path.join(__dirname, '../../../node_modules'),
+    });
     poseidon = await buildPoseidon();
   });
 
@@ -23,7 +20,7 @@ describe("NationalityVerify Circuit Tests", function () {
     return poseidon.F.toString(hash);
   }
 
-  it("should verify matching nationality", async function () {
+  it('should verify matching nationality', async function () {
     const birthYear = 1990;
     const nationality = 840; // USA
     const salt = 12345n;
@@ -33,7 +30,7 @@ describe("NationalityVerify Circuit Tests", function () {
       salt: salt.toString(),
       targetNationality: 840,
       credentialHash: computeHash(birthYear, nationality, salt),
-      nonce: "1",
+      nonce: '1',
       requestTimestamp: 1700000000000,
     };
 
@@ -41,7 +38,7 @@ describe("NationalityVerify Circuit Tests", function () {
     await circuit.checkConstraints(witness);
   });
 
-  it("should fail when nationality does not match target", async function () {
+  it('should fail when nationality does not match target', async function () {
     const birthYear = 1990;
     const nationality = 840; // USA
     const salt = 12345n;
@@ -51,23 +48,23 @@ describe("NationalityVerify Circuit Tests", function () {
       salt: salt.toString(),
       targetNationality: 826, // UK (different from actual)
       credentialHash: computeHash(birthYear, nationality, salt),
-      nonce: "1",
+      nonce: '1',
       requestTimestamp: 1700000000000,
     };
 
     try {
       await circuit.calculateWitness(input);
-      throw new Error("Expected constraint failure but proof succeeded");
+      throw new Error('Expected constraint failure but proof succeeded');
     } catch (error) {
       // Expected to fail - nationality constraint not satisfied
-      if (error.message.includes("Expected constraint failure")) {
+      if (error.message.includes('Expected constraint failure')) {
         throw error;
       }
       // Success - constraint properly failed
     }
   });
 
-  it("should fail when credentialHash does not match", async function () {
+  it('should fail when credentialHash does not match', async function () {
     const birthYear = 1990;
     const nationality = 840;
     const salt = 12345n;
@@ -79,22 +76,22 @@ describe("NationalityVerify Circuit Tests", function () {
       targetNationality: 840,
       // Using hash with wrong nationality - this should fail
       credentialHash: computeHash(birthYear, wrongNationality, salt),
-      nonce: "1",
+      nonce: '1',
       requestTimestamp: 1700000000000,
     };
 
     try {
       await circuit.calculateWitness(input);
-      throw new Error("Expected constraint failure but proof succeeded");
+      throw new Error('Expected constraint failure but proof succeeded');
     } catch (error) {
-      if (error.message.includes("Expected constraint failure")) {
+      if (error.message.includes('Expected constraint failure')) {
         throw error;
       }
       // Success - constraint properly failed due to hash mismatch
     }
   });
 
-  it("should verify various nationality codes", async function () {
+  it('should verify various nationality codes', async function () {
     const birthYear = 1990;
     const salt = 12345n;
     const nationalities = [
@@ -112,7 +109,7 @@ describe("NationalityVerify Circuit Tests", function () {
         salt: salt.toString(),
         targetNationality: nationality,
         credentialHash: computeHash(birthYear, nationality, salt),
-        nonce: "1",
+        nonce: '1',
         requestTimestamp: 1700000000000,
       };
 
@@ -121,7 +118,7 @@ describe("NationalityVerify Circuit Tests", function () {
     }
   });
 
-  it("should verify nationality regardless of birth year value", async function () {
+  it('should verify nationality regardless of birth year value', async function () {
     const nationality = 840;
     const salt = 12345n;
     const birthYear1 = 1990;
@@ -133,7 +130,7 @@ describe("NationalityVerify Circuit Tests", function () {
       salt: salt.toString(),
       targetNationality: nationality,
       credentialHash: computeHash(birthYear1, nationality, salt),
-      nonce: "1",
+      nonce: '1',
       requestTimestamp: 1700000000000,
     };
 
@@ -143,7 +140,7 @@ describe("NationalityVerify Circuit Tests", function () {
       salt: salt.toString(),
       targetNationality: nationality,
       credentialHash: computeHash(birthYear2, nationality, salt),
-      nonce: "1",
+      nonce: '1',
       requestTimestamp: 1700000000000,
     };
 
@@ -156,7 +153,7 @@ describe("NationalityVerify Circuit Tests", function () {
     // Both should pass - birth year is not constrained in nationality verification
   });
 
-  it("should handle different salts", async function () {
+  it('should handle different salts', async function () {
     const birthYear = 1990;
     const nationality = 840;
     const salt1 = 11111n;
@@ -168,7 +165,7 @@ describe("NationalityVerify Circuit Tests", function () {
       salt: salt1.toString(),
       targetNationality: nationality,
       credentialHash: computeHash(birthYear, nationality, salt1),
-      nonce: "1",
+      nonce: '1',
       requestTimestamp: 1700000000000,
     };
 
@@ -178,7 +175,7 @@ describe("NationalityVerify Circuit Tests", function () {
       salt: salt2.toString(),
       targetNationality: nationality,
       credentialHash: computeHash(birthYear, nationality, salt2),
-      nonce: "1",
+      nonce: '1',
       requestTimestamp: 1700000000000,
     };
 
@@ -191,7 +188,7 @@ describe("NationalityVerify Circuit Tests", function () {
     // Both should pass with different salts
   });
 
-  it("should fail when salt does not match the credentialHash", async function () {
+  it('should fail when salt does not match the credentialHash', async function () {
     const birthYear = 1990;
     const nationality = 840;
     const correctSalt = 12345n;
@@ -204,15 +201,15 @@ describe("NationalityVerify Circuit Tests", function () {
       targetNationality: nationality,
       // Using hash with correct salt, but providing wrong salt as input
       credentialHash: computeHash(birthYear, nationality, correctSalt),
-      nonce: "1",
+      nonce: '1',
       requestTimestamp: 1700000000000,
     };
 
     try {
       await circuit.calculateWitness(input);
-      throw new Error("Expected constraint failure but proof succeeded");
+      throw new Error('Expected constraint failure but proof succeeded');
     } catch (error) {
-      if (error.message.includes("Expected constraint failure")) {
+      if (error.message.includes('Expected constraint failure')) {
         throw error;
       }
       // Success - constraint properly failed due to salt mismatch

@@ -31,6 +31,7 @@ zk-id uses Poseidon with the following parameters, as specified in the Poseidon 
 - **Security level**: 128 bits
 
 **Used in circuits**:
+
 - `credential-hash.circom`
 - `age-verify.circom`
 - `age-verify-signed.circom`
@@ -50,6 +51,7 @@ zk-id uses Poseidon with the following parameters, as specified in the Poseidon 
 - **Security level**: 128 bits
 
 **Used in circuits**:
+
 - `nullifier.circom` (nullifier computation)
 
 ### Implementation
@@ -61,6 +63,7 @@ zk-id circuits use `circomlib v2.0.5` for Poseidon hashing.
 **Source**: [`circomlib/circuits/poseidon.circom`](https://github.com/iden3/circomlib/blob/master/circuits/poseidon.circom)
 
 The circomlib implementation:
+
 1. Uses parameters from the Poseidon whitepaper
 2. Generated using the official reference implementation: https://extgit.iaik.tugraz.at/krypto/hadeshash
 3. Rounded to nearest integer that divides evenly by t
@@ -82,6 +85,7 @@ zk-id TypeScript code uses `circomlibjs@0.1.7` for Poseidon hashing outside of c
 **Verification**: circomlibjs is the official JavaScript implementation provided by iden3 to compute witnesses for circomlib circuits. It uses identical parameters and constants to ensure circuit/witness compatibility.
 
 **Usage in zk-id**:
+
 ```typescript
 import { buildPoseidon } from 'circomlibjs';
 
@@ -108,6 +112,7 @@ The parameters used in zk-id have been verified to match the canonical BN128 Pos
 ### Round Constant Provenance
 
 The round constants (C), S-boxes, MDS matrix (M), and sparse matrix (P) are:
+
 - Generated using the official `calc_round_numbers.py` script from the Poseidon authors
 - Embedded in `circomlib/circuits/poseidon_constants.circom`
 - Reproduced identically in `circomlibjs/src/poseidon_constants.js`
@@ -116,11 +121,13 @@ The round constants (C), S-boxes, MDS matrix (M), and sparse matrix (P) are:
 ### Testing
 
 Poseidon hash compatibility between circuits and TypeScript is verified through:
+
 1. Unit tests in `packages/core/test/poseidon.test.ts`
 2. Integration tests in `packages/core/test/credential.test.ts`
 3. Circuit tests in `packages/circuits/test/*.test.js`
 
 All tests verify that:
+
 - Circuit and TypeScript implementations produce identical hashes
 - Hash values are deterministic
 - Different inputs produce different hashes
@@ -168,6 +175,7 @@ zk-id uses EdDSA signatures over the Baby Jubjub elliptic curve for credential i
 **Purpose**: Off-chain signature verification by the server/verifier (not in ZK circuit)
 
 **Implementation**:
+
 - **Library**: Node.js `crypto` module
 - **Curve**: Ed25519 (classical Edwards curve over prime field)
 - **Signature Algorithm**: RFC 8032 Ed25519
@@ -176,12 +184,14 @@ zk-id uses EdDSA signatures over the Baby Jubjub elliptic curve for credential i
 - **Verification**: `crypto.verify(null, message, publicKey, signature)`
 
 **Where Used**:
+
 - `packages/issuer/src/issuer.ts` — `CredentialIssuer` class
 - Signs `SignedCredential` objects for off-chain verification
 - Signature included in credential metadata (not in ZK proof)
 - Server validates signature before accepting credential from user
 
 **Characteristics**:
+
 - Fast signing/verification (~50 μs)
 - Small signatures (64 bytes)
 - NOT circuit-compatible (Ed25519 curve arithmetic too expensive in circuits)
@@ -193,6 +203,7 @@ zk-id uses EdDSA signatures over the Baby Jubjub elliptic curve for credential i
 **Purpose**: In-circuit signature verification as part of the ZK proof
 
 **Implementation**:
+
 - **Library**: `circomlibjs` (JavaScript) + `circomlib` (circuits)
 - **Curve**: Baby Jubjub (twisted Edwards curve over BN128 scalar field)
 - **Signature Algorithm**: Pedersen hash-based EdDSA
@@ -201,12 +212,14 @@ zk-id uses EdDSA signatures over the Baby Jubjub elliptic curve for credential i
 - **Verification**: `EdDSAVerifier(256)` circuit in circomlib
 
 **Where Used**:
+
 - `packages/issuer/src/circuit-issuer.ts` — `CircuitCredentialIssuer` class
 - `packages/circuits/src/age-verify-signed.circom`
 - `packages/circuits/src/nationality-verify-signed.circom`
 - Signature verified **inside the ZK proof** (issuer trust proven in-circuit)
 
 **Characteristics**:
+
 - Circuit-compatible (BN128 field arithmetic)
 - Large proving overhead (~19,656 constraints for EdDSA verification)
 - Slow proving (~15s on M1 Pro)
@@ -214,21 +227,22 @@ zk-id uses EdDSA signatures over the Baby Jubjub elliptic curve for credential i
 
 ### Why Two Different Schemes?
 
-| Aspect | Ed25519 (Off-Chain) | Baby Jubjub EdDSA (In-Circuit) |
-|--------|---------------------|--------------------------------|
-| **Verification Location** | Server-side (outside proof) | Inside ZK circuit |
-| **Trust Model** | Verifier checks issuer signature separately | Issuer trust proven in ZK proof |
-| **Performance** | Fast (50 μs verify) | Slow (15s proving) |
-| **Proof Size** | Same (192 bytes) | Same (192 bytes) |
-| **Public Inputs** | 5 signals | 261 signals (pubkey + sig bits) |
-| **Circuit Constraints** | 303 (no sig verification) | 19,656 (with sig verification) |
-| **Use When** | Standard deployments, registry available | Self-contained proofs, no registry |
+| Aspect                    | Ed25519 (Off-Chain)                         | Baby Jubjub EdDSA (In-Circuit)     |
+| ------------------------- | ------------------------------------------- | ---------------------------------- |
+| **Verification Location** | Server-side (outside proof)                 | Inside ZK circuit                  |
+| **Trust Model**           | Verifier checks issuer signature separately | Issuer trust proven in ZK proof    |
+| **Performance**           | Fast (50 μs verify)                         | Slow (15s proving)                 |
+| **Proof Size**            | Same (192 bytes)                            | Same (192 bytes)                   |
+| **Public Inputs**         | 5 signals                                   | 261 signals (pubkey + sig bits)    |
+| **Circuit Constraints**   | 303 (no sig verification)                   | 19,656 (with sig verification)     |
+| **Use When**              | Standard deployments, registry available    | Self-contained proofs, no registry |
 
 ### No Signature Bridge
 
 **There is no conversion or "bridge" between Ed25519 and Baby Jubjub EdDSA.**
 
 These are fundamentally different cryptographic schemes:
+
 - Ed25519 uses a different elliptic curve (Curve25519)
 - Baby Jubjub is designed specifically for BN128-based ZK circuits
 - They have incompatible key formats and signature formats
@@ -237,6 +251,7 @@ These are fundamentally different cryptographic schemes:
 A credential signed with Ed25519 (by `CredentialIssuer`) **cannot** be used with signed circuits. Conversely, a credential signed with Baby Jubjub EdDSA (by `CircuitCredentialIssuer`) **cannot** be verified using standard Ed25519 verification.
 
 **Deployment Choice**:
+
 - Use Ed25519 (`CredentialIssuer`) for most deployments (faster, simpler)
 - Use Baby Jubjub EdDSA (`CircuitCredentialIssuer`) only when issuer trust must be proven in-circuit (e.g., decentralized deployments with no trusted issuer registry)
 
@@ -253,6 +268,7 @@ commitment = H(birthYear, nationality, salt)
 ```
 
 Where:
+
 - `birthYear`: 12-bit value (1900-4095)
 - `nationality`: 10-bit value (1-999, ISO 3166-1 numeric)
 - `salt`: 256-bit random value (32 bytes from `crypto.randomBytes`)
@@ -262,11 +278,13 @@ Where:
 **Collision Scenario**: Two credentials with identical `Poseidon(birthYear, nationality, salt)` are cryptographically indistinguishable. The prover could use either credential interchangeably.
 
 **Security Margin**:
+
 - **Preimage resistance**: Finding `(birthYear, nationality, salt)` given `commitment` requires ~2^128 operations (Poseidon security level)
 - **Collision resistance**: Finding two distinct inputs with the same hash requires ~2^128 operations (birthday bound for 254-bit output)
 - **Salt entropy**: 256 bits of randomness makes accidental collisions negligible
 
 **Probability Analysis**:
+
 - **Single collision probability**: `1 / 2^254` (negligible, ~10^-76)
 - **Birthday attack** (after issuing N credentials): `N^2 / 2^255`
   - 1 billion credentials → probability ~10^-58 (negligible)
@@ -320,19 +338,21 @@ const iv = randomBytes(12);
 
 **Node.js `crypto.randomBytes()` is cryptographically secure:**
 
-| Platform | Implementation | Source |
-|----------|----------------|--------|
-| **Linux** | `/dev/urandom` | Kernel CSPRNG (getrandom syscall on modern kernels) |
-| **macOS** | `/dev/urandom` | Kernel CSPRNG (arc4random_buf) |
-| **Windows** | `BCryptGenRandom` | Windows CNG (Cryptography Next Generation) |
+| Platform    | Implementation    | Source                                              |
+| ----------- | ----------------- | --------------------------------------------------- |
+| **Linux**   | `/dev/urandom`    | Kernel CSPRNG (getrandom syscall on modern kernels) |
+| **macOS**   | `/dev/urandom`    | Kernel CSPRNG (arc4random_buf)                      |
+| **Windows** | `BCryptGenRandom` | Windows CNG (Cryptography Next Generation)          |
 
 **Security Guarantees** (from Node.js documentation):
+
 - Cryptographically strong pseudo-random data
 - Suitable for cryptographic key generation, nonces, and salts
 - Seeded from OS-level entropy sources
 - Blocking behavior: Will wait for sufficient entropy on first call after boot (extremely rare in production)
 
 **Entropy Sources:**
+
 - Hardware RNG (RDRAND/RDSEED on x86, RNDRND on ARM)
 - Interrupt timing
 - Disk I/O timing
@@ -341,13 +361,13 @@ const iv = randomBytes(12);
 
 ### Usage in zk-id
 
-| Component | Purpose | Size | Security Requirement |
-|-----------|---------|------|---------------------|
-| Credential salt | Privacy, collision resistance | 32 bytes (256 bits) | High - used in Poseidon commitment |
-| Credential ID | Uniqueness | 16 bytes (128 bits) | Medium - collision resistance |
-| Circuit issuer key | EdDSA private key | 32 bytes (256 bits) | Critical - key material |
-| Nonce | Replay protection | 31 bytes (248 bits) | High - must be unpredictable |
-| KMS IV | AES-GCM nonce | 12 bytes (96 bits) | Critical - must never repeat |
+| Component          | Purpose                       | Size                | Security Requirement               |
+| ------------------ | ----------------------------- | ------------------- | ---------------------------------- |
+| Credential salt    | Privacy, collision resistance | 32 bytes (256 bits) | High - used in Poseidon commitment |
+| Credential ID      | Uniqueness                    | 16 bytes (128 bits) | Medium - collision resistance      |
+| Circuit issuer key | EdDSA private key             | 32 bytes (256 bits) | Critical - key material            |
+| Nonce              | Replay protection             | 31 bytes (248 bits) | High - must be unpredictable       |
+| KMS IV             | AES-GCM nonce                 | 12 bytes (96 bits)  | Critical - must never repeat       |
 
 **All uses are appropriate for their security requirements.**
 
@@ -358,6 +378,7 @@ const iv = randomBytes(12);
 **Not Supported**: Browser environments (Web Crypto API would be required for browser support)
 
 The zk-id library is designed for Node.js server environments and does not currently support browser-based credential generation. This is intentional:
+
 - Credential issuance should occur in a trusted environment (issuer server)
 - Proof generation can occur client-side using pre-issued credentials
 - Browser support for proof generation is planned for future releases
@@ -365,6 +386,7 @@ The zk-id library is designed for Node.js server environments and does not curre
 ### Verification
 
 The CSPRNG implementation can be verified by:
+
 1. Reading Node.js source code: `src/node_crypto.cc` → `RandomBytes` function
 2. Statistical tests: NIST SP 800-22 test suite (would require millions of samples)
 3. Entropy analysis: Checking `/dev/urandom` properties on Unix systems

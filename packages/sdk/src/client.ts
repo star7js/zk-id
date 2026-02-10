@@ -171,7 +171,7 @@ export class ZkIdClient {
       if (rootAgeMs > this.config.maxRevocationRootAgeMs) {
         console.warn(
           `[zk-id] Revocation root is stale: age=${Math.round(rootAgeMs / 1000)}s, ` +
-            `max=${Math.round(this.config.maxRevocationRootAgeMs / 1000)}s`
+            `max=${Math.round(this.config.maxRevocationRootAgeMs / 1000)}s`,
         );
       }
     }
@@ -232,7 +232,7 @@ export class ZkIdClient {
     if (serverProtocolVersion && !isProtocolCompatible(PROTOCOL_VERSION, serverProtocolVersion)) {
       console.warn(
         `[zk-id] Protocol version mismatch: client=${PROTOCOL_VERSION}, server=${serverProtocolVersion}. ` +
-        'This may cause compatibility issues.'
+          'This may cause compatibility issues.',
       );
     }
 
@@ -246,7 +246,7 @@ export class ZkIdClient {
   private generateNonce(): string {
     const array = new Uint8Array(16);
     crypto.getRandomValues(array);
-    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+    return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('');
   }
 
   /**
@@ -344,7 +344,7 @@ export class InMemoryWallet implements WalletConnector {
         request.nonce,
         Date.parse(request.timestamp),
         this.config.circuitPaths.ageWasm,
-        this.config.circuitPaths.ageZkey
+        this.config.circuitPaths.ageZkey,
       );
 
       return {
@@ -370,7 +370,7 @@ export class InMemoryWallet implements WalletConnector {
         request.nonce,
         Date.parse(request.timestamp),
         this.config.circuitPaths.nationalityWasm,
-        this.config.circuitPaths.nationalityZkey
+        this.config.circuitPaths.nationalityZkey,
       );
 
       return {
@@ -386,7 +386,10 @@ export class InMemoryWallet implements WalletConnector {
         throw new Error('minAge is required for age-revocable proof');
       }
 
-      if (!this.config.circuitPaths.ageRevocableWasm || !this.config.circuitPaths.ageRevocableZkey) {
+      if (
+        !this.config.circuitPaths.ageRevocableWasm ||
+        !this.config.circuitPaths.ageRevocableZkey
+      ) {
         throw new Error('Age-revocable circuit paths not configured');
       }
 
@@ -406,7 +409,7 @@ export class InMemoryWallet implements WalletConnector {
         Date.parse(request.timestamp),
         witness,
         this.config.circuitPaths.ageRevocableWasm,
-        this.config.circuitPaths.ageRevocableZkey
+        this.config.circuitPaths.ageRevocableZkey,
       );
 
       return {
@@ -422,7 +425,7 @@ export class InMemoryWallet implements WalletConnector {
     }
   }
 
-  addCredential(credential: Credential): void {
+  addCredential(_credential: Credential): void {
     throw new Error('addCredential is deprecated. Use addSignedCredential instead.');
   }
 

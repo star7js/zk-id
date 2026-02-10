@@ -15,7 +15,12 @@
  * available as a standalone component for consumers that need it.
  */
 
-import { ValidCredentialTree, RevocationWitness, RevocationRootInfo, IssuedCredentialIndex } from './types';
+import {
+  ValidCredentialTree,
+  RevocationWitness,
+  RevocationRootInfo,
+  IssuedCredentialIndex,
+} from './types';
 
 // ---------------------------------------------------------------------------
 // In-memory IssuedCredentialIndex
@@ -142,7 +147,7 @@ export class UnifiedRevocationManager {
     if (await this.validTree.contains(commitment)) {
       return 'valid';
     }
-    if (this.issuedIndex && await this.issuedIndex.wasIssued(commitment)) {
+    if (this.issuedIndex && (await this.issuedIndex.wasIssued(commitment))) {
       return 'revoked';
     }
     return 'unknown';

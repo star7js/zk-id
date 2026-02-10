@@ -11,6 +11,7 @@ zk-id uses the Groth16 proving system, which requires a circuit-specific trusted
 The proving keys currently in the repository (`packages/circuits/build/*.zkey`) are generated using a **deterministic beacon** for development and CI purposes.
 
 **⚠️ WARNING**: These keys are **NOT secure for production use**. They use a publicly known seed value and should only be used for:
+
 - Local development
 - Automated testing
 - CI/CD pipelines
@@ -32,11 +33,11 @@ The universal reference string (URS) is generated through a Powers of Tau ceremo
 
 zk-id uses pre-generated Powers of Tau files from the Hermez/Polygon ceremony:
 
-| Circuit Size | ptau File | Max Constraints | Download Source |
-|--------------|-----------|-----------------|-----------------|
-| Small | `powersOfTau28_hez_final_12.ptau` | 4,096 (2^12) | https://storage.googleapis.com/zkevm/ptau/ |
-| Medium | `powersOfTau28_hez_final_13.ptau` | 8,192 (2^13) | https://storage.googleapis.com/zkevm/ptau/ |
-| Large | `powersOfTau28_hez_final_16.ptau` | 65,536 (2^16) | https://storage.googleapis.com/zkevm/ptau/ |
+| Circuit Size | ptau File                         | Max Constraints | Download Source                            |
+| ------------ | --------------------------------- | --------------- | ------------------------------------------ |
+| Small        | `powersOfTau28_hez_final_12.ptau` | 4,096 (2^12)    | https://storage.googleapis.com/zkevm/ptau/ |
+| Medium       | `powersOfTau28_hez_final_13.ptau` | 8,192 (2^13)    | https://storage.googleapis.com/zkevm/ptau/ |
+| Large        | `powersOfTau28_hez_final_16.ptau` | 65,536 (2^16)   | https://storage.googleapis.com/zkevm/ptau/ |
 
 #### Hermez Powers of Tau Ceremony
 
@@ -61,6 +62,7 @@ npm run --workspace=@zk-id/circuits setup
 ```
 
 The script performs:
+
 1. **Initial setup**: `snarkjs groth16 setup <circuit>.r1cs <ptau_file> <circuit>_0000.zkey`
 2. **Beacon application**: `snarkjs zkey beacon <circuit>_0000.zkey <circuit>.zkey <beacon_hex> <iterations>`
    - **Beacon value** (dev): `0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20`
@@ -75,11 +77,13 @@ For production deployments, follow this MPC ceremony:
 ##### Step 1: Coordinator Preparation
 
 1. Compile all circuits:
+
    ```bash
    npm run compile:circuits
    ```
 
 2. Generate initial zkey files:
+
    ```bash
    snarkjs groth16 setup build/age-verify.r1cs build/pot/powersOfTau28_hez_final_12.ptau build/age-verify_0000.zkey
    # Repeat for all 7 circuits
@@ -96,16 +100,19 @@ For production deployments, follow this MPC ceremony:
 Each participant (recommended: 5-10 minimum):
 
 1. Download the previous contribution:
+
    ```bash
    wget https://ceremony.example.com/age-verify_000X.zkey
    ```
 
 2. Verify the previous contribution:
+
    ```bash
    snarkjs zkey verify build/age-verify.r1cs build/pot/powersOfTau28_hez_final_12.ptau age-verify_000X.zkey
    ```
 
 3. Contribute new randomness:
+
    ```bash
    snarkjs zkey contribute age-verify_000X.zkey age-verify_000Y.zkey \
      --name="Participant Name" \
@@ -119,6 +126,7 @@ Each participant (recommended: 5-10 minimum):
    - Environmental noise (radioactive decay, atmospheric noise)
 
 4. **CRITICAL**: Securely delete all local copies and entropy after contribution
+
    ```bash
    shred -vfz -n 10 age-verify_000X.zkey
    shred -vfz -n 10 entropy_sources.txt
@@ -148,6 +156,7 @@ snarkjs zkey beacon age-verify_FINAL.zkey age-verify.zkey <block_hash> 10 \
 ```
 
 **Beacon sources**:
+
 - Ethereum block hashes (future blocks)
 - NIST randomness beacon
 - Combined outputs from multiple sources
@@ -155,11 +164,13 @@ snarkjs zkey beacon age-verify_FINAL.zkey age-verify.zkey <block_hash> 10 \
 ##### Step 4: Verification and Publication
 
 1. Verify the final zkey:
+
    ```bash
    snarkjs zkey verify build/age-verify.r1cs build/pot/powersOfTau28_hez_final_12.ptau age-verify.zkey
    ```
 
 2. Export verification key:
+
    ```bash
    snarkjs zkey export verificationkey age-verify.zkey age-verify_verification_key.json
    ```
@@ -175,15 +186,15 @@ snarkjs zkey beacon age-verify_FINAL.zkey age-verify.zkey <block_hash> 10 \
 
 ## Circuit-Specific Setup Parameters
 
-| Circuit | ptau Size | Constraints | Participants Required | Estimated Duration |
-|---------|-----------|-------------|----------------------|-------------------|
-| age-verify | Small (2^12) | 303 | 5-10 | 2-3 days |
-| age-verify-signed | Large (2^16) | 19,656 | 10-15 | 1-2 weeks |
-| age-verify-revocable | Medium (2^13) | 2,773 | 5-10 | 2-3 days |
-| nationality-verify | Small (2^12) | 265 | 5-10 | 2-3 days |
-| nationality-verify-signed | Large (2^16) | 19,618 | 10-15 | 1-2 weeks |
-| credential-hash | Small (2^12) | 264 | 5-10 | 2-3 days |
-| nullifier | Small (2^12) | 507 | 5-10 | 2-3 days |
+| Circuit                   | ptau Size     | Constraints | Participants Required | Estimated Duration |
+| ------------------------- | ------------- | ----------- | --------------------- | ------------------ |
+| age-verify                | Small (2^12)  | 303         | 5-10                  | 2-3 days           |
+| age-verify-signed         | Large (2^16)  | 19,656      | 10-15                 | 1-2 weeks          |
+| age-verify-revocable      | Medium (2^13) | 2,773       | 5-10                  | 2-3 days           |
+| nationality-verify        | Small (2^12)  | 265         | 5-10                  | 2-3 days           |
+| nationality-verify-signed | Large (2^16)  | 19,618      | 10-15                 | 1-2 weeks          |
+| credential-hash           | Small (2^12)  | 264         | 5-10                  | 2-3 days           |
+| nullifier                 | Small (2^12)  | 507         | 5-10                  | 2-3 days           |
 
 ---
 
@@ -194,6 +205,7 @@ snarkjs zkey beacon age-verify_FINAL.zkey age-verify.zkey <block_hash> 10 \
 The intermediate values (`α`, `β`, `γ`, `δ`) used during setup are "toxic waste" that MUST be destroyed. If any participant retains this data, they can forge proofs.
 
 **Security Property**: The ceremony is secure if at least ONE participant:
+
 1. Generated their contribution with true randomness
 2. Securely destroyed their toxic waste
 
@@ -230,6 +242,7 @@ For production ceremonies:
 ### Attestation
 
 Each participant SHOULD publish:
+
 1. PGP-signed statement including:
    - Contribution hash
    - Entropy generation method

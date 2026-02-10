@@ -38,7 +38,7 @@ export async function generateAgeProof(
   nonce: string,
   requestTimestampMs: number,
   wasmPath: string,
-  zkeyPath: string
+  zkeyPath: string,
 ): Promise<AgeProof> {
   validateMinAge(minAge);
   validateNonce(nonce);
@@ -67,20 +67,14 @@ export async function generateAgeProof(
   };
 
   // Generate the proof using snarkjs
-  const { proof, publicSignals } = await snarkjs.groth16.fullProve(
-    input,
-    wasmPath,
-    zkeyPath
-  );
+  const { proof, publicSignals } = await snarkjs.groth16.fullProve(input, wasmPath, zkeyPath);
 
   // Format the proof
   const formattedProof: AgeProof = {
     proofType: 'age',
     proof: {
       pi_a: proof.pi_a.slice(0, 2).map((x: unknown) => String(x)),
-      pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) =>
-        arr.map((x: unknown) => String(x))
-      ),
+      pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) => arr.map((x: unknown) => String(x))),
       pi_c: proof.pi_c.slice(0, 2).map((x: unknown) => String(x)),
       protocol: proof.protocol,
       curve: proof.curve,
@@ -111,7 +105,7 @@ export async function generateAgeProofAuto(
   credential: Credential,
   minAge: number,
   nonce: string,
-  requestTimestampMs: number
+  requestTimestampMs: number,
 ): Promise<AgeProof> {
   // These paths would be resolved relative to the circuits package
   const wasmPath = require.resolve('@zk-id/circuits/build/age-verify_js/age-verify.wasm');
@@ -137,7 +131,7 @@ export async function generateNationalityProof(
   nonce: string,
   requestTimestampMs: number,
   wasmPath: string,
-  zkeyPath: string
+  zkeyPath: string,
 ): Promise<NationalityProof> {
   validateNationality(targetNationality);
   validateNonce(nonce);
@@ -163,20 +157,14 @@ export async function generateNationalityProof(
   };
 
   // Generate the proof using snarkjs
-  const { proof, publicSignals } = await snarkjs.groth16.fullProve(
-    input,
-    wasmPath,
-    zkeyPath
-  );
+  const { proof, publicSignals } = await snarkjs.groth16.fullProve(input, wasmPath, zkeyPath);
 
   // Format the proof
   const formattedProof: NationalityProof = {
     proofType: 'nationality',
     proof: {
       pi_a: proof.pi_a.slice(0, 2).map((x: unknown) => String(x)),
-      pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) =>
-        arr.map((x: unknown) => String(x))
-      ),
+      pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) => arr.map((x: unknown) => String(x))),
       pi_c: proof.pi_c.slice(0, 2).map((x: unknown) => String(x)),
       protocol: proof.protocol,
       curve: proof.curve,
@@ -206,10 +194,11 @@ export async function generateNationalityProofAuto(
   credential: Credential,
   targetNationality: number,
   nonce: string,
-  requestTimestampMs: number
+  requestTimestampMs: number,
 ): Promise<NationalityProof> {
   // These paths would be resolved relative to the circuits package
-  const wasmPath = require.resolve('@zk-id/circuits/build/nationality-verify_js/nationality-verify.wasm');
+  const wasmPath =
+    require.resolve('@zk-id/circuits/build/nationality-verify_js/nationality-verify.wasm');
   const zkeyPath = require.resolve('@zk-id/circuits/build/nationality-verify.zkey');
 
   return generateNationalityProof(
@@ -218,7 +207,7 @@ export async function generateNationalityProofAuto(
     nonce,
     requestTimestampMs,
     wasmPath,
-    zkeyPath
+    zkeyPath,
   );
 }
 
@@ -241,7 +230,7 @@ export async function generateAgeProofSigned(
   requestTimestampMs: number,
   signatureInputs: CircuitSignatureInputs,
   wasmPath: string,
-  zkeyPath: string
+  zkeyPath: string,
 ): Promise<AgeProofSigned> {
   validateMinAge(minAge);
   validateNonce(nonce);
@@ -270,11 +259,7 @@ export async function generateAgeProofSigned(
     signatureS: signatureInputs.signatureS,
   };
 
-  const { proof, publicSignals } = await snarkjs.groth16.fullProve(
-    input,
-    wasmPath,
-    zkeyPath
-  );
+  const { proof, publicSignals } = await snarkjs.groth16.fullProve(input, wasmPath, zkeyPath);
 
   const issuerPublicKey = publicSignals.slice(5, 5 + 256);
 
@@ -282,9 +267,7 @@ export async function generateAgeProofSigned(
     proofType: 'age-signed',
     proof: {
       pi_a: proof.pi_a.slice(0, 2).map((x: unknown) => String(x)),
-      pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) =>
-        arr.map((x: unknown) => String(x))
-      ),
+      pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) => arr.map((x: unknown) => String(x))),
       pi_c: proof.pi_c.slice(0, 2).map((x: unknown) => String(x)),
       protocol: proof.protocol,
       curve: proof.curve,
@@ -317,11 +300,10 @@ export async function generateAgeProofSignedAuto(
   minAge: number,
   nonce: string,
   requestTimestampMs: number,
-  signatureInputs: CircuitSignatureInputs
+  signatureInputs: CircuitSignatureInputs,
 ): Promise<AgeProofSigned> {
-  const wasmPath = require.resolve(
-    '@zk-id/circuits/build/age-verify-signed_js/age-verify-signed.wasm'
-  );
+  const wasmPath =
+    require.resolve('@zk-id/circuits/build/age-verify-signed_js/age-verify-signed.wasm');
   const zkeyPath = require.resolve('@zk-id/circuits/build/age-verify-signed.zkey');
 
   return generateAgeProofSigned(
@@ -331,7 +313,7 @@ export async function generateAgeProofSignedAuto(
     requestTimestampMs,
     signatureInputs,
     wasmPath,
-    zkeyPath
+    zkeyPath,
   );
 }
 
@@ -354,7 +336,7 @@ export async function generateNationalityProofSigned(
   requestTimestampMs: number,
   signatureInputs: CircuitSignatureInputs,
   wasmPath: string,
-  zkeyPath: string
+  zkeyPath: string,
 ): Promise<NationalityProofSigned> {
   validateNationality(targetNationality);
   validateNonce(nonce);
@@ -380,11 +362,7 @@ export async function generateNationalityProofSigned(
     signatureS: signatureInputs.signatureS,
   };
 
-  const { proof, publicSignals } = await snarkjs.groth16.fullProve(
-    input,
-    wasmPath,
-    zkeyPath
-  );
+  const { proof, publicSignals } = await snarkjs.groth16.fullProve(input, wasmPath, zkeyPath);
 
   const issuerPublicKey = publicSignals.slice(4, 4 + 256);
 
@@ -392,9 +370,7 @@ export async function generateNationalityProofSigned(
     proofType: 'nationality-signed',
     proof: {
       pi_a: proof.pi_a.slice(0, 2).map((x: unknown) => String(x)),
-      pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) =>
-        arr.map((x: unknown) => String(x))
-      ),
+      pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) => arr.map((x: unknown) => String(x))),
       pi_c: proof.pi_c.slice(0, 2).map((x: unknown) => String(x)),
       protocol: proof.protocol,
       curve: proof.curve,
@@ -426,11 +402,10 @@ export async function generateNationalityProofSignedAuto(
   targetNationality: number,
   nonce: string,
   requestTimestampMs: number,
-  signatureInputs: CircuitSignatureInputs
+  signatureInputs: CircuitSignatureInputs,
 ): Promise<NationalityProofSigned> {
-  const wasmPath = require.resolve(
-    '@zk-id/circuits/build/nationality-verify-signed_js/nationality-verify-signed.wasm'
-  );
+  const wasmPath =
+    require.resolve('@zk-id/circuits/build/nationality-verify-signed_js/nationality-verify-signed.wasm');
   const zkeyPath = require.resolve('@zk-id/circuits/build/nationality-verify-signed.zkey');
 
   return generateNationalityProofSigned(
@@ -440,7 +415,7 @@ export async function generateNationalityProofSignedAuto(
     requestTimestampMs,
     signatureInputs,
     wasmPath,
-    zkeyPath
+    zkeyPath,
   );
 }
 
@@ -464,7 +439,7 @@ export async function generateAgeProofRevocable(
   requestTimestampMs: number,
   merkleWitness: RevocationWitness,
   wasmPath: string,
-  zkeyPath: string
+  zkeyPath: string,
 ): Promise<AgeProofRevocable> {
   validateMinAge(minAge);
   validateNonce(nonce);
@@ -496,11 +471,7 @@ export async function generateAgeProofRevocable(
   };
 
   // Generate the proof using snarkjs
-  const { proof, publicSignals } = await snarkjs.groth16.fullProve(
-    input,
-    wasmPath,
-    zkeyPath
-  );
+  const { proof, publicSignals } = await snarkjs.groth16.fullProve(input, wasmPath, zkeyPath);
 
   // Format the proof
   // Public signal index mapping: [0]=currentYear, [1]=minAge, [2]=credentialHash, [3]=merkleRoot, [4]=nonce, [5]=requestTimestamp
@@ -508,9 +479,7 @@ export async function generateAgeProofRevocable(
     proofType: 'age-revocable',
     proof: {
       pi_a: proof.pi_a.slice(0, 2).map((x: unknown) => String(x)),
-      pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) =>
-        arr.map((x: unknown) => String(x))
-      ),
+      pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) => arr.map((x: unknown) => String(x))),
       pi_c: proof.pi_c.slice(0, 2).map((x: unknown) => String(x)),
       protocol: proof.protocol,
       curve: proof.curve,
@@ -544,9 +513,10 @@ export async function generateAgeProofRevocableAuto(
   minAge: number,
   nonce: string,
   requestTimestampMs: number,
-  merkleWitness: RevocationWitness
+  merkleWitness: RevocationWitness,
 ): Promise<AgeProofRevocable> {
-  const wasmPath = require.resolve('@zk-id/circuits/build/age-verify-revocable_js/age-verify-revocable.wasm');
+  const wasmPath =
+    require.resolve('@zk-id/circuits/build/age-verify-revocable_js/age-verify-revocable.wasm');
   const zkeyPath = require.resolve('@zk-id/circuits/build/age-verify-revocable.zkey');
 
   return generateAgeProofRevocable(
@@ -556,7 +526,7 @@ export async function generateAgeProofRevocableAuto(
     requestTimestampMs,
     merkleWitness,
     wasmPath,
-    zkeyPath
+    zkeyPath,
   );
 }
 
@@ -573,7 +543,7 @@ export async function generateNullifierProof(
   credential: Credential,
   scopeHash: string,
   wasmPath: string,
-  zkeyPath: string
+  zkeyPath: string,
 ): Promise<NullifierProof> {
   validateHexString(credential.salt, 'credential.salt');
   validateBigIntString(scopeHash, 'scopeHash');
@@ -588,10 +558,7 @@ export async function generateNullifierProof(
   ]);
 
   // Compute the nullifier = Poseidon(credentialHash, scopeHash)
-  const nullifier = await poseidonHash([
-    credentialHash,
-    scopeHashBigInt,
-  ]);
+  const nullifier = await poseidonHash([credentialHash, scopeHashBigInt]);
 
   // Prepare circuit inputs
   const input = {
@@ -604,20 +571,14 @@ export async function generateNullifierProof(
   };
 
   // Generate the proof using snarkjs
-  const { proof, publicSignals } = await snarkjs.groth16.fullProve(
-    input,
-    wasmPath,
-    zkeyPath
-  );
+  const { proof, publicSignals } = await snarkjs.groth16.fullProve(input, wasmPath, zkeyPath);
 
   // Format the proof
   const formattedProof: NullifierProof = {
     proofType: 'nullifier',
     proof: {
       pi_a: proof.pi_a.slice(0, 2).map((x: unknown) => String(x)),
-      pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) =>
-        arr.map((x: unknown) => String(x))
-      ),
+      pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) => arr.map((x: unknown) => String(x))),
       pi_c: proof.pi_c.slice(0, 2).map((x: unknown) => String(x)),
     },
     publicSignals: {
@@ -642,7 +603,7 @@ export async function generateNullifierProof(
  */
 export async function generateNullifierProofAuto(
   credential: Credential,
-  scopeHash: string
+  scopeHash: string,
 ): Promise<NullifierProof> {
   const wasmPath = require.resolve('@zk-id/circuits/build/nullifier_js/nullifier.wasm');
   const zkeyPath = require.resolve('@zk-id/circuits/build/nullifier.zkey');

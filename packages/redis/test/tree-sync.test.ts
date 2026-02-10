@@ -28,6 +28,7 @@ class MockPubSub {
   }
 
   createSubClient(): RedisSubClient {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
     const handlers: ((channel: string, message: string) => void)[] = [];
     let subscribedChannels: string[] = [];
@@ -131,10 +132,7 @@ class StubValidCredentialTree implements ValidCredentialTree {
 describe('RedisTreeSyncChannel', () => {
   it('publishes and receives events', async () => {
     const pubsub = new MockPubSub();
-    const channel = new RedisTreeSyncChannel(
-      pubsub.createPubClient(),
-      pubsub.createSubClient(),
-    );
+    const channel = new RedisTreeSyncChannel(pubsub.createPubClient(), pubsub.createSubClient());
 
     const received: TreeSyncEvent[] = [];
     channel.onUpdate((event) => received.push(event));
@@ -157,10 +155,7 @@ describe('RedisTreeSyncChannel', () => {
 
   it('supports multiple handlers', async () => {
     const pubsub = new MockPubSub();
-    const channel = new RedisTreeSyncChannel(
-      pubsub.createPubClient(),
-      pubsub.createSubClient(),
-    );
+    const channel = new RedisTreeSyncChannel(pubsub.createPubClient(), pubsub.createSubClient());
 
     let countA = 0;
     let countB = 0;
@@ -183,11 +178,9 @@ describe('RedisTreeSyncChannel', () => {
 
   it('uses custom channel name', async () => {
     const pubsub = new MockPubSub();
-    const channel = new RedisTreeSyncChannel(
-      pubsub.createPubClient(),
-      pubsub.createSubClient(),
-      { channel: 'custom:channel' },
-    );
+    const channel = new RedisTreeSyncChannel(pubsub.createPubClient(), pubsub.createSubClient(), {
+      channel: 'custom:channel',
+    });
 
     const received: TreeSyncEvent[] = [];
     channel.onUpdate((event) => received.push(event));
@@ -242,10 +235,7 @@ describe('RedisTreeSyncChannel', () => {
 
   it('start() is idempotent', async () => {
     const pubsub = new MockPubSub();
-    const channel = new RedisTreeSyncChannel(
-      pubsub.createPubClient(),
-      pubsub.createSubClient(),
-    );
+    const channel = new RedisTreeSyncChannel(pubsub.createPubClient(), pubsub.createSubClient());
 
     await channel.start();
     await channel.start(); // should not throw or double-subscribe
@@ -257,10 +247,7 @@ describe('RedisTreeSyncChannel', () => {
 describe('SyncedValidCredentialTree', () => {
   it('delegates add/remove to inner tree', async () => {
     const pubsub = new MockPubSub();
-    const channel = new RedisTreeSyncChannel(
-      pubsub.createPubClient(),
-      pubsub.createSubClient(),
-    );
+    const channel = new RedisTreeSyncChannel(pubsub.createPubClient(), pubsub.createSubClient());
     await channel.start();
 
     const inner = new StubValidCredentialTree();
@@ -277,10 +264,7 @@ describe('SyncedValidCredentialTree', () => {
 
   it('broadcasts sync events on add/remove', async () => {
     const pubsub = new MockPubSub();
-    const channel = new RedisTreeSyncChannel(
-      pubsub.createPubClient(),
-      pubsub.createSubClient(),
-    );
+    const channel = new RedisTreeSyncChannel(pubsub.createPubClient(), pubsub.createSubClient());
 
     const published: TreeSyncEvent[] = [];
     channel.onUpdate((event) => published.push(event));
@@ -304,17 +288,16 @@ describe('SyncedValidCredentialTree', () => {
 
   it('ignores self-notifications', async () => {
     const pubsub = new MockPubSub();
-    const channel = new RedisTreeSyncChannel(
-      pubsub.createPubClient(),
-      pubsub.createSubClient(),
-    );
+    const channel = new RedisTreeSyncChannel(pubsub.createPubClient(), pubsub.createSubClient());
     await channel.start();
 
     const remoteUpdates: TreeSyncEvent[] = [];
     const inner = new StubValidCredentialTree();
     const synced = new SyncedValidCredentialTree(inner, channel, {
       nodeId: 'node-A',
-      onRemoteUpdate: (event) => { remoteUpdates.push(event); },
+      onRemoteUpdate: (event) => {
+        remoteUpdates.push(event);
+      },
     });
 
     // This add will broadcast with source=node-A, which should be ignored
@@ -329,17 +312,11 @@ describe('SyncedValidCredentialTree', () => {
     const pubsub = new MockPubSub();
 
     // Node A's channel
-    const channelA = new RedisTreeSyncChannel(
-      pubsub.createPubClient(),
-      pubsub.createSubClient(),
-    );
+    const channelA = new RedisTreeSyncChannel(pubsub.createPubClient(), pubsub.createSubClient());
     await channelA.start();
 
     // Node B's channel (same pub/sub bus)
-    const channelB = new RedisTreeSyncChannel(
-      pubsub.createPubClient(),
-      pubsub.createSubClient(),
-    );
+    const channelB = new RedisTreeSyncChannel(pubsub.createPubClient(), pubsub.createSubClient());
     await channelB.start();
 
     const remoteUpdatesA: TreeSyncEvent[] = [];
@@ -348,13 +325,17 @@ describe('SyncedValidCredentialTree', () => {
     const treeA = new StubValidCredentialTree();
     const syncedA = new SyncedValidCredentialTree(treeA, channelA, {
       nodeId: 'node-A',
-      onRemoteUpdate: (event) => { remoteUpdatesA.push(event); },
+      onRemoteUpdate: (event) => {
+        remoteUpdatesA.push(event);
+      },
     });
 
     const treeB = new StubValidCredentialTree();
     const syncedB = new SyncedValidCredentialTree(treeB, channelB, {
       nodeId: 'node-B',
-      onRemoteUpdate: (event) => { remoteUpdatesB.push(event); },
+      onRemoteUpdate: (event) => {
+        remoteUpdatesB.push(event);
+      },
     });
 
     // Node A adds a credential
@@ -381,14 +362,8 @@ describe('SyncedValidCredentialTree', () => {
 
   it('tracks last known remote version', async () => {
     const pubsub = new MockPubSub();
-    const channelA = new RedisTreeSyncChannel(
-      pubsub.createPubClient(),
-      pubsub.createSubClient(),
-    );
-    const channelB = new RedisTreeSyncChannel(
-      pubsub.createPubClient(),
-      pubsub.createSubClient(),
-    );
+    const channelA = new RedisTreeSyncChannel(pubsub.createPubClient(), pubsub.createSubClient());
+    const channelB = new RedisTreeSyncChannel(pubsub.createPubClient(), pubsub.createSubClient());
     await channelA.start();
     await channelB.start();
 
@@ -412,10 +387,7 @@ describe('SyncedValidCredentialTree', () => {
 
   it('delegates read operations to inner tree', async () => {
     const pubsub = new MockPubSub();
-    const channel = new RedisTreeSyncChannel(
-      pubsub.createPubClient(),
-      pubsub.createSubClient(),
-    );
+    const channel = new RedisTreeSyncChannel(pubsub.createPubClient(), pubsub.createSubClient());
     await channel.start();
 
     const inner = new StubValidCredentialTree();
@@ -441,10 +413,7 @@ describe('SyncedValidCredentialTree', () => {
 
   it('exposes nodeId', async () => {
     const pubsub = new MockPubSub();
-    const channel = new RedisTreeSyncChannel(
-      pubsub.createPubClient(),
-      pubsub.createSubClient(),
-    );
+    const channel = new RedisTreeSyncChannel(pubsub.createPubClient(), pubsub.createSubClient());
 
     const inner = new StubValidCredentialTree();
     const synced = new SyncedValidCredentialTree(inner, channel, { nodeId: 'my-node' });
@@ -456,10 +425,7 @@ describe('SyncedValidCredentialTree', () => {
 
   it('generates a random nodeId when not provided', async () => {
     const pubsub = new MockPubSub();
-    const channel = new RedisTreeSyncChannel(
-      pubsub.createPubClient(),
-      pubsub.createSubClient(),
-    );
+    const channel = new RedisTreeSyncChannel(pubsub.createPubClient(), pubsub.createSubClient());
 
     const inner = new StubValidCredentialTree();
     const synced = new SyncedValidCredentialTree(inner, channel);
@@ -472,10 +438,7 @@ describe('SyncedValidCredentialTree', () => {
 
   it('handles getRootInfo fallback when inner tree lacks getRootInfo', async () => {
     const pubsub = new MockPubSub();
-    const channel = new RedisTreeSyncChannel(
-      pubsub.createPubClient(),
-      pubsub.createSubClient(),
-    );
+    const channel = new RedisTreeSyncChannel(pubsub.createPubClient(), pubsub.createSubClient());
     await channel.start();
 
     // Create a minimal tree without getRootInfo

@@ -1,8 +1,7 @@
 import { expect } from 'chai';
 import { RedisChallengeStore } from '../src/challenge-store';
 
-const REDIS_URL =
-  process.env.ZKID_REDIS_URL || process.env.REDIS_URL;
+const REDIS_URL = process.env.ZKID_REDIS_URL || process.env.REDIS_URL;
 
 describe('RedisChallengeStore', function () {
   if (!REDIS_URL) {
@@ -72,7 +71,7 @@ describe('RedisChallengeStore', function () {
     await store.issue(nonce, timestamp, 100); // 100ms TTL
 
     // Wait for expiration
-    await new Promise(resolve => setTimeout(resolve, 150));
+    await new Promise((resolve) => setTimeout(resolve, 150));
 
     expect(await store.consume(nonce)).to.equal(null);
   });

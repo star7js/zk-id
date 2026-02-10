@@ -276,7 +276,6 @@ export interface RevocationRootInfo {
   source?: string;
 }
 
-
 // ---------------------------------------------------------------------------
 // Audit Logging
 // ---------------------------------------------------------------------------
@@ -288,7 +287,14 @@ export interface AuditEntry {
   /** ISO 8601 timestamp */
   timestamp: string;
   /** Action that occurred */
-  action: 'issue' | 'revoke' | 'verify' | 'suspend' | 'reactivate' | 'deactivate' | 'grace_period_accept';
+  action:
+    | 'issue'
+    | 'revoke'
+    | 'verify'
+    | 'suspend'
+    | 'reactivate'
+    | 'deactivate'
+    | 'grace_period_accept';
   /** Actor (issuer name, verifier identifier) */
   actor: string;
   /** Target identifier (credential ID, commitment, issuer name) */

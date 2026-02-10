@@ -1,8 +1,5 @@
 import { strict as assert } from 'assert';
-import {
-  UnifiedRevocationManager,
-  InMemoryIssuedCredentialIndex,
-} from '../src/unified-revocation';
+import { UnifiedRevocationManager, InMemoryIssuedCredentialIndex } from '../src/unified-revocation';
 import { InMemoryValidCredentialTree } from '../src/valid-credential-tree';
 import { createCredential } from '../src/credential';
 

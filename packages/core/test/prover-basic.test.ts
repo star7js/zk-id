@@ -11,27 +11,24 @@ import { createCredential } from '../src/credential';
 import { verifyAgeProof, verifyNationalityProof, loadVerificationKey } from '../src/verifier';
 
 describe('Basic Prover Tests', () => {
-  const wasmPathAge = path.resolve(
-    __dirname,
-    '../../circuits/build/age-verify_js/age-verify.wasm'
-  );
+  const wasmPathAge = path.resolve(__dirname, '../../circuits/build/age-verify_js/age-verify.wasm');
   const zkeyPathAge = path.resolve(__dirname, '../../circuits/build/age-verify.zkey');
   const vkeyPathAge = path.resolve(
     __dirname,
-    '../../circuits/build/age-verify_verification_key.json'
+    '../../circuits/build/age-verify_verification_key.json',
   );
 
   const wasmPathNationality = path.resolve(
     __dirname,
-    '../../circuits/build/nationality-verify_js/nationality-verify.wasm'
+    '../../circuits/build/nationality-verify_js/nationality-verify.wasm',
   );
   const zkeyPathNationality = path.resolve(
     __dirname,
-    '../../circuits/build/nationality-verify.zkey'
+    '../../circuits/build/nationality-verify.zkey',
   );
   const vkeyPathNationality = path.resolve(
     __dirname,
-    '../../circuits/build/nationality-verify_verification_key.json'
+    '../../circuits/build/nationality-verify_verification_key.json',
   );
 
   describe('generateAgeProof', () => {
@@ -48,7 +45,7 @@ describe('Basic Prover Tests', () => {
         nonce,
         requestTimestampMs,
         wasmPathAge,
-        zkeyPathAge
+        zkeyPathAge,
       );
 
       expect(proof).to.have.property('proof');
@@ -74,7 +71,7 @@ describe('Basic Prover Tests', () => {
         nonce,
         requestTimestampMs,
         wasmPathAge,
-        zkeyPathAge
+        zkeyPathAge,
       );
 
       expect(proof.publicSignals.minAge).to.equal(21);
@@ -97,7 +94,7 @@ describe('Basic Prover Tests', () => {
         nonce,
         requestTimestampMs,
         wasmPathAge,
-        zkeyPathAge
+        zkeyPathAge,
       );
 
       expect(proof.publicSignals.minAge).to.equal(65);
@@ -121,7 +118,7 @@ describe('Basic Prover Tests', () => {
         nonce,
         requestTimestampMs,
         wasmPathAge,
-        zkeyPathAge
+        zkeyPathAge,
       );
 
       expect(proof.publicSignals.currentYear).to.equal(currentYear);
@@ -138,14 +135,7 @@ describe('Basic Prover Tests', () => {
       const nonce = BigInt('0x' + randomBytes(31).toString('hex')).toString();
 
       try {
-        await generateAgeProof(
-          credential,
-          -1,
-          nonce,
-          Date.now(),
-          wasmPathAge,
-          zkeyPathAge
-        );
+        await generateAgeProof(credential, -1, nonce, Date.now(), wasmPathAge, zkeyPathAge);
         expect.fail('Should have thrown error');
       } catch (error: any) {
         expect(error.message).to.include('minAge');
@@ -159,14 +149,7 @@ describe('Basic Prover Tests', () => {
       const nonce = BigInt('0x' + randomBytes(31).toString('hex')).toString();
 
       try {
-        await generateAgeProof(
-          credential,
-          200,
-          nonce,
-          Date.now(),
-          wasmPathAge,
-          zkeyPathAge
-        );
+        await generateAgeProof(credential, 200, nonce, Date.now(), wasmPathAge, zkeyPathAge);
         expect.fail('Should have thrown error');
       } catch (error: any) {
         expect(error.message).to.include('minAge');
@@ -199,7 +182,7 @@ describe('Basic Prover Tests', () => {
           nonce,
           Date.now(),
           '/invalid/path.wasm',
-          zkeyPathAge
+          zkeyPathAge,
         );
         expect.fail('Should have thrown error');
       } catch (error: any) {
@@ -216,12 +199,7 @@ describe('Basic Prover Tests', () => {
       const nonce = BigInt('0x' + randomBytes(31).toString('hex')).toString();
       const requestTimestampMs = Date.now();
 
-      const proof = await generateAgeProofAuto(
-        credential,
-        18,
-        nonce,
-        requestTimestampMs
-      );
+      const proof = await generateAgeProofAuto(credential, 18, nonce, requestTimestampMs);
 
       expect(proof).to.have.property('proof');
       expect(proof).to.have.property('publicSignals');
@@ -239,12 +217,7 @@ describe('Basic Prover Tests', () => {
       const nonce = BigInt('0x' + randomBytes(31).toString('hex')).toString();
       const requestTimestampMs = Date.now();
 
-      const proofAuto = await generateAgeProofAuto(
-        credential,
-        18,
-        nonce,
-        requestTimestampMs
-      );
+      const proofAuto = await generateAgeProofAuto(credential, 18, nonce, requestTimestampMs);
 
       const proofManual = await generateAgeProof(
         credential,
@@ -252,7 +225,7 @@ describe('Basic Prover Tests', () => {
         nonce,
         requestTimestampMs,
         wasmPathAge,
-        zkeyPathAge
+        zkeyPathAge,
       );
 
       // Public signals should match
@@ -275,7 +248,7 @@ describe('Basic Prover Tests', () => {
         nonce,
         requestTimestampMs,
         wasmPathNationality,
-        zkeyPathNationality
+        zkeyPathNationality,
       );
 
       expect(proof).to.have.property('proof');
@@ -301,7 +274,7 @@ describe('Basic Prover Tests', () => {
         nonce,
         requestTimestampMs,
         wasmPathNationality,
-        zkeyPathNationality
+        zkeyPathNationality,
       );
 
       expect(proof.publicSignals.targetNationality).to.equal(276);
@@ -324,7 +297,7 @@ describe('Basic Prover Tests', () => {
         nonce,
         requestTimestampMs,
         wasmPathNationality,
-        zkeyPathNationality
+        zkeyPathNationality,
       );
 
       expect(proof.publicSignals.targetNationality).to.equal(840);
@@ -346,7 +319,7 @@ describe('Basic Prover Tests', () => {
           nonce,
           Date.now(),
           wasmPathNationality,
-          zkeyPathNationality
+          zkeyPathNationality,
         );
         expect.fail('Should have thrown error');
       } catch (error: any) {
@@ -363,12 +336,7 @@ describe('Basic Prover Tests', () => {
       const nonce = BigInt('0x' + randomBytes(31).toString('hex')).toString();
       const requestTimestampMs = Date.now();
 
-      const proof = await generateNationalityProofAuto(
-        credential,
-        840,
-        nonce,
-        requestTimestampMs
-      );
+      const proof = await generateNationalityProofAuto(credential, 840, nonce, requestTimestampMs);
 
       expect(proof).to.have.property('proof');
       expect(proof).to.have.property('publicSignals');
@@ -390,7 +358,7 @@ describe('Basic Prover Tests', () => {
         credential,
         840,
         nonce,
-        requestTimestampMs
+        requestTimestampMs,
       );
 
       const proofManual = await generateNationalityProof(
@@ -399,7 +367,7 @@ describe('Basic Prover Tests', () => {
         nonce,
         requestTimestampMs,
         wasmPathNationality,
-        zkeyPathNationality
+        zkeyPathNationality,
       );
 
       // Public signals should match

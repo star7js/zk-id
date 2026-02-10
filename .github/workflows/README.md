@@ -5,6 +5,7 @@ This directory contains the CI/CD and security workflows for the zk-id project.
 ## Design Philosophy
 
 This workflow setup follows the **single responsibility principle** with a focus on efficiency:
+
 - Each workflow handles one clear task (build, security scan, release)
 - Overlapping tools are consolidated (CodeQL + Semgrep in one workflow)
 - Only tools relevant to a ZK circuit library are included
@@ -12,13 +13,13 @@ This workflow setup follows the **single responsibility principle** with a focus
 
 ## Workflows
 
-| Workflow | Triggers | Purpose |
-|----------|----------|---------|
-| **ci.yml** | Push to main, PRs | Main CI pipeline - runs tests, builds packages, verifies circuit artifacts |
-| **verify-circuits.yml** | Push to main (circuit changes), PRs (circuit changes), Weekly (Mon 6AM UTC), Manual | Verifies circuit reproducibility by performing clean builds from scratch |
-| **security.yml** | Push to main, PRs, Weekly (Mon 9AM UTC) | Runs CodeQL and Semgrep SAST scans, uploads results to Security tab |
-| **scorecard.yml** | Push to main, Weekly (Sat 1:30AM UTC), Manual | OSSF Scorecard supply-chain security analysis |
-| **release.yml** | Tag push (v*) | Creates GitHub releases from version tags |
+| Workflow                | Triggers                                                                            | Purpose                                                                    |
+| ----------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **ci.yml**              | Push to main, PRs                                                                   | Main CI pipeline - runs tests, builds packages, verifies circuit artifacts |
+| **verify-circuits.yml** | Push to main (circuit changes), PRs (circuit changes), Weekly (Mon 6AM UTC), Manual | Verifies circuit reproducibility by performing clean builds from scratch   |
+| **security.yml**        | Push to main, PRs, Weekly (Mon 9AM UTC)                                             | Runs CodeQL and Semgrep SAST scans, uploads results to Security tab        |
+| **scorecard.yml**       | Push to main, Weekly (Sat 1:30AM UTC), Manual                                       | OSSF Scorecard supply-chain security analysis                              |
+| **release.yml**         | Tag push (v\*)                                                                      | Creates GitHub releases from version tags                                  |
 
 ## Shared Components
 
@@ -40,6 +41,7 @@ Each scanner uploads SARIF results with unique categories to prevent collisions 
 ### Why This Stack?
 
 We chose this focused security stack over alternatives because:
+
 - **CodeQL**: GitHub-native, free, excellent JS/TS support
 - **Semgrep**: Open-source, customizable, good for crypto patterns
 - **Dependabot over Snyk**: Simpler, GitHub-native, no external account needed

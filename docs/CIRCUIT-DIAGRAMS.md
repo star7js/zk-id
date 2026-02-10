@@ -31,6 +31,7 @@ This document provides Mermaid signal flow diagrams for all zk-id circuits, show
 **Purpose:** Prove age ≥ minAge without revealing birth year.
 
 **Signals:**
+
 - **Private:** `birthYear`, `nationality`, `salt`
 - **Public:** `credentialHash`, `minAge`, `currentYear`, `nonce`, `requestTimestamp`
 
@@ -75,6 +76,7 @@ graph TD
 **Constraint count:** ~2,500 (see `docs/CIRCUIT-COMPLEXITY.md`)
 
 **Key constraints:**
+
 - `birthYear >= 1900` and `birthYear <= currentYear` (GreaterEqThan 12-bit)
 - `age >= minAge` (GreaterEqThan 12-bit)
 - `Poseidon(birthYear, nationality, salt) === credentialHash`
@@ -86,6 +88,7 @@ graph TD
 **Purpose:** Prove nationality matches target without revealing actual nationality.
 
 **Signals:**
+
 - **Private:** `birthYear`, `nationality`, `salt`
 - **Public:** `credentialHash`, `targetNationality`, `nonce`, `requestTimestamp`
 
@@ -124,6 +127,7 @@ graph TD
 **Constraint count:** ~2,000
 
 **Key constraints:**
+
 - `nationality === targetNationality` (ForceEqualIfEnabled)
 - `Poseidon(birthYear, nationality, salt) === credentialHash`
 
@@ -134,6 +138,7 @@ graph TD
 **Purpose:** Prove age ≥ minAge with in-circuit EdDSA signature verification.
 
 **Signals:**
+
 - **Private:** `birthYear`, `nationality`, `salt`, `signatureR8[256]`, `signatureS`
 - **Public:** `credentialHash`, `minAge`, `currentYear`, `nonce`, `requestTimestamp`, `issuerPubKey[256]`
 
@@ -187,6 +192,7 @@ graph TD
 **Constraint count:** ~18,000 (EdDSA adds ~15,500 constraints)
 
 **Key constraints:**
+
 - Age verification (same as age-verify.circom)
 - `EdDSAVerifier(credentialHash, issuerPubKey, R8, S) === 1`
 - Poseidon output (254-bit) fits in EdDSAVerifier's 256-bit message field
@@ -198,6 +204,7 @@ graph TD
 **Purpose:** Prove nationality with in-circuit EdDSA signature verification.
 
 **Signals:**
+
 - **Private:** `birthYear`, `nationality`, `salt`, `signatureR8[256]`, `signatureS`
 - **Public:** `credentialHash`, `targetNationality`, `nonce`, `requestTimestamp`, `issuerPubKey[256]`
 
@@ -247,6 +254,7 @@ graph TD
 **Constraint count:** ~17,500
 
 **Key constraints:**
+
 - Nationality verification (same as nationality-verify.circom)
 - `EdDSAVerifier(credentialHash, issuerPubKey, R8, S) === 1`
 
@@ -257,6 +265,7 @@ graph TD
 **Purpose:** Prove age ≥ minAge with Merkle inclusion proof (credential not revoked).
 
 **Signals:**
+
 - **Private:** `birthYear`, `nationality`, `salt`, `pathElements[10]`, `pathIndices[10]`
 - **Public:** `credentialHash`, `minAge`, `currentYear`, `nonce`, `requestTimestamp`, `merkleRoot`
 
@@ -310,6 +319,7 @@ graph TD
 **Constraint count:** ~4,000 (Merkle verifier adds ~1,500 constraints)
 
 **Key constraints:**
+
 - Age verification (same as age-verify.circom)
 - `MerkleTreeVerifier(credentialHash, pathElements, pathIndices) === merkleRoot`
 - Depth hardcoded to 10 → max 1,024 valid credentials
@@ -321,6 +331,7 @@ graph TD
 **Purpose:** Compute deterministic nullifier for sybil-resistance.
 
 **Signals:**
+
 - **Private:** `preimage` (credential commitment hash)
 - **Public:** `commitmentHash`, `scopeHash`, `nullifier`
 
@@ -351,6 +362,7 @@ graph TD
 **Constraint count:** ~1,500
 
 **Key constraints:**
+
 - `Poseidon(preimage) === commitmentHash` (proves prover knows preimage)
 - `nullifier === Poseidon(preimage, scopeHash)` (deterministic per-scope ID)
 
@@ -363,6 +375,7 @@ graph TD
 **Purpose:** Standalone credential commitment hash computation.
 
 **Signals:**
+
 - **Private:** None
 - **Public:** `birthYear`, `nationality`, `salt`, `credentialHash`
 
@@ -387,6 +400,7 @@ graph TD
 **Constraint count:** ~500
 
 **Key constraints:**
+
 - `credentialHash === Poseidon(birthYear, nationality, salt)`
 
 **Usage:** Used off-chain to compute credential commitments before embedding in other circuits.
@@ -398,6 +412,7 @@ graph TD
 **Purpose:** Generic Merkle tree inclusion verifier (used as sub-component).
 
 **Signals:**
+
 - **Private:** `pathElements[depth]`, `pathIndices[depth]`
 - **Public:** `leaf`, `root`
 
@@ -426,6 +441,7 @@ graph TD
 **Constraint count:** ~150 per level (depth-dependent)
 
 **Key constraints:**
+
 - Iterative hashing from leaf to root
 - Binary path indices (0 = left child, 1 = right child)
 
@@ -433,16 +449,16 @@ graph TD
 
 ## Circuit Complexity Summary
 
-| Circuit | Constraints | Proving Time (est.) | Use Case |
-|---------|-------------|---------------------|----------|
-| age-verify | ~2,500 | ~1s | Basic age proof (no signature) |
-| nationality-verify | ~2,000 | ~1s | Basic nationality proof (no signature) |
-| age-verify-signed | ~18,000 | ~3-5s | Age proof + in-circuit EdDSA |
-| nationality-verify-signed | ~17,500 | ~3-5s | Nationality proof + in-circuit EdDSA |
-| age-verify-revocable | ~4,000 | ~1.5s | Age proof + Merkle inclusion (1024 leaves) |
-| nullifier | ~1,500 | ~0.5s | Sybil-resistance (double-voting prevention) |
-| credential-hash | ~500 | ~0.3s | Credential commitment computation |
-| merkle-tree-verifier | ~150/level | N/A | Sub-component (not standalone) |
+| Circuit                   | Constraints | Proving Time (est.) | Use Case                                    |
+| ------------------------- | ----------- | ------------------- | ------------------------------------------- |
+| age-verify                | ~2,500      | ~1s                 | Basic age proof (no signature)              |
+| nationality-verify        | ~2,000      | ~1s                 | Basic nationality proof (no signature)      |
+| age-verify-signed         | ~18,000     | ~3-5s               | Age proof + in-circuit EdDSA                |
+| nationality-verify-signed | ~17,500     | ~3-5s               | Nationality proof + in-circuit EdDSA        |
+| age-verify-revocable      | ~4,000      | ~1.5s               | Age proof + Merkle inclusion (1024 leaves)  |
+| nullifier                 | ~1,500      | ~0.5s               | Sybil-resistance (double-voting prevention) |
+| credential-hash           | ~500        | ~0.3s               | Credential commitment computation           |
+| merkle-tree-verifier      | ~150/level  | N/A                 | Sub-component (not standalone)              |
 
 **Note:** Proving times are approximate and depend on hardware (CPU, memory). GPU acceleration (rapidsnark) can reduce by ~10x.
 

@@ -3,8 +3,7 @@ import { generateKeyPairSync } from 'crypto';
 import { RedisIssuerRegistry } from '../src/issuer-registry';
 import type { IssuerRecord } from '@zk-id/sdk';
 
-const REDIS_URL =
-  process.env.ZKID_REDIS_URL || process.env.REDIS_URL;
+const REDIS_URL = process.env.ZKID_REDIS_URL || process.env.REDIS_URL;
 
 describe('RedisIssuerRegistry', function () {
   if (!REDIS_URL) {
@@ -134,8 +133,9 @@ describe('RedisIssuerRegistry', function () {
 
     expect(retrieved!.status).to.equal('suspended');
     // Keys should be different
-    expect(retrieved!.publicKey.export({ type: 'spki', format: 'pem' }))
-      .to.equal(key2.export({ type: 'spki', format: 'pem' }));
+    expect(retrieved!.publicKey.export({ type: 'spki', format: 'pem' })).to.equal(
+      key2.export({ type: 'spki', format: 'pem' }),
+    );
   });
 
   it('removes issuer records', async () => {

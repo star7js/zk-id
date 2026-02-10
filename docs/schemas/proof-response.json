@@ -4,7 +4,14 @@
   "title": "ProofResponse",
   "description": "Response containing a zero-knowledge proof submitted to a verifier. This is the request body for POST /api/verify-age, POST /api/verify-nationality, and the SDK verifyProof() method.",
   "type": "object",
-  "required": ["credentialId", "claimType", "proof", "signedCredential", "nonce", "requestTimestamp"],
+  "required": [
+    "credentialId",
+    "claimType",
+    "proof",
+    "signedCredential",
+    "nonce",
+    "requestTimestamp"
+  ],
   "properties": {
     "credentialId": {
       "type": "string",

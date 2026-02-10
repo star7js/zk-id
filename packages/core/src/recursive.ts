@@ -126,9 +126,7 @@ export class LogicalAggregator implements RecursiveAggregator {
     };
   }
 
-  async verify(
-    _aggregated: AggregatedProof
-  ): Promise<AggregatedVerificationResult> {
+  async verify(_aggregated: AggregatedProof): Promise<AggregatedVerificationResult> {
     // Logical aggregator cannot verify — it has no proof data.
     // Callers should verify each constituent proof individually.
     return {
@@ -154,7 +152,7 @@ export class LogicalAggregator implements RecursiveAggregator {
 export function createAggregateInput(
   label: string,
   proof: SerializedProof,
-  circuitId: string
+  circuitId: string,
 ): AggregateInput {
   return { label, proof, circuitId };
 }
@@ -171,7 +169,7 @@ export function isRecursiveProof(aggregated: AggregatedProof): boolean {
  */
 export function getConstituentPublicSignals(
   aggregated: AggregatedProof,
-  label: string
+  label: string,
 ): string[] | undefined {
   return aggregated.publicSignalsByLabel[label];
 }

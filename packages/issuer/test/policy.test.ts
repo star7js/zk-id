@@ -13,9 +13,7 @@ import {
 describe('Issuer Policy', () => {
   const { publicKey } = generateKeyPairSync('ed25519');
 
-  const makeRecord = (
-    overrides: Partial<IssuerRecordForPolicy> = {}
-  ): IssuerRecordForPolicy => ({
+  const makeRecord = (overrides: Partial<IssuerRecordForPolicy> = {}): IssuerRecordForPolicy => ({
     issuer: 'Test-Issuer',
     publicKey,
     status: 'active',
@@ -37,7 +35,7 @@ describe('Issuer Policy', () => {
   describe('STRICT_ISSUER_POLICY', () => {
     it('should be stricter than defaults', () => {
       expect(STRICT_ISSUER_POLICY.maxKeyAgeDays).to.be.lessThan(
-        DEFAULT_ISSUER_POLICY.maxKeyAgeDays
+        DEFAULT_ISSUER_POLICY.maxKeyAgeDays,
       );
       expect(STRICT_ISSUER_POLICY.maxCredentialsPerKey).to.be.greaterThan(0);
       expect(STRICT_ISSUER_POLICY.requirePolicyUrl).to.be.true;
@@ -53,9 +51,7 @@ describe('Issuer Policy', () => {
     };
 
     it('should report healthy key within validity', () => {
-      const tenDaysAgo = new Date(
-        Date.now() - 10 * 24 * 60 * 60 * 1000
-      ).toISOString();
+      const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
       const status = checkKeyRotation(tenDaysAgo, policy);
 
       expect(status.rotationRequired).to.be.false;
@@ -65,9 +61,7 @@ describe('Issuer Policy', () => {
     });
 
     it('should warn when key is nearing expiry', () => {
-      const eightyDaysAgo = new Date(
-        Date.now() - 80 * 24 * 60 * 60 * 1000
-      ).toISOString();
+      const eightyDaysAgo = new Date(Date.now() - 80 * 24 * 60 * 60 * 1000).toISOString();
       const status = checkKeyRotation(eightyDaysAgo, policy);
 
       expect(status.rotationRequired).to.be.false;
@@ -77,9 +71,7 @@ describe('Issuer Policy', () => {
     });
 
     it('should require rotation when key is expired', () => {
-      const hundredDaysAgo = new Date(
-        Date.now() - 100 * 24 * 60 * 60 * 1000
-      ).toISOString();
+      const hundredDaysAgo = new Date(Date.now() - 100 * 24 * 60 * 60 * 1000).toISOString();
       const status = checkKeyRotation(hundredDaysAgo, policy);
 
       expect(status.rotationRequired).to.be.true;
@@ -130,9 +122,7 @@ describe('Issuer Policy', () => {
     });
 
     it('should fail when key has expired based on validFrom', () => {
-      const twoYearsAgo = new Date(
-        Date.now() - 730 * 24 * 60 * 60 * 1000
-      ).toISOString();
+      const twoYearsAgo = new Date(Date.now() - 730 * 24 * 60 * 60 * 1000).toISOString();
       const record = makeRecord({ validFrom: twoYearsAgo });
       const result = validateIssuerPolicy(record);
 
@@ -141,9 +131,7 @@ describe('Issuer Policy', () => {
     });
 
     it('should warn when key is nearing expiry', () => {
-      const elevenMonthsAgo = new Date(
-        Date.now() - 340 * 24 * 60 * 60 * 1000
-      ).toISOString();
+      const elevenMonthsAgo = new Date(Date.now() - 340 * 24 * 60 * 60 * 1000).toISOString();
       const record = makeRecord({ validFrom: elevenMonthsAgo });
       const result = validateIssuerPolicy(record);
 
@@ -153,15 +141,13 @@ describe('Issuer Policy', () => {
     });
 
     it('should fail when validTo has passed', () => {
-      const yesterday = new Date(
-        Date.now() - 24 * 60 * 60 * 1000
-      ).toISOString();
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const record = makeRecord({ validTo: yesterday });
       const result = validateIssuerPolicy(record);
 
       expect(result.valid).to.be.false;
       expect(result.violations).to.satisfy((v: string[]) =>
-        v.some((msg) => msg.includes('expired'))
+        v.some((msg) => msg.includes('expired')),
       );
     });
 
@@ -195,10 +181,10 @@ describe('Issuer Policy', () => {
 
       expect(result.valid).to.be.false;
       expect(result.violations).to.satisfy((v: string[]) =>
-        v.some((msg) => msg.includes('policyUrl'))
+        v.some((msg) => msg.includes('policyUrl')),
       );
       expect(result.violations).to.satisfy((v: string[]) =>
-        v.some((msg) => msg.includes('jurisdiction'))
+        v.some((msg) => msg.includes('jurisdiction')),
       );
     });
 
@@ -215,9 +201,7 @@ describe('Issuer Policy', () => {
 
   describe('generateRotationPlan', () => {
     it('should produce a 4-step rotation plan', () => {
-      const sixMonthsAgo = new Date(
-        Date.now() - 180 * 24 * 60 * 60 * 1000
-      ).toISOString();
+      const sixMonthsAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString();
       const plan = generateRotationPlan(sixMonthsAgo);
 
       expect(plan).to.have.lengthOf(4);
@@ -228,9 +212,7 @@ describe('Issuer Policy', () => {
     });
 
     it('should schedule steps with valid ISO dates', () => {
-      const oneMonthAgo = new Date(
-        Date.now() - 30 * 24 * 60 * 60 * 1000
-      ).toISOString();
+      const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
       const plan = generateRotationPlan(oneMonthAgo);
 
       for (const step of plan) {
@@ -252,9 +234,7 @@ describe('Issuer Policy', () => {
         maxKeyAgeDays: 30,
         minRotationOverlapDays: 7,
       };
-      const twoWeeksAgo = new Date(
-        Date.now() - 14 * 24 * 60 * 60 * 1000
-      ).toISOString();
+      const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
       const plan = generateRotationPlan(twoWeeksAgo, shortPolicy);
 
       expect(plan).to.have.lengthOf(4);

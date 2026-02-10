@@ -32,7 +32,7 @@ export interface ExternalCredential {
  */
 export function toExternalCredentialFormat(
   signedCredential: SignedCredential,
-  subjectId?: string
+  subjectId?: string,
 ): ExternalCredential {
   const external: ExternalCredential = {
     '@context': [
@@ -87,7 +87,7 @@ export function fromExternalCredentialFormat(
   external: ExternalCredential,
   credentialId: string,
   salt: string,
-  createdAt: string
+  createdAt: string,
 ): SignedCredential {
   if (!external.proof) {
     throw new Error('External credential missing proof section');

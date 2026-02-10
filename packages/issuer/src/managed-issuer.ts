@@ -48,7 +48,7 @@ export class ManagedCredentialIssuer {
   async issueCredential(
     birthYear: number,
     nationality: number,
-    userId?: string
+    userId?: string,
   ): Promise<SignedCredential> {
     const credential = await createCredential(birthYear, nationality);
     const issuedAt = new Date().toISOString();
@@ -69,7 +69,7 @@ export class ManagedCredentialIssuer {
     const message = credentialSignaturePayload(
       credential,
       this.keyManager.getIssuerName(),
-      issuedAt
+      issuedAt,
     );
     const signature = await this.keyManager.sign(Buffer.from(message));
     return signature.toString('base64');

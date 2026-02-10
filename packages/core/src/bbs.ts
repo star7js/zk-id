@@ -22,7 +22,9 @@
 // ---------------------------------------------------------------------------
 
 interface BBSLib {
-  generateKeyPair(opts: { ciphersuite: string }): Promise<{ secretKey: Uint8Array; publicKey: Uint8Array }>;
+  generateKeyPair(opts: {
+    ciphersuite: string;
+  }): Promise<{ secretKey: Uint8Array; publicKey: Uint8Array }>;
   sign(opts: {
     secretKey: Uint8Array;
     publicKey: Uint8Array;
@@ -61,7 +63,7 @@ let _bbs: BBSLib | null = null;
 
 async function loadBBS(): Promise<BBSLib> {
   if (_bbs) return _bbs;
-  _bbs = await import('@digitalbazaar/bbs-signatures') as unknown as BBSLib;
+  _bbs = (await import('@digitalbazaar/bbs-signatures')) as unknown as BBSLib;
   return _bbs;
 }
 
@@ -85,7 +87,7 @@ export const BBS_CREDENTIAL_FIELDS = [
   'issuer',
 ] as const;
 
-export type BBSFieldName = typeof BBS_CREDENTIAL_FIELDS[number];
+export type BBSFieldName = (typeof BBS_CREDENTIAL_FIELDS)[number];
 
 // ---------------------------------------------------------------------------
 // Types
@@ -156,12 +158,12 @@ export interface BBSDisclosureProof {
  * Serializable form of BBSDisclosureProof for transport (JSON-safe).
  */
 export interface SerializedBBSDisclosureProof {
-  proof: string;           // base64
-  disclosedMessages: Record<string, string>;  // label → decoded value
+  proof: string; // base64
+  disclosedMessages: Record<string, string>; // label → decoded value
   disclosedIndexes: number[];
   presentationHeader: string; // base64
-  header: string;           // base64
-  issuerPublicKey: string;  // base64
+  header: string; // base64
+  issuerPublicKey: string; // base64
   messageCount: number;
 }
 
@@ -265,9 +267,7 @@ export async function deriveBBSDisclosureProof(
     throw new Error('No valid fields specified for disclosure');
   }
 
-  const presentationHeader = request.nonce
-    ? encoder.encode(request.nonce)
-    : new Uint8Array();
+  const presentationHeader = request.nonce ? encoder.encode(request.nonce) : new Uint8Array();
 
   const proof = await bbs.deriveProof({
     publicKey: credential.issuerPublicKey,
@@ -308,8 +308,9 @@ export async function verifyBBSDisclosureProof(
 ): Promise<boolean> {
   const bbs = await loadBBS();
 
-  const disclosedMessages: Uint8Array[] = disclosureProof.disclosedIndexes
-    .map((idx) => disclosureProof.disclosedMessages.get(idx)!);
+  const disclosedMessages: Uint8Array[] = disclosureProof.disclosedIndexes.map(
+    (idx) => disclosureProof.disclosedMessages.get(idx)!,
+  );
 
   return bbs.verifyProof({
     publicKey: disclosureProof.issuerPublicKey,
@@ -347,9 +348,7 @@ export function serializeBBSProof(proof: BBSDisclosureProof): SerializedBBSDiscl
 }
 
 /** Deserialize a disclosure proof from JSON transport. */
-export function deserializeBBSProof(
-  serialized: SerializedBBSDisclosureProof,
-): BBSDisclosureProof {
+export function deserializeBBSProof(serialized: SerializedBBSDisclosureProof): BBSDisclosureProof {
   const disclosedMessages = new Map<number, Uint8Array>();
   const disclosedLabels = new Map<number, string>();
 
@@ -380,9 +379,10 @@ export function deserializeBBSProof(
  * Convert credential field values to an ordered array of BBS messages
  * following the canonical BBS_CREDENTIAL_FIELDS order.
  */
-export function credentialFieldsToBBSMessages(
-  fields: Record<string, string | number>,
-): { messages: Uint8Array[]; labels: readonly string[] } {
+export function credentialFieldsToBBSMessages(fields: Record<string, string | number>): {
+  messages: Uint8Array[];
+  labels: readonly string[];
+} {
   const messages = BBS_CREDENTIAL_FIELDS.map((name) => {
     const value = fields[name];
     if (value === undefined) {
@@ -397,9 +397,7 @@ export function credentialFieldsToBBSMessages(
  * Extract the revealed field values from a disclosure proof as a
  * human-readable record.
  */
-export function getDisclosedFields(
-  proof: BBSDisclosureProof,
-): Record<string, string> {
+export function getDisclosedFields(proof: BBSDisclosureProof): Record<string, string> {
   const result: Record<string, string> = {};
   for (const idx of proof.disclosedIndexes) {
     const label = proof.disclosedLabels.get(idx);

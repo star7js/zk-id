@@ -95,7 +95,7 @@ const proof = await generateAgeProofAuto(
   credential,
   18, // minAge
   'nonce-123',
-  Date.now()
+  Date.now(),
 );
 
 // 3. Verify the proof (server-side)

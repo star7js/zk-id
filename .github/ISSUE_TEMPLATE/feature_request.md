@@ -1,8 +1,8 @@
 ---
 name: Feature request
 about: Suggest an idea or improvement
-title: "[Feature] "
-labels: ["enhancement"]
+title: '[Feature] '
+labels: ['enhancement']
 assignees: []
 ---
 
@@ -13,4 +13,3 @@ assignees: []
 ## Alternatives Considered
 
 ## Additional Context
-

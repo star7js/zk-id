@@ -12,7 +12,6 @@ import {
   Credential,
   SignedCredential,
   RevocationWitness,
-  RevocationRootInfo,
   generateAgeProof,
   generateNationalityProof,
   generateAgeProofRevocable,

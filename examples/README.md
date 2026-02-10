@@ -17,6 +17,7 @@ A full-featured web application demonstrating zero-knowledge identity verificati
 ### Running the Web Demo
 
 1. **Prerequisites**: Circuits must be compiled first
+
    ```bash
    # From repository root
    npm run compile:circuits
@@ -24,6 +25,7 @@ A full-featured web application demonstrating zero-knowledge identity verificati
    ```
 
 2. **Start the server**:
+
    ```bash
    cd examples/web-app
    npm start

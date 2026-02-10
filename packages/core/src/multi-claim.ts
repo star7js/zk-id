@@ -7,12 +7,7 @@
  * them into a single request/response and verifying them atomically.
  */
 
-import {
-  AgeProof,
-  NationalityProof,
-  AgeProofRevocable,
-  ProofRequest,
-} from './types';
+import { AgeProof, NationalityProof, AgeProofRevocable, ProofRequest } from './types';
 import { validateNonce, validateMinAge, validateNationality } from './validation';
 
 // ---------------------------------------------------------------------------
@@ -108,10 +103,7 @@ export interface MultiClaimVerificationResult {
  * @param nonce - Shared nonce for replay protection
  * @returns Multi-claim request
  */
-export function createMultiClaimRequest(
-  claims: ClaimSpec[],
-  nonce: string
-): MultiClaimRequest {
+export function createMultiClaimRequest(claims: ClaimSpec[], nonce: string): MultiClaimRequest {
   if (claims.length === 0) {
     throw new Error('Multi-claim request must contain at least one claim');
   }
@@ -134,16 +126,14 @@ export function createMultiClaimRequest(
   for (const claim of claims) {
     if (claim.claimType === 'age' || claim.claimType === 'age-revocable') {
       if (claim.minAge === undefined) {
-        throw new Error(
-          `Claim '${claim.label}': minAge is required for ${claim.claimType} claims`
-        );
+        throw new Error(`Claim '${claim.label}': minAge is required for ${claim.claimType} claims`);
       }
       validateMinAge(claim.minAge);
     }
     if (claim.claimType === 'nationality') {
       if (claim.targetNationality === undefined) {
         throw new Error(
-          `Claim '${claim.label}': targetNationality is required for nationality claims`
+          `Claim '${claim.label}': targetNationality is required for nationality claims`,
         );
       }
       validateNationality(claim.targetNationality);
@@ -168,7 +158,7 @@ export function createMultiClaimRequest(
  * @returns Array of (label, ProofRequest) tuples
  */
 export function expandMultiClaimRequest(
-  request: MultiClaimRequest
+  request: MultiClaimRequest,
 ): Array<{ label: string; proofRequest: ProofRequest }> {
   return request.claims.map((claim) => ({
     label: claim.label,
@@ -189,7 +179,7 @@ export function expandMultiClaimRequest(
  * @returns Aggregated multi-claim verification result
  */
 export function aggregateVerificationResults(
-  results: ClaimVerificationResult[]
+  results: ClaimVerificationResult[],
 ): MultiClaimVerificationResult {
   const verifiedCount = results.filter((r) => r.verified).length;
 
