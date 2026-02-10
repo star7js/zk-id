@@ -265,6 +265,100 @@ const result = await server.verifyProof(proofResponse);
 - Elliptic curve used for pairing-based cryptography
 - Standard for Ethereum ZK applications
 
+## Error Handling Architecture
+
+### Error Hierarchy
+
+zk-id v0.6+ uses a typed error hierarchy for better error handling and debugging:
+
+```
+ZkIdError (base class)
+├── ZkIdConfigError        // Configuration errors
+├── ZkIdValidationError    // Input validation errors
+├── ZkIdCredentialError    // Credential-related errors
+├── ZkIdCryptoError        // Cryptographic errors
+└── ZkIdProofError         // Proof generation/verification errors
+```
+
+### Error Properties
+
+All `ZkIdError` subclasses have:
+
+- **message**: Human-readable error description
+- **name**: Error class name (e.g., "ZkIdValidationError")
+- **field** (ValidationError only): Which field failed validation
+- **code** (CredentialError only): Machine-readable error code
+
+### Error Handling Best Practices
+
+```typescript
+try {
+  await issuer.issueCredential(1990, 840);
+} catch (error) {
+  if (error instanceof ZkIdValidationError) {
+    // Handle validation error
+    console.error(`Invalid ${error.field}: ${error.message}`);
+  } else if (error instanceof ZkIdCryptoError) {
+    // Handle crypto error
+    console.error('Cryptographic operation failed:', error.message);
+  } else if (error instanceof ZkIdError) {
+    // Handle other zk-id errors
+    console.error('zk-id error:', error.message);
+  } else {
+    // Handle unexpected errors
+    console.error('Unexpected error:', error);
+  }
+}
+```
+
+### Error Propagation
+
+- **Client SDK (v0.7+)**: Re-throws `ZkIdError` subclasses for better debugging
+- **Server SDK**: Uses `sanitizeError()` to prevent information leakage in non-verbose mode
+- **Validation**: All validators throw `ZkIdValidationError` with field names
+
+## Code Quality
+
+### Automated Quality Assurance
+
+zk-id v0.6+ includes comprehensive code quality automation:
+
+#### ESLint
+
+- **Configuration**: `.eslintrc.json` in each package
+- **Rules**: TypeScript best practices, security patterns
+- **Integration**: Runs on pre-commit and in CI
+
+```bash
+npm run lint         # Check code quality
+npm run lint:fix     # Auto-fix issues
+```
+
+#### Prettier
+
+- **Configuration**: `.prettierrc` in root
+- **Style**: Consistent formatting across all packages
+- **Integration**: Format on save, pre-commit hook
+
+```bash
+npm run format         # Format all code
+npm run format:check   # Check formatting
+```
+
+### Quality Metrics
+
+- **Test Coverage**: Target 80%+ for critical paths
+- **Type Safety**: Strict TypeScript with no `any` in production code
+- **Security**: ESLint security plugin for vulnerability detection
+- **Performance**: Benchmarks for proof generation and verification
+
+### Development Workflow
+
+1. Write code with ESLint/Prettier integration
+2. Run `npm run lint` before committing
+3. Run `npm test` to verify changes
+4. Pre-commit hooks ensure quality standards
+
 ## Performance
 
 ### Proof Generation (User's Device)

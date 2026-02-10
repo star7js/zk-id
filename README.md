@@ -54,6 +54,8 @@ Current age verification systems force users to expose sensitive information:
 - ✅ **Production Storage**: Postgres and Redis implementations with layer caching
 - ✅ **Developer-Friendly**: Simple SDK for easy website integration
 - ✅ **Protocol Versioning**: Explicit wire-format compatibility via headers
+- ✅ **Code Quality**: ESLint + Prettier for automated code quality and formatting
+- ✅ **Typed Errors**: Comprehensive error hierarchy for better error handling
 
 ## Quick Start
 

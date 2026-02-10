@@ -453,12 +453,39 @@ template AgeVerify() {
 
 ### Formatting
 
+We use **ESLint** and **Prettier** for automated code quality and formatting:
+
+```bash
+# Lint code
+npm run lint
+
+# Auto-fix linting issues
+npm run lint:fix
+
+# Format code
+npm run format
+
+# Check formatting without modifying
+npm run format:check
+```
+
+**Style rules:**
 - **Indentation**: 2 spaces (no tabs)
 - **Line length**: Max 100 characters (soft limit)
 - **Trailing commas**: Use in multiline arrays/objects
 - **Semicolons**: Required
+- **Quotes**: Single quotes for strings
+- **Arrow functions**: Prefer over function expressions
 
-Consider adding Prettier later for automated formatting.
+**Editor integration:**
+- Install ESLint and Prettier extensions for your editor
+- Enable "Format on Save" for automatic formatting
+- ESLint will highlight issues in real-time
+
+**Pre-commit hooks:**
+- Prettier automatically formats staged files
+- ESLint checks run before commit
+- Hooks configured via `.husky/` directory
 
 ### Documentation
 
@@ -557,10 +584,12 @@ git push origin feature/your-feature --force-with-lease
 
 - [ ] All tests pass (`npm test`)
 - [ ] All packages build (`npm run build`)
-- [ ] Code follows style guidelines
+- [ ] Code passes linting (`npm run lint`)
+- [ ] Code is formatted (`npm run format`)
 - [ ] Documentation updated (README, inline comments)
-- [ ] No console.logs or debug code
+- [ ] No console.logs or debug code (except in tests)
 - [ ] Commit messages are clear and descriptive
+- [ ] Type errors resolved (`npm run typecheck` if available)
 
 ### Submitting a PR
 

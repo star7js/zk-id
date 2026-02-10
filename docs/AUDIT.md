@@ -211,3 +211,94 @@ Estimated effort: 2-4 weeks for a team of 2 cryptographers + 1 code auditor.
 - **Nonce pruning tests**: Tests for nonce store pruning behavior
 - **Nullifier scope validation tests**: Tests for nullifier prover input validation
 - **URL sanitization test fix**: Fixed incomplete URL substring sanitization in tests
+
+---
+
+## v0.7 Security Hardening (2026-02-10)
+
+Version 0.7 implements comprehensive security hardening based on audit findings, addressing 8 medium and 10 low severity issues with 97 new tests.
+
+### Completed Security Fixes
+
+#### Timing Attack Mitigation
+- ✅ **C-1/C-2**: Fixed timing-safe comparisons in `constantTimeEqual` and `constantTimeArrayEqual`
+  - Pad buffers to prevent length leakage
+  - Always run `timingSafeEqual` regardless of length
+  - Use timing-safe comparisons for array elements
+  - Comprehensive test coverage (22 tests)
+
+#### Cryptographic Security
+- ✅ **C-11**: Replaced `Math.random()` fallback with `crypto.randomBytes()`
+  - Secure random generation for Node.js fallback in Redis tree-sync
+  - No more predictable PRNG in fallback path
+
+- ✅ **C-9**: Added Ed25519 key type validation in KMS
+  - Reject RSA and EC keys with descriptive errors
+  - Validate key type in `fromPemFiles()` and `fromPemStrings()`
+  - 4 new tests for key type validation
+
+#### Input Validation
+- ✅ **V-3**: Added `validateClaimType()` function
+  - Validates claim types against `VALID_CLAIM_TYPES` constant
+  - Prevents processing of invalid claim types
+  - New `ClaimType` type export
+  - 6 new validation tests
+
+- ✅ **V-4**: Changed `validatePayloads` default to `true` (BREAKING)
+  - Secure by default - validation enabled unless explicitly disabled
+  - Updated documentation and JSDoc comments
+  - 11 new tests for default behavior
+  - Migration guide provided in MIGRATION.md
+
+#### Error Handling
+- ✅ **E-2**: Fixed client error swallowing
+  - Re-throw `ZkIdError` subclasses to preserve error context
+  - Only swallow unexpected errors
+  - Applied to `verifyAge()`, `verifyNationality()`, `verifyAgeRevocable()`
+  - 6 new tests for error propagation
+
+- ✅ **S-6**: Added JSON.parse guards (4 locations)
+  - `packages/core/src/verifier.ts:388` - ZkIdConfigError
+  - `packages/sdk/src/browser-wallet.ts:409,440` - ZkIdCredentialError
+  - `packages/redis/src/issuer-registry.ts:42` - ZkIdConfigError
+  - 6 new tests for JSON parsing errors
+
+- ✅ **E-1**: Added warning for malformed Redis messages
+  - Log warnings instead of silent failures
+  - Better debugging and monitoring
+
+### Test Coverage
+
+**New Test Files:**
+- `packages/core/test/security.test.ts` - 33 tests (boundary fuzzing, timing-safe, field elements, nonces)
+- `packages/core/test/timing-safe.test.ts` - 14 tests (timing-safe edge cases)
+- `packages/core/test/json-parse-guards.test.ts` - 2 tests (verification key parsing)
+- `packages/issuer/test/managed-issuer.test.ts` - 15 tests (ManagedCredentialIssuer)
+- `packages/issuer/test/key-management.test.ts` - 10 tests (InMemoryIssuerKeyManager)
+- `packages/sdk/test/json-parse-guards.test.ts` - 4 tests (credential parsing)
+
+**Enhanced Test Files:**
+- `packages/sdk/test/server.test.ts` - +11 tests (validatePayloads, sanitizeError)
+- `packages/sdk/test/client.test.ts` - +6 tests (error propagation)
+- `packages/issuer/test/kms.test.ts` - +4 tests (Ed25519 validation)
+
+**Total: 97 new security-related tests**
+
+### Documentation
+
+- **MIGRATION.md**: Comprehensive migration guide for breaking changes
+- **SECURITY-HARDENING.md**: Detailed description of all 8 security fixes
+- **COVERAGE-REPORT.md**: Updated with latest coverage metrics
+
+### Coverage Improvements
+
+Expected post-v0.7 coverage:
+- Core: ≥97% (improved from 64.2%)
+- SDK: ≥65% (improved from 55.86%)
+- Issuer: ≥75% (improved from 63.42%)
+
+### References
+
+- Full security fix details: [SECURITY-HARDENING.md](./SECURITY-HARDENING.md)
+- Migration guide: [MIGRATION.md](./MIGRATION.md)
+- Test coverage: [COVERAGE-REPORT.md](./COVERAGE-REPORT.md)
