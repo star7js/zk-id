@@ -296,7 +296,12 @@ describe('Protocol Version', () => {
           'https://docs.example.com/migration'
         );
         assert.ok(headers['Link']);
-        assert.ok(headers['Link'].includes('https://docs.example.com/migration'));
+
+        // Extract URL from Link header format: <URL>; rel="..."
+        const linkMatch = headers['Link'].match(/<(.+?)>/);
+        assert.ok(linkMatch, 'Link header should contain a URL in angle brackets');
+        assert.strictEqual(linkMatch[1], 'https://docs.example.com/migration', 'URL should match exactly');
+
         assert.ok(headers['Link'].includes('rel="sunset"'));
       });
 
