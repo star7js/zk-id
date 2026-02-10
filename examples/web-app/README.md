@@ -2,6 +2,8 @@
 
 Interactive web demonstration of zero-knowledge identity verification with age and nationality proofs. **Proofs are generated entirely in the browser** — your credential data never leaves your device.
 
+**For a comprehensive integration guide**, see [GETTING-STARTED.md](../../GETTING-STARTED.md) in the repository root.
+
 ## Features
 
 ### Verification Types
@@ -17,6 +19,21 @@ Interactive web demonstration of zero-knowledge identity verification with age a
 - Ed25519 signature verification for credentials
 - Rate limiting on sensitive endpoints
 - Protocol version compatibility checking
+
+## What You'll See
+
+This demo simulates the complete zk-id workflow:
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Issuer    │────>│    User     │────>│  Verifier   │
+│  (Server)   │     │  (Browser)  │     │  (Server)   │
+└─────────────┘     └─────────────┘     └─────────────┘
+   Issue cred        Generate proof     Verify proof
+   + signature       (client-side)      (check sig)
+```
+
+**Try it live:** Issue a credential → Generate a ZK proof → Verify age/nationality → Test revocation
 
 ## Quick Start
 
@@ -208,45 +225,226 @@ zkIdServer.onVerification((event) => {
 });
 ```
 
-## Testing
+## Testing Scenarios
 
-Try these scenarios:
+### 1. Happy Path (Success)
+```
+Issue credential (1995, USA)
+→ Verify age ≥ 18 ✓
+→ Verify nationality = USA ✓
+```
 
-1. **Happy Path**: Issue credential, verify age/nationality
-2. **Revocation**: Issue → Verify → Revoke → Verify again (should fail)
-3. **Age Requirement**: Issue with birth year 2020 → Verify age ≥ 18 (should fail)
-4. **Wrong Nationality**: Issue with US (840) → Verify German (276) (should fail)
-5. **Replay Attack**: Generate proof → Verify → Verify again (nonce expires)
+### 2. Age Too Young (Failure)
+```
+Issue credential (2010, USA)
+→ Verify age ≥ 18 ✗
+Expected: Verification fails (age < 18)
+```
+
+### 3. Wrong Nationality (Failure)
+```
+Issue credential (1995, USA = 840)
+→ Verify nationality = Germany (276) ✗
+Expected: Verification fails (nationality mismatch)
+```
+
+### 4. Revocation (Failure After Revoke)
+```
+Issue credential (1995, USA)
+→ Verify age ≥ 18 ✓
+→ Revoke credential
+→ Verify age ≥ 18 again ✗
+Expected: Second verification fails (revoked)
+```
+
+### 5. Replay Attack (Nonce Expiry)
+```
+Generate proof with nonce N
+→ Verify ✓
+→ Wait 5+ minutes
+→ Verify same proof again ✗
+Expected: Fails (nonce expired)
+```
+
+### 6. Multiple Age Thresholds
+```
+Issue credential (1995)
+→ Verify age ≥ 18 ✓
+→ Verify age ≥ 21 ✓
+→ Verify age ≥ 65 ✗
+Expected: Passes 18+ and 21+, fails 65+
+```
+
+### 7. Boundary Conditions
+```
+Issue credential (birthYear = currentYear - 18)
+→ Verify age ≥ 18 ✓
+Expected: Exactly 18 years old passes
+```
 
 ## Troubleshooting
 
-### "Circuit artifacts not found"
+### Build Errors
 
-Compile the circuits and run setup from the repository root:
+**Error:** `Cannot find module '@zk-id/core'` or similar
+
+**Cause:** TypeScript packages not built
+
+**Solution:**
 ```bash
-npm run compile:circuits
-npm run --workspace=@zk-id/circuits setup
-```
+# From repository root
+npm run build
 
-### "Cannot find module '@zk-id/core'" or similar build errors
-
-Build the required packages from the repository root:
-```bash
+# Or build specific packages
 npm run build --workspace=@zk-id/core
 npm run build --workspace=@zk-id/sdk
 npm run build --workspace=@zk-id/issuer
 ```
 
-### "Hash verification failed"
+### Circuit Errors
 
-This is expected during development. The hash check ensures circuit reproducibility.
+**Error:** `Cannot find circuit artifacts` or `ENOENT: no such file`
 
-### Slow proof generation in browser
+**Cause:** Circuits not compiled
 
-Proof generation is CPU-intensive (3-7s in browser). This is normal for ZK proofs. In production:
-- Use Web Workers to avoid blocking the UI
-- Show progress indicators
-- Consider using faster devices or native mobile apps for better performance
+**Solution:**
+```bash
+# From repository root
+npm run compile:circuits
+npm run --workspace=@zk-id/circuits setup
+```
+
+**Error:** `Hash verification failed`
+
+**Cause:** Platform-dependent circuit artifacts (macOS vs Linux)
+
+**Solution:** This is expected during development. The hash check ensures reproducibility but allows platform differences.
+
+### Verification Errors
+
+**Error:** `Proof verification failed` with valid inputs
+
+**Possible causes:**
+1. **Circuit version mismatch** — Client and server using different circuit versions
+   - Solution: Rebuild circuits on both sides
+2. **Clock skew** — Timestamp validation failed
+   - Solution: Sync system clocks (use NTP)
+3. **Nonce expired** — Proof older than TTL (default: 5 minutes)
+   - Solution: Generate fresh proof with new challenge
+4. **Wrong verification key** — Server using incorrect key
+   - Solution: Ensure `verification_key.json` matches circuit version
+
+**Enable verbose errors for debugging:**
+```typescript
+const server = new ZkIdServer({
+  verboseErrors: true, // Shows detailed circuit errors
+  // ... other config
+});
+```
+
+### Performance Issues
+
+**Issue:** Proof generation takes 10+ seconds in browser
+
+**Causes and solutions:**
+- **First load:** Downloading ~5-10 MB of circuit artifacts
+  - Expected on first proof, cached after
+  - Solution: Show loading indicator, serve from CDN
+- **Slow device:** CPU-intensive computation
+  - Solution: Use Web Workers, show progress bar
+- **Large circuits:** Signed circuits take ~15s (20k constraints)
+  - Expected for in-circuit signature verification
+  - Solution: Use basic circuits when possible
+
+**Issue:** Verification taking >1 second on server
+
+**Causes:**
+- Database query slow (revocation check)
+  - Solution: Add indexes, use Redis
+- Circuit artifact loading slow
+  - Solution: Preload verification keys at startup
+
+### Runtime Errors
+
+**Error:** `ReferenceError: snarkjs is not defined`
+
+**Cause:** snarkjs not loaded in browser
+
+**Solution:** Ensure snarkjs is bundled or loaded via CDN:
+```html
+<script src="https://cdn.jsdelivr.net/npm/snarkjs@0.7.6/build/snarkjs.min.js"></script>
+```
+
+**Error:** `Invalid issuer signature`
+
+**Cause:** Issuer registry not configured or public key mismatch
+
+**Solution:**
+```typescript
+// Register issuer's public key
+await issuerRegistry.registerIssuer({
+  issuer: 'Demo Issuer',
+  publicKey: issuerPublicKeyPem,
+  status: 'active',
+});
+```
+
+### Browser Compatibility
+
+**Issue:** Proof generation fails in Safari/iOS
+
+**Cause:** WASM memory limits or SharedArrayBuffer restrictions
+
+**Solution:**
+- Increase WASM memory limit
+- Use Chrome/Firefox for development
+- Test on actual devices (Safari desktop vs iOS Safari differ)
+
+**Issue:** Circuit artifacts not loading (CORS)
+
+**Cause:** Cross-origin resource sharing blocked
+
+**Solution:**
+```typescript
+// In Express server
+app.use('/circuits', express.static('circuits', {
+  setHeaders: (res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Cross-Origin-Embedder-Policy', 'require-corp');
+    res.set('Cross-Origin-Opener-Policy', 'same-origin');
+  },
+}));
+```
+
+### Common Mistakes
+
+**Mistake:** Using `createTestIssuer()` in production
+
+**Why it's wrong:** Generates ephemeral keys, lost on restart
+
+**Fix:** Use `FileKeyManager` or `EnvelopeKeyManager`
+
+**Mistake:** Not calling `nonceStore.stop()` on shutdown
+
+**Why it's wrong:** Background prune timer keeps Node.js process alive
+
+**Fix:**
+```typescript
+process.on('SIGTERM', async () => {
+  await nonceStore.stop();
+  process.exit(0);
+});
+```
+
+**Mistake:** Reusing nonces across proofs
+
+**Why it's wrong:** Replay attacks
+
+**Fix:** Fetch fresh challenge for each proof:
+```typescript
+const challenge = await client.fetchChallenge();
+const proof = await generateAgeProofAuto(cred, 18, challenge.nonce, challenge.timestamp);
+```
 
 ## Privacy Architecture
 
@@ -274,6 +472,45 @@ This demo currently uses server-side storage for Merkle witnesses (revocable pro
 - Fully client-side revocable proof generation
 - Credential storage in secure wallet
 - Multi-issuer support
+
+## Deep Dive: Package Documentation
+
+Want to build your own integration? Read the package READMEs:
+
+- **[@zk-id/core](../../packages/core/README.md)** — Core cryptographic library for proof generation/verification
+- **[@zk-id/sdk](../../packages/sdk/README.md)** — Client and server SDK (this is what the demo uses)
+- **[@zk-id/issuer](../../packages/issuer/README.md)** — Credential issuance with multiple signature schemes
+- **[@zk-id/circuits](../../packages/circuits/README.md)** — Zero-knowledge circuits (7 circuits, constraint counts)
+- **[@zk-id/redis](../../packages/redis/README.md)** — Production Redis stores for scaling
+- **[@zk-id/contracts](../../packages/contracts/README.md)** — On-chain Solidity verifiers
+
+## Production Migration Path
+
+This demo uses in-memory stores. To go production:
+
+### Phase 1: Basic Production (Single Server)
+- ✅ Replace `InMemoryNonceStore` with `RedisNonceStore`
+- ✅ Replace `InMemoryIssuerRegistry` with `RedisIssuerRegistry`
+- ✅ Use `FileKeyManager` for issuer keys
+- ✅ Enable HTTPS
+- ✅ Add proper authentication for `/api/issue-credential`
+
+### Phase 2: Scalable Production (Multi-Server)
+- ✅ Deploy Redis cluster for horizontal scaling
+- ✅ Use `PostgresValidCredentialTree` for revocation
+- ✅ Add CDN for circuit artifacts
+- ✅ Implement `RedisRateLimiter`
+- ✅ Add monitoring and alerting
+
+### Phase 3: Enterprise Production
+- ✅ Move issuer keys to HSM/KMS (AWS KMS, Azure Key Vault)
+- ✅ Implement comprehensive audit logging
+- ✅ Add WAF and DDoS protection
+- ✅ Run production Powers of Tau ceremony
+- ✅ Get circuit security audit
+- ✅ Implement disaster recovery
+
+See [GETTING-STARTED.md](../../GETTING-STARTED.md) for detailed deployment guides.
 
 ## License
 

@@ -68,6 +68,8 @@ npm start
 
 Then open http://localhost:3000 to see a working integration demo with credential issuance, zero-knowledge verification, and revocation.
 
+**For a comprehensive tutorial**, see [GETTING-STARTED.md](./GETTING-STARTED.md) for step-by-step instructions covering setup, issuance, wallet integration, verification, and production deployment.
+
 ### For Users
 
 1. Obtain a credential from a trusted issuer (government ID, bank, etc.)
@@ -226,16 +228,50 @@ zk-id/
 └── docs/                  # Architecture and protocol documentation
 ```
 
-## Package Overview
+## 📦 Packages
 
-| Package | Description | Key Features |
-|---------|-------------|--------------|
-| `@zk-id/core` | Core cryptographic library | Credential creation, proof generation/verification, batch verification, revocation store |
-| `@zk-id/issuer` | Credential issuance service | Ed25519 signatures, multi-attribute credentials, revocation |
-| `@zk-id/sdk` | Server-side verification | Proof verification, telemetry events, rate limiting, replay protection |
-| `@zk-id/circuits` | ZK circuits (Circom) | Age verification, nationality verification, credential hashing |
-| `@zk-id/redis` | Redis storage backends | Nonce store, revocation store, distributed tree sync |
-| `@zk-id/contracts` | Solidity contracts | On-chain Groth16 verifier for age & nationality proofs |
+zk-id is a monorepo with six packages. Each package has detailed documentation:
+
+### Core Packages
+
+**[@zk-id/core](./packages/core/)** — Core cryptographic library
+Credential creation, ZK proof generation/verification, revocation, nullifiers, BBS selective disclosure, W3C VC interop.
+[View README →](./packages/core/README.md)
+
+**[@zk-id/circuits](./packages/circuits/)** — Zero-knowledge circuits
+Seven Circom circuits for age/nationality verification, credential hashing, and nullifier computation.
+[View README →](./packages/circuits/README.md)
+
+### Integration Packages
+
+**[@zk-id/sdk](./packages/sdk/)** — Client and server SDK
+Server-side verification pipeline, client-side proof generation, browser wallet, security components.
+[View README →](./packages/sdk/README.md)
+
+**[@zk-id/issuer](./packages/issuer/)** — Credential issuance
+Multiple signature schemes (Ed25519, BabyJub EdDSA, BBS+), key management, policy enforcement.
+[View README →](./packages/issuer/README.md)
+
+### Production Infrastructure
+
+**[@zk-id/redis](./packages/redis/)** — Redis storage backends
+Production-ready stores for nonces, challenges, revocation, rate limiting, issuer registry.
+[View README →](./packages/redis/README.md)
+
+**[@zk-id/contracts](./packages/contracts/)** — Solidity verifiers
+On-chain Groth16 proof verification for Ethereum and EVM-compatible chains.
+[View README →](./packages/contracts/README.md)
+
+### Quick Reference
+
+| Package | Use For | npm install |
+|---------|---------|-------------|
+| `@zk-id/core` | Building custom integrations | `npm install @zk-id/core` |
+| `@zk-id/sdk` | Integrating into web apps | `npm install @zk-id/sdk` |
+| `@zk-id/issuer` | Issuing credentials | `npm install @zk-id/issuer` |
+| `@zk-id/circuits` | Circuit artifacts (auto-included) | `npm install @zk-id/circuits` |
+| `@zk-id/redis` | Production storage | `npm install @zk-id/redis ioredis` |
+| `@zk-id/contracts` | On-chain verification | `npm install @zk-id/contracts` |
 
 ## Use Cases
 
