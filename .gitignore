@@ -22,3 +22,5 @@ packages/circuits/pot/
 
 # Auto-generated API documentation
 docs/api/
+coverage/
+.nyc_output/

@@ -17,6 +17,10 @@
     "test:circuits": "npm test --workspace=@zk-id/circuits",
     "test:contracts": "npm test --workspace=@zk-id/contracts",
     "test:redis": "npm test --workspace=@zk-id/redis",
+    "coverage": "c8 --reporter=text --reporter=html --reporter=lcov npm test",
+    "coverage:core": "c8 --reporter=text npm test --workspace=@zk-id/core",
+    "coverage:sdk": "c8 --reporter=text npm test --workspace=@zk-id/sdk",
+    "coverage:issuer": "c8 --reporter=text npm test --workspace=@zk-id/issuer",
     "compile:circuits": "npm run compile --workspace=@zk-id/circuits",
     "setup:circuits": "npm run setup --workspace=@zk-id/circuits",
     "verify:hashes": "npm run verify-hashes --workspace=@zk-id/circuits",
@@ -38,6 +42,7 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@types/express": "^5.0.6",
+    "c8": "^10.1.3",
     "express": "^5.2.1",
     "typedoc": "^0.26.0",
     "typescript": "^5.3.3"
