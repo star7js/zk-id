@@ -95,3 +95,64 @@ following:
     Verify integrity with `npm run verify:hashes` before deployment. See
     [docs/VERIFICATION_KEYS.md](docs/VERIFICATION_KEYS.md) for build reproducibility
     and trusted setup details.
+
+## Dependency Security
+
+### Transitive Dependency Mitigation
+
+Several security vulnerabilities in transitive dependencies (dependencies of third-party packages) are mitigated via npm overrides in the root `package.json`:
+
+```json
+{
+  "overrides": {
+    "elliptic": "github:drzippie/elliptic#99a867d",
+    "lodash": "^4.17.23",
+    "tmp": "^0.2.4",
+    "cookie": "^0.7.2",
+    "undici": "^6.23.0"
+  }
+}
+```
+
+These overrides ensure that patched versions are installed at build time, even when transitive dependencies specify vulnerable versions.
+
+### Why npm overrides?
+
+These vulnerabilities exist in dependencies of packages we depend on (e.g., hardhat, ethers.js, circomlibjs). We cannot directly update these transitive dependencies because we don't control the version constraints in the parent packages. npm overrides force the use of patched versions throughout the entire dependency tree.
+
+### Verification
+
+To verify that patched versions are installed after running `npm install`:
+
+```bash
+npm ls lodash tmp cookie elliptic undici
+```
+
+Expected versions:
+- **lodash**: `4.17.23` or higher (fixes prototype pollution, [GHSA-29mw-wpgm-hmr9](https://github.com/advisories/GHSA-29mw-wpgm-hmr9))
+- **tmp**: `0.2.4` or higher (fixes symlink vulnerability, [GHSA-7p7h-4mm5-852v](https://github.com/advisories/GHSA-7p7h-4mm5-852v))
+- **cookie**: `0.7.0` or higher (fixes out-of-bounds characters, [GHSA-pxg6-pf52-xh8x](https://github.com/advisories/GHSA-pxg6-pf52-xh8x))
+- **elliptic**: `6.6.1` from `github:drzippie/elliptic#99a867d` (fixes risky implementation, [GHSA-848j-6mx2-7j84](https://github.com/advisories/GHSA-848j-6mx2-7j84))
+- **undici**: `6.23.0` or higher (fixes decompression DoS, [GHSA-f5x3-32g6-xq36](https://github.com/advisories/GHSA-f5x3-32g6-xq36))
+
+### Known Issues with Security Scanners
+
+#### Dependabot Alerts
+
+GitHub Dependabot may show open alerts for the above packages because:
+
+1. Dependabot's static analysis scans `package-lock.json` before overrides are applied
+2. The vulnerable versions are present in the dependency tree as transitive dependencies
+3. npm overrides are applied at install time, not visible to static analysis tools
+
+**These alerts can be safely dismissed** as the overrides ensure patched versions are used at runtime.
+
+#### npm audit Warnings
+
+Running `npm audit` may show warnings for these packages. This is expected:
+
+- The audit system doesn't recognize GitHub sources (like our patched elliptic) as fixes
+- Overridden versions may not match the semver range required by dependencies (shown as "invalid")
+- Despite warnings, the patched versions are correctly installed and used
+
+To verify the actual installed versions, check `node_modules/<package>/package.json` or use `npm ls <package>`.
