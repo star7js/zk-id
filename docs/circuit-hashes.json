@@ -2,13 +2,13 @@
   "algorithm": "SHA-256",
   "circomVersion": "0.5.46",
   "snarkjsVersion": "0.7.6",
-  "generatedAt": "2026-02-09T11:17:14Z",
-  "note": "Canonical hashes generated on macOS for local development. WASM hashes included for reference but not verified in CI (Circom v2.x not cross-platform deterministic). Only zkey and verificationKey hashes are verified and security-critical. Hashes updated in v0.6.0 for circuit changes (GreaterEqThan 8→12 bits) and new nullifier circuit.",
+  "generatedAt": "2026-02-10T01:58:29Z",
+  "note": "Canonical hashes generated on macOS for local development. WASM hashes included for reference but not verified in CI (Circom v2.x not cross-platform deterministic). Only zkey and verificationKey hashes are verified and security-critical.",
   "circuits": {
     "age-verify": {
-      "wasm": "ff16cbdf593c0b6cb9cb984fa449675dd3abc351b4d83b083c8b782dda953939",
-      "zkey": "c2e99f334c4ef2884e151856645961b35092be423afdd7dbe667643226a8b643",
-      "verificationKey": "5f33a5fdaf9ff8031b6ce71264b140db0ce1f1073ed2531f562d4cf0e997b185"
+      "wasm": "d51c7781986f6237b9b7611723e9de03d6a742b223ba8d8cb9051aa2d02fad33",
+      "zkey": "2a8bc996b3567c69edfc9b45186ca0292eb0f424aa1aace463d1890439053632",
+      "verificationKey": "3ac2659f2ffa77b459f261c9242698855809857e32c577f174e0fbb40bc81a0b"
     },
     "credential-hash": {
       "wasm": "f003d83fc887b07144cc697096a9de5cad6c47ba60e26662424aac918bbc6a03",
@@ -21,19 +21,19 @@
       "verificationKey": "8dfb1965ddd0123b936cf5bcc1881eb217d0989c19451b3ea171aad3fc9e37b2"
     },
     "age-verify-signed": {
-      "wasm": "9c84120bf1ae08bc6a3604ceb39ea88ff4bebc3ce0c54a0caf1e0c0a7daed8e3",
-      "zkey": "dcae79c18b28498fc3a2dea8a09cee787aa00849366b997b590ce9b7725c1973",
-      "verificationKey": "fbced27c62f0cd36b6139d3086b96b17d2090c763a2c24e71c38d2882188e730"
+      "wasm": "9b669e55f9d6b7649d060a8d75d7067e6ad41b567ba96e279adb0c623c903fca",
+      "zkey": "ce13be63b873263aacdac6a3f09007544ebef186da63f6132c67124b50f25a1a",
+      "verificationKey": "ce270d96ee14cf02268682d7e364492a9d4c902386a03c540d880671097399d7"
     },
     "nationality-verify-signed": {
-      "wasm": "1e4ff2418c4844736c7de27c1f73355a785362b20ad4eb47291fbd0db377a857",
+      "wasm": "b8d520adcf1b92de3c9badf20ea5904e63d669ba630a310b729aada546bc84d8",
       "zkey": "d1c505529af9d0ef5d236395856ee1db6520906c3f91a8652e2f61f634353c4b",
       "verificationKey": "97a957ad4538977db5bee45bcee8d919e1071d3ce0f427250c1bf738ea95e68f"
     },
     "age-verify-revocable": {
-      "wasm": "7c3ef092aedbbf6e09d4f1fac78514a143cceedd38be67f89e71db413f538203",
-      "zkey": "f50e6ef51912392252f2f7c09c068f3a5aa6fd5a4ea16d13eccc4baf47fa42d3",
-      "verificationKey": "31fd45aa6a48f5aaa8d6a44459d17fb007d83b0da44f5650aff122bdedbe9ea3"
+      "wasm": "5422ede636e1d4ef8889be058fead5c192d267521b82e62627706faedfea4d98",
+      "zkey": "39204d41870c0f5ef0abd7495a7dd5d6a9d8f3759c09ee0c78c5f8e3908afcee",
+      "verificationKey": "b1f5c5f355a3eb104de89e63ba2a83af851b6dbf87ef06c8febbad241e49f8b7"
     },
     "nullifier": {
       "wasm": "67b5e5a5374e51fc35efba042205fa49be1279c9b60dcf4a9c494170a0d225ac",
