@@ -1009,38 +1009,19 @@
         }
       }
 
-      // Step 2: Verify Age (CLIENT-SIDE PROOF GENERATION)
-      async function verifyAge() {
+      // Helper function: Generate age proof and verify (reusable)
+      async function generateAgeProofAndVerify(minAge, resultElementId, stepPrefix) {
         if (!state.credential) {
-          showResult(
-            'verifyResult',
-            'error',
-            '<div class="result-title">✗ Please issue a credential first</div>',
-          );
-          return;
+          throw new Error('Please issue a credential first');
         }
 
         if (typeof snarkjs === 'undefined') {
-          showResult(
-            'verifyResult',
-            'error',
-            '<div class="result-title">✗ snarkjs library not loaded. Please refresh the page.</div>',
-          );
-          return;
+          throw new Error('snarkjs library not loaded. Please refresh the page.');
         }
 
-        const minAge = parseInt(document.getElementById('minAge').value);
         if (isNaN(minAge)) {
-          showResult(
-            'verifyResult',
-            'error',
-            '<div class="result-title">✗ Invalid minimum age</div>',
-          );
-          return;
+          throw new Error('Invalid minimum age');
         }
-
-        const btn = document.getElementById('verifyAgeBtn');
-        btn.disabled = true;
 
         const timings = {
           fetchStart: 0,
@@ -1051,209 +1032,220 @@
           verifyEnd: 0,
         };
 
-        try {
-          // Show progress
+        // Show progress
+        showResult(
+          resultElementId,
+          'loading',
+          `
+                  <div class="result-title">Generating Zero-Knowledge Proof</div>
+                  <div class="progress-container">
+                      <div class="progress-steps">
+                          <div class="progress-step" id="${stepPrefix}-challenge">
+                              <div class="progress-step-icon">1</div>
+                              <div>Fetching challenge from server...</div>
+                          </div>
+                          <div class="progress-step" id="${stepPrefix}-download">
+                              <div class="progress-step-icon">2</div>
+                              <div>Downloading circuit artifacts (WASM + zkey)...</div>
+                          </div>
+                          <div class="progress-step" id="${stepPrefix}-compute">
+                              <div class="progress-step-icon">3</div>
+                              <div>Computing proof locally (your data stays private)...</div>
+                          </div>
+                          <div class="progress-step" id="${stepPrefix}-verify">
+                              <div class="progress-step-icon">4</div>
+                              <div>Sending proof to server for verification...</div>
+                          </div>
+                      </div>
+                  </div>
+              `,
+        );
+
+        // Step 1: Fetch challenge
+        document.getElementById(`${stepPrefix}-challenge`).classList.add('active');
+        timings.fetchStart = Date.now();
+        const challengeResponse = await fetch('/api/challenge');
+        const challenge = await challengeResponse.json();
+        timings.fetchEnd = Date.now();
+        document.getElementById(`${stepPrefix}-challenge`).classList.remove('active');
+        document.getElementById(`${stepPrefix}-challenge`).classList.add('complete');
+        document
+          .getElementById(`${stepPrefix}-challenge`)
+          .querySelector('.progress-step-icon').textContent = '✓';
+
+        // Step 2: Download artifacts and generate proof
+        document.getElementById(`${stepPrefix}-download`).classList.add('active');
+        document.getElementById(`${stepPrefix}-compute`).classList.add('active');
+
+        timings.proofStart = Date.now();
+
+        // Prepare circuit inputs (ALL DONE LOCALLY)
+        const currentYear = new Date().getFullYear();
+        const requestTimestampMs = Date.parse(challenge.requestTimestamp);
+
+        // Convert hex salt to decimal string
+        const saltDecimal = BigInt('0x' + state.credential.credential.salt).toString();
+
+        const inputs = {
+          birthYear: state.credential.credential.birthYear.toString(),
+          nationality: state.credential.credential.nationality.toString(),
+          salt: saltDecimal,
+          currentYear: currentYear.toString(),
+          minAge: minAge.toString(),
+          credentialHash: state.credential.credential.commitment,
+          nonce: challenge.nonce.toString(),
+          requestTimestamp: requestTimestampMs.toString(),
+        };
+
+        console.log('Circuit inputs:', inputs);
+
+        // Generate proof using snarkjs (downloads artifacts automatically)
+        const wasmUrl = '/circuits/age-verify_js/age-verify.wasm';
+        const zkeyUrl = '/circuits/age-verify.zkey';
+
+        const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+          inputs,
+          wasmUrl,
+          zkeyUrl,
+        );
+
+        timings.proofEnd = Date.now();
+        document.getElementById(`${stepPrefix}-download`).classList.remove('active');
+        document.getElementById(`${stepPrefix}-download`).classList.add('complete');
+        document
+          .getElementById(`${stepPrefix}-download`)
+          .querySelector('.progress-step-icon').textContent = '✓';
+        document.getElementById(`${stepPrefix}-compute`).classList.remove('active');
+        document.getElementById(`${stepPrefix}-compute`).classList.add('complete');
+        document.getElementById(`${stepPrefix}-compute`).querySelector('.progress-step-icon').textContent =
+          '✓';
+
+        // Step 3: Send ONLY the proof to server (not the private data!)
+        document.getElementById(`${stepPrefix}-verify`).classList.add('active');
+        timings.verifyStart = Date.now();
+
+        // Format the proof properly (convert array to structured object)
+        const formattedProof = {
+          proof: {
+            pi_a: proof.pi_a.slice(0, 2),
+            pi_b: proof.pi_b.slice(0, 2),
+            pi_c: proof.pi_c.slice(0, 2),
+            protocol: proof.protocol,
+            curve: proof.curve,
+          },
+          publicSignals: {
+            currentYear: parseInt(publicSignals[0]),
+            minAge: parseInt(publicSignals[1]),
+            credentialHash: publicSignals[2],
+            nonce: publicSignals[3],
+            requestTimestamp: parseInt(publicSignals[4]),
+          },
+        };
+
+        const proofResponse = {
+          proof: formattedProof,
+          nonce: challenge.nonce,
+          requestTimestamp: challenge.requestTimestamp,
+          claimType: 'age',
+          credentialId: state.credentialId,
+          signedCredential: state.credential,
+        };
+
+        const verifyResponse = await fetch('/api/verify-age', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(proofResponse),
+        });
+
+        const result = await verifyResponse.json();
+        timings.verifyEnd = Date.now();
+
+        document.getElementById(`${stepPrefix}-verify`).classList.remove('active');
+        document.getElementById(`${stepPrefix}-verify`).classList.add('complete');
+        document.getElementById(`${stepPrefix}-verify`).querySelector('.progress-step-icon').textContent =
+          '✓';
+
+        // Calculate timings
+        const fetchTime = timings.fetchEnd - timings.fetchStart;
+        const proofTime = timings.proofEnd - timings.proofStart;
+        const verifyTime = timings.verifyEnd - timings.verifyStart;
+        const totalTime = timings.verifyEnd - timings.fetchStart;
+
+        console.log('Verification result:', result);
+
+        if (result.verified) {
           showResult(
-            'verifyResult',
-            'loading',
+            resultElementId,
+            'success',
             `
-                    <div class="result-title">Generating Zero-Knowledge Proof</div>
-                    <div class="progress-container">
-                        <div class="progress-steps">
-                            <div class="progress-step" id="step-challenge">
-                                <div class="progress-step-icon">1</div>
-                                <div>Fetching challenge from server...</div>
-                            </div>
-                            <div class="progress-step" id="step-download">
-                                <div class="progress-step-icon">2</div>
-                                <div>Downloading circuit artifacts (WASM + zkey)...</div>
-                            </div>
-                            <div class="progress-step" id="step-compute">
-                                <div class="progress-step-icon">3</div>
-                                <div>Computing proof locally (your data stays private)...</div>
-                            </div>
-                            <div class="progress-step" id="step-verify">
-                                <div class="progress-step-icon">4</div>
-                                <div>Sending proof to server for verification...</div>
-                            </div>
-                        </div>
-                    </div>
-                `,
+                      <div class="result-title">✓ Age Verification Successful</div>
+                      <p>User is at least ${minAge} years old.</p>
+
+                      <div class="timing-grid">
+                          <div class="timing-item">
+                              <div class="timing-label">Challenge Fetch</div>
+                              <div class="timing-value">${fetchTime}<span class="timing-unit">ms</span></div>
+                          </div>
+                          <div class="timing-item">
+                              <div class="timing-label">Client-Side Proof</div>
+                              <div class="timing-value">${proofTime}<span class="timing-unit">ms</span></div>
+                          </div>
+                          <div class="timing-item">
+                              <div class="timing-label">Server Verification</div>
+                              <div class="timing-value">${verifyTime}<span class="timing-unit">ms</span></div>
+                          </div>
+                          <div class="timing-item">
+                              <div class="timing-label">Total Time</div>
+                              <div class="timing-value">${totalTime}<span class="timing-unit">ms</span></div>
+                          </div>
+                      </div>
+
+                      <div class="privacy-grid">
+                          <div class="privacy-section hidden">
+                              <div class="privacy-section-title">
+                                  🔒 Data Kept Private (Never Sent)
+                              </div>
+                              <ul class="privacy-list">
+                                  <li>Exact birth year (${state.credential.credential.birthYear})</li>
+                                  <li>Nationality (${state.credential.credential.nationality})</li>
+                                  <li>Credential salt</li>
+                              </ul>
+                          </div>
+                          <div class="privacy-section revealed">
+                              <div class="privacy-section-title">
+                                  📤 Data Revealed in Proof
+                              </div>
+                              <ul class="privacy-list">
+                                  <li>Age ≥ ${minAge} (proven)</li>
+                                  <li>Challenge nonce</li>
+                                  <li>Request timestamp</li>
+                              </ul>
+                          </div>
+                      </div>
+                  `,
           );
-
-          // Step 1: Fetch challenge
-          document.getElementById('step-challenge').classList.add('active');
-          timings.fetchStart = Date.now();
-          const challengeResponse = await fetch('/api/challenge');
-          const challenge = await challengeResponse.json();
-          timings.fetchEnd = Date.now();
-          document.getElementById('step-challenge').classList.remove('active');
-          document.getElementById('step-challenge').classList.add('complete');
-          document
-            .getElementById('step-challenge')
-            .querySelector('.progress-step-icon').textContent = '✓';
-
-          // Step 2: Download artifacts and generate proof
-          document.getElementById('step-download').classList.add('active');
-          document.getElementById('step-compute').classList.add('active');
-
-          timings.proofStart = Date.now();
-
-          // Prepare circuit inputs (ALL DONE LOCALLY)
-          const currentYear = new Date().getFullYear();
-          const requestTimestampMs = Date.parse(challenge.requestTimestamp);
-
-          // Convert hex salt to decimal string
-          const saltDecimal = BigInt('0x' + state.credential.credential.salt).toString();
-
-          const inputs = {
-            birthYear: state.credential.credential.birthYear.toString(),
-            nationality: state.credential.credential.nationality.toString(),
-            salt: saltDecimal,
-            currentYear: currentYear.toString(),
-            minAge: minAge.toString(),
-            credentialHash: state.credential.credential.commitment,
-            nonce: challenge.nonce.toString(),
-            requestTimestamp: requestTimestampMs.toString(),
-          };
-
-          console.log('Circuit inputs:', inputs);
-
-          // Generate proof using snarkjs (downloads artifacts automatically)
-          const wasmUrl = '/circuits/age-verify_js/age-verify.wasm';
-          const zkeyUrl = '/circuits/age-verify.zkey';
-
-          const { proof, publicSignals } = await snarkjs.groth16.fullProve(
-            inputs,
-            wasmUrl,
-            zkeyUrl,
+          return { success: true, timings };
+        } else {
+          showResult(
+            resultElementId,
+            'error',
+            `
+                      <div class="result-title">✗ Verification Failed</div>
+                      <p>${escapeHtml(result.error || result.message)}</p>
+                  `,
           );
+          return { success: false, error: result.error || result.message };
+        }
+      }
 
-          timings.proofEnd = Date.now();
-          document.getElementById('step-download').classList.remove('active');
-          document.getElementById('step-download').classList.add('complete');
-          document
-            .getElementById('step-download')
-            .querySelector('.progress-step-icon').textContent = '✓';
-          document.getElementById('step-compute').classList.remove('active');
-          document.getElementById('step-compute').classList.add('complete');
-          document.getElementById('step-compute').querySelector('.progress-step-icon').textContent =
-            '✓';
+      // Step 2: Verify Age (CLIENT-SIDE PROOF GENERATION)
+      async function verifyAge() {
+        const minAge = parseInt(document.getElementById('minAge').value);
+        const btn = document.getElementById('verifyAgeBtn');
+        btn.disabled = true;
 
-          // Step 3: Send ONLY the proof to server (not the private data!)
-          document.getElementById('step-verify').classList.add('active');
-          timings.verifyStart = Date.now();
-
-          // Format the proof properly (convert array to structured object)
-          const formattedProof = {
-            proof: {
-              pi_a: proof.pi_a.slice(0, 2),
-              pi_b: proof.pi_b.slice(0, 2),
-              pi_c: proof.pi_c.slice(0, 2),
-              protocol: proof.protocol,
-              curve: proof.curve,
-            },
-            publicSignals: {
-              currentYear: parseInt(publicSignals[0]),
-              minAge: parseInt(publicSignals[1]),
-              credentialHash: publicSignals[2],
-              nonce: publicSignals[3],
-              requestTimestamp: parseInt(publicSignals[4]),
-            },
-          };
-
-          const proofResponse = {
-            proof: formattedProof,
-            nonce: challenge.nonce,
-            requestTimestamp: challenge.requestTimestamp,
-            claimType: 'age',
-            credentialId: state.credentialId,
-            signedCredential: state.credential,
-          };
-
-          const verifyResponse = await fetch('/api/verify-age', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(proofResponse),
-          });
-
-          const result = await verifyResponse.json();
-          timings.verifyEnd = Date.now();
-
-          document.getElementById('step-verify').classList.remove('active');
-          document.getElementById('step-verify').classList.add('complete');
-          document.getElementById('step-verify').querySelector('.progress-step-icon').textContent =
-            '✓';
-
-          // Calculate timings
-          const fetchTime = timings.fetchEnd - timings.fetchStart;
-          const proofTime = timings.proofEnd - timings.proofStart;
-          const verifyTime = timings.verifyEnd - timings.verifyStart;
-          const totalTime = timings.verifyEnd - timings.fetchStart;
-
-          console.log('Verification result:', result);
-
-          if (result.verified) {
-            showResult(
-              'verifyResult',
-              'success',
-              `
-                        <div class="result-title">✓ Age Verification Successful</div>
-                        <p>User is at least ${minAge} years old.</p>
-
-                        <div class="timing-grid">
-                            <div class="timing-item">
-                                <div class="timing-label">Challenge Fetch</div>
-                                <div class="timing-value">${fetchTime}<span class="timing-unit">ms</span></div>
-                            </div>
-                            <div class="timing-item">
-                                <div class="timing-label">Client-Side Proof</div>
-                                <div class="timing-value">${proofTime}<span class="timing-unit">ms</span></div>
-                            </div>
-                            <div class="timing-item">
-                                <div class="timing-label">Server Verification</div>
-                                <div class="timing-value">${verifyTime}<span class="timing-unit">ms</span></div>
-                            </div>
-                            <div class="timing-item">
-                                <div class="timing-label">Total Time</div>
-                                <div class="timing-value">${totalTime}<span class="timing-unit">ms</span></div>
-                            </div>
-                        </div>
-
-                        <div class="privacy-grid">
-                            <div class="privacy-section hidden">
-                                <div class="privacy-section-title">
-                                    🔒 Data Kept Private (Never Sent)
-                                </div>
-                                <ul class="privacy-list">
-                                    <li>Exact birth year (${state.credential.credential.birthYear})</li>
-                                    <li>Nationality (${state.credential.credential.nationality})</li>
-                                    <li>Credential salt</li>
-                                </ul>
-                            </div>
-                            <div class="privacy-section revealed">
-                                <div class="privacy-section-title">
-                                    📤 Data Revealed in Proof
-                                </div>
-                                <ul class="privacy-list">
-                                    <li>Age ≥ ${minAge} (proven)</li>
-                                    <li>Challenge nonce</li>
-                                    <li>Request timestamp</li>
-                                </ul>
-                            </div>
-                        </div>
-                    `,
-            );
-          } else {
-            showResult(
-              'verifyResult',
-              'error',
-              `
-                        <div class="result-title">✗ Verification Failed</div>
-                        <p>${escapeHtml(result.error || result.message)}</p>
-                    `,
-            );
-          }
+        try {
+          await generateAgeProofAndVerify(minAge, 'verifyResult', 'step');
         } catch (error) {
           console.error('Age verification error:', error);
 
@@ -1274,47 +1266,28 @@
             'verifyResult',
             'error',
             `
-                    <div class="result-title">✗ Proof Generation Failed</div>
-                    <p>${escapeHtml(errorMessage)}</p>
-                `,
+                  <div class="result-title">✗ Proof Generation Failed</div>
+                  <p>${escapeHtml(errorMessage)}</p>
+              `,
           );
         } finally {
           btn.disabled = false;
         }
       }
 
-      // Step 3: Verify Nationality (CLIENT-SIDE PROOF GENERATION)
-      async function verifyNationality() {
+      // Helper function: Generate nationality proof and verify (reusable)
+      async function generateNationalityProofAndVerify(targetNationality, resultElementId, stepPrefix) {
         if (!state.credential) {
-          showResult(
-            'verifyNationalityResult',
-            'error',
-            '<div class="result-title">✗ Please issue a credential first</div>',
-          );
-          return;
+          throw new Error('Please issue a credential first');
         }
 
         if (typeof snarkjs === 'undefined') {
-          showResult(
-            'verifyNationalityResult',
-            'error',
-            '<div class="result-title">✗ snarkjs library not loaded. Please refresh the page.</div>',
-          );
-          return;
+          throw new Error('snarkjs library not loaded. Please refresh the page.');
         }
 
-        const targetNationality = parseInt(document.getElementById('targetNationality').value);
         if (isNaN(targetNationality)) {
-          showResult(
-            'verifyNationalityResult',
-            'error',
-            '<div class="result-title">✗ Invalid nationality</div>',
-          );
-          return;
+          throw new Error('Invalid nationality');
         }
-
-        const btn = document.getElementById('verifyNationalityBtn');
-        btn.disabled = true;
 
         const timings = {
           fetchStart: 0,
@@ -1325,204 +1298,215 @@
           verifyEnd: 0,
         };
 
-        try {
+        showResult(
+          resultElementId,
+          'loading',
+          `
+                  <div class="result-title">Generating Zero-Knowledge Proof</div>
+                  <div class="progress-container">
+                      <div class="progress-steps">
+                          <div class="progress-step" id="${stepPrefix}-challenge">
+                              <div class="progress-step-icon">1</div>
+                              <div>Fetching challenge from server...</div>
+                          </div>
+                          <div class="progress-step" id="${stepPrefix}-download">
+                              <div class="progress-step-icon">2</div>
+                              <div>Downloading circuit artifacts (WASM + zkey)...</div>
+                          </div>
+                          <div class="progress-step" id="${stepPrefix}-compute">
+                              <div class="progress-step-icon">3</div>
+                              <div>Computing proof locally (your data stays private)...</div>
+                          </div>
+                          <div class="progress-step" id="${stepPrefix}-verify">
+                              <div class="progress-step-icon">4</div>
+                              <div>Sending proof to server for verification...</div>
+                          </div>
+                      </div>
+                  </div>
+              `,
+        );
+
+        // Step 1: Fetch challenge
+        document.getElementById(`${stepPrefix}-challenge`).classList.add('active');
+        timings.fetchStart = Date.now();
+        const challengeResponse = await fetch('/api/challenge');
+        const challenge = await challengeResponse.json();
+        timings.fetchEnd = Date.now();
+        document.getElementById(`${stepPrefix}-challenge`).classList.remove('active');
+        document.getElementById(`${stepPrefix}-challenge`).classList.add('complete');
+        document
+          .getElementById(`${stepPrefix}-challenge`)
+          .querySelector('.progress-step-icon').textContent = '✓';
+
+        // Step 2: Download artifacts and generate proof
+        document.getElementById(`${stepPrefix}-download`).classList.add('active');
+        document.getElementById(`${stepPrefix}-compute`).classList.add('active');
+
+        timings.proofStart = Date.now();
+
+        const requestTimestampMs = Date.parse(challenge.requestTimestamp);
+
+        // Convert hex salt to decimal string
+        const saltDecimal = BigInt('0x' + state.credential.credential.salt).toString();
+
+        const inputs = {
+          birthYear: state.credential.credential.birthYear.toString(),
+          nationality: state.credential.credential.nationality.toString(),
+          salt: saltDecimal,
+          targetNationality: targetNationality.toString(),
+          credentialHash: state.credential.credential.commitment,
+          nonce: challenge.nonce.toString(),
+          requestTimestamp: requestTimestampMs.toString(),
+        };
+
+        console.log('Circuit inputs:', inputs);
+
+        const wasmUrl = '/circuits/nationality-verify_js/nationality-verify.wasm';
+        const zkeyUrl = '/circuits/nationality-verify.zkey';
+
+        const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+          inputs,
+          wasmUrl,
+          zkeyUrl,
+        );
+
+        timings.proofEnd = Date.now();
+        document.getElementById(`${stepPrefix}-download`).classList.remove('active');
+        document.getElementById(`${stepPrefix}-download`).classList.add('complete');
+        document
+          .getElementById(`${stepPrefix}-download`)
+          .querySelector('.progress-step-icon').textContent = '✓';
+        document.getElementById(`${stepPrefix}-compute`).classList.remove('active');
+        document.getElementById(`${stepPrefix}-compute`).classList.add('complete');
+        document
+          .getElementById(`${stepPrefix}-compute`)
+          .querySelector('.progress-step-icon').textContent = '✓';
+
+        // Step 3: Send proof to server
+        document.getElementById(`${stepPrefix}-verify`).classList.add('active');
+        timings.verifyStart = Date.now();
+
+        // Format the proof properly (convert array to structured object)
+        const formattedProof = {
+          proof: {
+            pi_a: proof.pi_a.slice(0, 2),
+            pi_b: proof.pi_b.slice(0, 2),
+            pi_c: proof.pi_c.slice(0, 2),
+            protocol: proof.protocol,
+            curve: proof.curve,
+          },
+          publicSignals: {
+            targetNationality: parseInt(publicSignals[0]),
+            credentialHash: publicSignals[1],
+            nonce: publicSignals[2],
+            requestTimestamp: parseInt(publicSignals[3]),
+          },
+        };
+
+        const proofResponse = {
+          proof: formattedProof,
+          nonce: challenge.nonce,
+          requestTimestamp: challenge.requestTimestamp,
+          claimType: 'nationality',
+          credentialId: state.credentialId,
+          signedCredential: state.credential,
+        };
+
+        const verifyResponse = await fetch('/api/verify-nationality', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(proofResponse),
+        });
+
+        const result = await verifyResponse.json();
+        timings.verifyEnd = Date.now();
+
+        document.getElementById(`${stepPrefix}-verify`).classList.remove('active');
+        document.getElementById(`${stepPrefix}-verify`).classList.add('complete');
+        document
+          .getElementById(`${stepPrefix}-verify`)
+          .querySelector('.progress-step-icon').textContent = '✓';
+
+        const fetchTime = timings.fetchEnd - timings.fetchStart;
+        const proofTime = timings.proofEnd - timings.proofStart;
+        const verifyTime = timings.verifyEnd - timings.verifyStart;
+        const totalTime = timings.verifyEnd - timings.fetchStart;
+
+        const nationalityName = getNationalityName(targetNationality);
+
+        if (result.verified) {
           showResult(
-            'verifyNationalityResult',
-            'loading',
+            resultElementId,
+            'success',
             `
-                    <div class="result-title">Generating Zero-Knowledge Proof</div>
-                    <div class="progress-container">
-                        <div class="progress-steps">
-                            <div class="progress-step" id="step-nat-challenge">
-                                <div class="progress-step-icon">1</div>
-                                <div>Fetching challenge from server...</div>
-                            </div>
-                            <div class="progress-step" id="step-nat-download">
-                                <div class="progress-step-icon">2</div>
-                                <div>Downloading circuit artifacts (WASM + zkey)...</div>
-                            </div>
-                            <div class="progress-step" id="step-nat-compute">
-                                <div class="progress-step-icon">3</div>
-                                <div>Computing proof locally (your data stays private)...</div>
-                            </div>
-                            <div class="progress-step" id="step-nat-verify">
-                                <div class="progress-step-icon">4</div>
-                                <div>Sending proof to server for verification...</div>
-                            </div>
-                        </div>
-                    </div>
-                `,
+                      <div class="result-title">✓ Nationality Verification Successful</div>
+                      <p>User has nationality: ${escapeHtml(nationalityName)}</p>
+
+                      <div class="timing-grid">
+                          <div class="timing-item">
+                              <div class="timing-label">Challenge Fetch</div>
+                              <div class="timing-value">${fetchTime}<span class="timing-unit">ms</span></div>
+                          </div>
+                          <div class="timing-item">
+                              <div class="timing-label">Client-Side Proof</div>
+                              <div class="timing-value">${proofTime}<span class="timing-unit">ms</span></div>
+                          </div>
+                          <div class="timing-item">
+                              <div class="timing-label">Server Verification</div>
+                              <div class="timing-value">${verifyTime}<span class="timing-unit">ms</span></div>
+                          </div>
+                          <div class="timing-item">
+                              <div class="timing-label">Total Time</div>
+                              <div class="timing-value">${totalTime}<span class="timing-unit">ms</span></div>
+                          </div>
+                      </div>
+
+                      <div class="privacy-grid">
+                          <div class="privacy-section hidden">
+                              <div class="privacy-section-title">
+                                  🔒 Data Kept Private (Never Sent)
+                              </div>
+                              <ul class="privacy-list">
+                                  <li>Birth year (${state.credential.credential.birthYear})</li>
+                                  <li>Age information</li>
+                                  <li>Credential salt</li>
+                              </ul>
+                          </div>
+                          <div class="privacy-section revealed">
+                              <div class="privacy-section-title">
+                                  📤 Data Revealed in Proof
+                              </div>
+                              <ul class="privacy-list">
+                                  <li>Nationality = ${escapeHtml(nationalityName)}</li>
+                                  <li>Challenge nonce</li>
+                                  <li>Request timestamp</li>
+                              </ul>
+                          </div>
+                      </div>
+                  `,
           );
-
-          // Step 1: Fetch challenge
-          document.getElementById('step-nat-challenge').classList.add('active');
-          timings.fetchStart = Date.now();
-          const challengeResponse = await fetch('/api/challenge');
-          const challenge = await challengeResponse.json();
-          timings.fetchEnd = Date.now();
-          document.getElementById('step-nat-challenge').classList.remove('active');
-          document.getElementById('step-nat-challenge').classList.add('complete');
-          document
-            .getElementById('step-nat-challenge')
-            .querySelector('.progress-step-icon').textContent = '✓';
-
-          // Step 2: Download artifacts and generate proof
-          document.getElementById('step-nat-download').classList.add('active');
-          document.getElementById('step-nat-compute').classList.add('active');
-
-          timings.proofStart = Date.now();
-
-          const requestTimestampMs = Date.parse(challenge.requestTimestamp);
-
-          // Convert hex salt to decimal string
-          const saltDecimal = BigInt('0x' + state.credential.credential.salt).toString();
-
-          const inputs = {
-            birthYear: state.credential.credential.birthYear.toString(),
-            nationality: state.credential.credential.nationality.toString(),
-            salt: saltDecimal,
-            targetNationality: targetNationality.toString(),
-            credentialHash: state.credential.credential.commitment,
-            nonce: challenge.nonce.toString(),
-            requestTimestamp: requestTimestampMs.toString(),
-          };
-
-          console.log('Circuit inputs:', inputs);
-
-          const wasmUrl = '/circuits/nationality-verify_js/nationality-verify.wasm';
-          const zkeyUrl = '/circuits/nationality-verify.zkey';
-
-          const { proof, publicSignals } = await snarkjs.groth16.fullProve(
-            inputs,
-            wasmUrl,
-            zkeyUrl,
+          return { success: true, timings };
+        } else {
+          showResult(
+            resultElementId,
+            'error',
+            `
+                      <div class="result-title">✗ Verification Failed</div>
+                      <p>${escapeHtml(result.error || result.message)}</p>
+                  `,
           );
+          return { success: false, error: result.error || result.message };
+        }
+      }
 
-          timings.proofEnd = Date.now();
-          document.getElementById('step-nat-download').classList.remove('active');
-          document.getElementById('step-nat-download').classList.add('complete');
-          document
-            .getElementById('step-nat-download')
-            .querySelector('.progress-step-icon').textContent = '✓';
-          document.getElementById('step-nat-compute').classList.remove('active');
-          document.getElementById('step-nat-compute').classList.add('complete');
-          document
-            .getElementById('step-nat-compute')
-            .querySelector('.progress-step-icon').textContent = '✓';
+      // Step 3: Verify Nationality (CLIENT-SIDE PROOF GENERATION)
+      async function verifyNationality() {
+        const targetNationality = parseInt(document.getElementById('targetNationality').value);
+        const btn = document.getElementById('verifyNationalityBtn');
+        btn.disabled = true;
 
-          // Step 3: Send proof to server
-          document.getElementById('step-nat-verify').classList.add('active');
-          timings.verifyStart = Date.now();
-
-          // Format the proof properly (convert array to structured object)
-          const formattedProof = {
-            proof: {
-              pi_a: proof.pi_a.slice(0, 2),
-              pi_b: proof.pi_b.slice(0, 2),
-              pi_c: proof.pi_c.slice(0, 2),
-              protocol: proof.protocol,
-              curve: proof.curve,
-            },
-            publicSignals: {
-              targetNationality: parseInt(publicSignals[0]),
-              credentialHash: publicSignals[1],
-              nonce: publicSignals[2],
-              requestTimestamp: parseInt(publicSignals[3]),
-            },
-          };
-
-          const proofResponse = {
-            proof: formattedProof,
-            nonce: challenge.nonce,
-            requestTimestamp: challenge.requestTimestamp,
-            claimType: 'nationality',
-            credentialId: state.credentialId,
-            signedCredential: state.credential,
-          };
-
-          const verifyResponse = await fetch('/api/verify-nationality', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(proofResponse),
-          });
-
-          const result = await verifyResponse.json();
-          timings.verifyEnd = Date.now();
-
-          document.getElementById('step-nat-verify').classList.remove('active');
-          document.getElementById('step-nat-verify').classList.add('complete');
-          document
-            .getElementById('step-nat-verify')
-            .querySelector('.progress-step-icon').textContent = '✓';
-
-          const fetchTime = timings.fetchEnd - timings.fetchStart;
-          const proofTime = timings.proofEnd - timings.proofStart;
-          const verifyTime = timings.verifyEnd - timings.verifyStart;
-          const totalTime = timings.verifyEnd - timings.fetchStart;
-
-          const nationalityName = getNationalityName(targetNationality);
-
-          if (result.verified) {
-            showResult(
-              'verifyNationalityResult',
-              'success',
-              `
-                        <div class="result-title">✓ Nationality Verification Successful</div>
-                        <p>User has nationality: ${escapeHtml(nationalityName)}</p>
-
-                        <div class="timing-grid">
-                            <div class="timing-item">
-                                <div class="timing-label">Challenge Fetch</div>
-                                <div class="timing-value">${fetchTime}<span class="timing-unit">ms</span></div>
-                            </div>
-                            <div class="timing-item">
-                                <div class="timing-label">Client-Side Proof</div>
-                                <div class="timing-value">${proofTime}<span class="timing-unit">ms</span></div>
-                            </div>
-                            <div class="timing-item">
-                                <div class="timing-label">Server Verification</div>
-                                <div class="timing-value">${verifyTime}<span class="timing-unit">ms</span></div>
-                            </div>
-                            <div class="timing-item">
-                                <div class="timing-label">Total Time</div>
-                                <div class="timing-value">${totalTime}<span class="timing-unit">ms</span></div>
-                            </div>
-                        </div>
-
-                        <div class="privacy-grid">
-                            <div class="privacy-section hidden">
-                                <div class="privacy-section-title">
-                                    🔒 Data Kept Private (Never Sent)
-                                </div>
-                                <ul class="privacy-list">
-                                    <li>Birth year (${state.credential.credential.birthYear})</li>
-                                    <li>Age information</li>
-                                    <li>Credential salt</li>
-                                </ul>
-                            </div>
-                            <div class="privacy-section revealed">
-                                <div class="privacy-section-title">
-                                    📤 Data Revealed in Proof
-                                </div>
-                                <ul class="privacy-list">
-                                    <li>Nationality = ${escapeHtml(nationalityName)}</li>
-                                    <li>Challenge nonce</li>
-                                    <li>Request timestamp</li>
-                                </ul>
-                            </div>
-                        </div>
-                    `,
-            );
-          } else {
-            showResult(
-              'verifyNationalityResult',
-              'error',
-              `
-                        <div class="result-title">✗ Verification Failed</div>
-                        <p>${escapeHtml(result.error || result.message)}</p>
-                    `,
-            );
-          }
+        try {
+          await generateNationalityProofAndVerify(targetNationality, 'verifyNationalityResult', 'step-nat');
         } catch (error) {
           console.error('Nationality verification error:', error);
 
@@ -1543,9 +1527,9 @@
             'verifyNationalityResult',
             'error',
             `
-                    <div class="result-title">✗ Proof Generation Failed</div>
-                    <p>${escapeHtml(errorMessage)}</p>
-                `,
+                  <div class="result-title">✗ Proof Generation Failed</div>
+                  <p>${escapeHtml(errorMessage)}</p>
+              `,
           );
         } finally {
           btn.disabled = false;
@@ -1554,76 +1538,118 @@
 
       // Step 4: Verify Voting Eligibility (Combined Scenario)
       async function verifyVotingEligibility() {
-        showResult('verifyVotingResult', 'info', '<div class="result-title">Verifying voting eligibility...</div>');
+        const btn = document.getElementById('verifyVotingBtn');
+        btn.disabled = true;
 
-        // First verify age >= 18
-        const minAgeInput = document.getElementById('minAge');
-        const originalMinAge = minAgeInput.value;
-        minAgeInput.value = '18';
+        try {
+          // Step 1: Generate and verify age proof (18+)
+          showResult('verifyVotingResult', 'loading', '<div class="result-title">Generating age proof (18+)...</div>');
 
-        await verifyAge();
-        const ageResult = document.getElementById('verifyAgeResult');
-        const ageSuccess = ageResult.classList.contains('success');
+          const ageResult = await generateAgeProofAndVerify(18, 'verifyVotingResult', 'step-voting-age');
 
-        if (!ageSuccess) {
-          showResult('verifyVotingResult', 'error',
-            '<div class="result-title">✗ Voting Eligibility Verification Failed</div><p>Age verification (18+) failed</p>');
-          minAgeInput.value = originalMinAge;
-          return;
+          if (!ageResult.success) {
+            showResult('verifyVotingResult', 'error',
+              `<div class="result-title">✗ Voting Eligibility Verification Failed</div><p>Age verification (18+) failed: ${escapeHtml(ageResult.error || 'Unknown error')}</p>`);
+            return;
+          }
+
+          // Step 2: Generate and verify nationality proof (USA = 840)
+          showResult('verifyVotingResult', 'loading', '<div class="result-title">Generating nationality proof (US citizen)...</div>');
+
+          const nationalityResult = await generateNationalityProofAndVerify(840, 'verifyVotingResult', 'step-voting-nat');
+
+          if (!nationalityResult.success) {
+            showResult('verifyVotingResult', 'error',
+              `<div class="result-title">✗ Voting Eligibility Verification Failed</div><p>US citizenship verification failed: ${escapeHtml(nationalityResult.error || 'Unknown error')}</p>`);
+            return;
+          }
+
+          // Both passed!
+          showResult('verifyVotingResult', 'success',
+            '<div class="result-title">✓ Voting Eligibility Verified</div><p>You are 18+ and a US citizen - eligible to vote!</p>');
+        } catch (error) {
+          console.error('Voting eligibility verification error:', error);
+
+          // Provide user-friendly error messages
+          let errorMessage = error.message;
+          if (
+            error.message &&
+            error.message.includes('Assert Failed')
+          ) {
+            const birthYear = state.credential.credential.birthYear;
+            const currentYear = new Date().getFullYear();
+            const actualAge = currentYear - birthYear;
+            const actualNationality = state.credential.credential.nationality;
+            errorMessage = `Cannot generate proof: `;
+            if (actualAge < 18) {
+              errorMessage += `Your age (${actualAge}) does not meet the minimum requirement (18). `;
+            }
+            if (actualNationality !== 840) {
+              errorMessage += `Your nationality (${actualNationality}) is not US (840). `;
+            }
+            errorMessage += `Zero-knowledge proofs can only prove true statements.`;
+          }
+
+          showResult(
+            'verifyVotingResult',
+            'error',
+            `
+                  <div class="result-title">✗ Voting Eligibility Verification Failed</div>
+                  <p>${escapeHtml(errorMessage)}</p>
+              `,
+          );
+        } finally {
+          btn.disabled = false;
         }
-
-        // Then verify nationality = USA (840)
-        const nationalityInput = document.getElementById('targetNationality');
-        const originalNationality = nationalityInput.value;
-        nationalityInput.value = '840';
-
-        await verifyNationality();
-        const nationalityResult = document.getElementById('verifyNationalityResult');
-        const nationalitySuccess = nationalityResult.classList.contains('success');
-
-        if (!nationalitySuccess) {
-          showResult('verifyVotingResult', 'error',
-            '<div class="result-title">✗ Voting Eligibility Verification Failed</div><p>US citizenship verification failed</p>');
-          minAgeInput.value = originalMinAge;
-          nationalityInput.value = originalNationality;
-          return;
-        }
-
-        // Both passed!
-        showResult('verifyVotingResult', 'success',
-          '<div class="result-title">✓ Voting Eligibility Verified</div><p>You are 18+ and a US citizen - eligible to vote!</p>');
-
-        // Restore original values
-        minAgeInput.value = originalMinAge;
-        nationalityInput.value = originalNationality;
       }
 
       // Step 5: Verify Senior Discount
       async function verifySeniorDiscount() {
-        showResult('verifySeniorResult', 'info', '<div class="result-title">Verifying senior discount eligibility...</div>');
+        const btn = document.getElementById('verifySeniorBtn');
+        btn.disabled = true;
 
-        // Verify age >= 65
-        const minAgeInput = document.getElementById('minAge');
-        const originalMinAge = minAgeInput.value;
-        minAgeInput.value = '65';
+        try {
+          // Generate and verify age proof (65+)
+          showResult('verifySeniorResult', 'loading', '<div class="result-title">Generating proof (65+)...</div>');
 
-        await verifyAge();
-        const ageResult = document.getElementById('verifyAgeResult');
-        const ageSuccess = ageResult.classList.contains('success');
+          const ageResult = await generateAgeProofAndVerify(65, 'verifySeniorResult', 'step-senior');
 
-        if (!ageSuccess) {
-          showResult('verifySeniorResult', 'error',
-            '<div class="result-title">✗ Senior Discount Verification Failed</div><p>Age verification (65+) failed</p>');
-          minAgeInput.value = originalMinAge;
-          return;
+          if (!ageResult.success) {
+            showResult('verifySeniorResult', 'error',
+              `<div class="result-title">✗ Senior Discount Verification Failed</div><p>Age verification (65+) failed: ${escapeHtml(ageResult.error || 'Unknown error')}</p>`);
+            return;
+          }
+
+          // Success!
+          showResult('verifySeniorResult', 'success',
+            '<div class="result-title">✓ Senior Discount Eligibility Verified</div><p>You are 65+ - eligible for senior discounts!</p>');
+        } catch (error) {
+          console.error('Senior discount verification error:', error);
+
+          // Provide user-friendly error messages
+          let errorMessage = error.message;
+          if (
+            error.message &&
+            error.message.includes('Assert Failed') &&
+            error.message.includes('AgeVerify')
+          ) {
+            const birthYear = state.credential.credential.birthYear;
+            const currentYear = new Date().getFullYear();
+            const actualAge = currentYear - birthYear;
+            errorMessage = `Cannot generate proof: Your age (${actualAge}) does not meet the minimum requirement (65). Zero-knowledge proofs can only prove true statements.`;
+          }
+
+          showResult(
+            'verifySeniorResult',
+            'error',
+            `
+                  <div class="result-title">✗ Senior Discount Verification Failed</div>
+                  <p>${escapeHtml(errorMessage)}</p>
+              `,
+          );
+        } finally {
+          btn.disabled = false;
         }
-
-        // Success!
-        showResult('verifySeniorResult', 'success',
-          '<div class="result-title">✓ Senior Discount Eligibility Verified</div><p>You are 65+ - eligible for senior discounts!</p>');
-
-        // Restore original value
-        minAgeInput.value = originalMinAge;
       }
 
       // Step 6: Revoke Credential
