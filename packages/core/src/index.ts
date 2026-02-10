@@ -17,6 +17,8 @@ export * from './signature';
 export * from './version';
 export * from './benchmark';
 export * from './multi-claim';
+export * from './scenarios';
+export * from './group-membership';
 export * from './proving-system';
 export * from './nullifier';
 export * from './recursive';
