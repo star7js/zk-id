@@ -36,6 +36,9 @@ export const MAX_AGE = 150;
 export const MIN_NATIONALITY = 1;
 export const MAX_NATIONALITY = 999;
 
+/** Maximum hex string length (64 bytes = 128 hex chars). */
+export const MAX_HEX_STRING_LENGTH = 128;
+
 /** Maximum scope ID length. */
 export const MAX_SCOPE_ID_LENGTH = 256;
 
@@ -181,9 +184,19 @@ export function validateFieldElement(value: bigint, label: string): void {
  * Validate a hex string (e.g., a salt).
  * @throws Error if not valid hex
  */
-export function validateHexString(value: string, label: string): void {
+export function validateHexString(
+  value: string,
+  label: string,
+  maxLength: number = MAX_HEX_STRING_LENGTH,
+): void {
   if (typeof value !== 'string' || value.length === 0) {
     throw new ZkIdValidationError(`${label} must be a non-empty string`, label);
+  }
+  if (value.length > maxLength) {
+    throw new ZkIdValidationError(
+      `${label} must be at most ${maxLength} hex characters (got ${value.length})`,
+      label,
+    );
   }
   if (!/^[0-9a-fA-F]+$/.test(value)) {
     throw new ZkIdValidationError(`${label} must be a hex string`, label);

@@ -39,6 +39,8 @@ import {
   ConsoleAuditLogger,
   constantTimeEqual,
   ZkIdConfigError,
+  ZkIdValidationError,
+  MAX_NONCE_LENGTH,
   validateMinAge,
   validateNationality,
   validatePositiveInt,
@@ -261,6 +263,7 @@ export class InMemoryIssuerRegistry implements IssuerRegistry {
    * is appended (supporting overlapping rotation windows).
    */
   upsert(record: IssuerRecord): void {
+    this.validateRecord(record);
     const records = this.issuers.get(record.issuer);
     if (!records) {
       this.issuers.set(record.issuer, [record]);
@@ -333,7 +336,38 @@ export class InMemoryIssuerRegistry implements IssuerRegistry {
     });
   }
 
+  private validateRecord(record: IssuerRecord): void {
+    if (typeof record.issuer !== 'string' || record.issuer.length === 0) {
+      throw new ZkIdValidationError('issuer must be a non-empty string', 'issuer');
+    }
+    if (record.issuer.length > 256) {
+      throw new ZkIdValidationError('issuer must be at most 256 characters', 'issuer');
+    }
+    if (record.status !== undefined && !['active', 'revoked', 'suspended'].includes(record.status)) {
+      throw new ZkIdValidationError(
+        "status must be 'active', 'revoked', or 'suspended'",
+        'status',
+      );
+    }
+    if (record.validFrom !== undefined && isNaN(Date.parse(record.validFrom))) {
+      throw new ZkIdValidationError('validFrom must be a valid ISO 8601 date string', 'validFrom');
+    }
+    if (record.validTo !== undefined && isNaN(Date.parse(record.validTo))) {
+      throw new ZkIdValidationError('validTo must be a valid ISO 8601 date string', 'validTo');
+    }
+    if (
+      record.rotationGracePeriodMs !== undefined &&
+      (!Number.isInteger(record.rotationGracePeriodMs) || record.rotationGracePeriodMs < 0)
+    ) {
+      throw new ZkIdValidationError(
+        'rotationGracePeriodMs must be a non-negative integer',
+        'rotationGracePeriodMs',
+      );
+    }
+  }
+
   private addRecord(record: IssuerRecord): void {
+    this.validateRecord(record);
     const existing = this.issuers.get(record.issuer);
     if (existing) {
       existing.push(record);
@@ -2119,6 +2153,15 @@ export class InMemoryNonceStore implements NonceStore {
   private pruneTimer?: NodeJS.Timeout;
 
   constructor(options: InMemoryNonceStoreOptions = {}) {
+    if (options.ttlMs !== undefined && (!Number.isInteger(options.ttlMs) || options.ttlMs <= 0)) {
+      throw new ZkIdConfigError('ttlMs must be a positive integer');
+    }
+    if (
+      options.pruneIntervalMs !== undefined &&
+      (!Number.isInteger(options.pruneIntervalMs) || options.pruneIntervalMs < 0)
+    ) {
+      throw new ZkIdConfigError('pruneIntervalMs must be a non-negative integer');
+    }
     this.ttlMs = options.ttlMs ?? 5 * 60 * 1000;
     this.pruneIntervalMs = options.pruneIntervalMs ?? 60 * 1000;
     if (this.pruneIntervalMs > 0) {
@@ -2134,6 +2177,9 @@ export class InMemoryNonceStore implements NonceStore {
   }
 
   async has(nonce: string): Promise<boolean> {
+    if (typeof nonce !== 'string' || nonce.length === 0 || nonce.length > MAX_NONCE_LENGTH) {
+      return false;
+    }
     const expiresAtMs = this.nonces.get(nonce);
     if (!expiresAtMs) {
       return false;
@@ -2148,6 +2194,12 @@ export class InMemoryNonceStore implements NonceStore {
   }
 
   async add(nonce: string): Promise<void> {
+    if (typeof nonce !== 'string' || nonce.length === 0 || nonce.length > MAX_NONCE_LENGTH) {
+      throw new ZkIdValidationError(
+        `nonce must be a non-empty string of at most ${MAX_NONCE_LENGTH} characters`,
+        'nonce',
+      );
+    }
     const expiresAtMs = Date.now() + this.ttlMs;
     this.nonces.set(nonce, expiresAtMs);
   }
@@ -2192,11 +2244,29 @@ export class InMemoryChallengeStore implements ChallengeStore {
   }
 
   async issue(nonce: string, requestTimestampMs: number, ttlMs: number): Promise<void> {
+    if (typeof nonce !== 'string' || nonce.length === 0 || nonce.length > MAX_NONCE_LENGTH) {
+      throw new ZkIdValidationError(
+        `nonce must be a non-empty string of at most ${MAX_NONCE_LENGTH} characters`,
+        'nonce',
+      );
+    }
+    if (!Number.isInteger(requestTimestampMs) || requestTimestampMs <= 0) {
+      throw new ZkIdValidationError(
+        'requestTimestampMs must be a positive integer',
+        'requestTimestampMs',
+      );
+    }
+    if (!Number.isInteger(ttlMs) || ttlMs <= 0) {
+      throw new ZkIdValidationError('ttlMs must be a positive integer', 'ttlMs');
+    }
     const expiresAtMs = Date.now() + ttlMs;
     this.challenges.set(nonce, { requestTimestampMs, expiresAtMs });
   }
 
   async consume(nonce: string): Promise<number | null> {
+    if (typeof nonce !== 'string' || nonce.length === 0 || nonce.length > MAX_NONCE_LENGTH) {
+      return null;
+    }
     const entry = this.challenges.get(nonce);
     if (!entry) {
       return null;
@@ -2371,9 +2441,13 @@ export function validateProofResponsePayload(
   }
   if (typeof obj.nonce !== 'string' || obj.nonce.length === 0) {
     errors.push({ field: 'nonce', message: 'Must be a non-empty string' });
+  } else if (obj.nonce.length > MAX_NONCE_LENGTH) {
+    errors.push({ field: 'nonce', message: `Must be at most ${MAX_NONCE_LENGTH} characters` });
   }
   if (typeof obj.requestTimestamp !== 'string') {
     errors.push({ field: 'requestTimestamp', message: 'Must be a string (ISO 8601)' });
+  } else if (isNaN(Date.parse(obj.requestTimestamp as string))) {
+    errors.push({ field: 'requestTimestamp', message: 'Must be a valid ISO 8601 date string' });
   }
   if (!obj.proof || typeof obj.proof !== 'object') {
     errors.push({ field: 'proof', message: 'Must be a non-null object' });
@@ -2381,6 +2455,14 @@ export function validateProofResponsePayload(
     const proof = obj.proof as Record<string, unknown>;
     if (!proof.proof || typeof proof.proof !== 'object') {
       errors.push({ field: 'proof.proof', message: 'Must be a non-null object' });
+    } else {
+      const inner = proof.proof as Record<string, unknown>;
+      if (!Array.isArray(inner.pi_a) || !Array.isArray(inner.pi_b) || !Array.isArray(inner.pi_c)) {
+        errors.push({
+          field: 'proof.proof',
+          message: 'Must contain pi_a, pi_b, and pi_c arrays',
+        });
+      }
     }
     if (!proof.publicSignals || typeof proof.publicSignals !== 'object') {
       errors.push({ field: 'proof.publicSignals', message: 'Must be a non-null object' });
@@ -2413,12 +2495,18 @@ export function validateMultiClaimResponsePayload(
   }
   if (typeof obj.nonce !== 'string' || obj.nonce.length === 0) {
     errors.push({ field: 'nonce', message: 'Must be a non-empty string' });
+  } else if (obj.nonce.length > MAX_NONCE_LENGTH) {
+    errors.push({ field: 'nonce', message: `Must be at most ${MAX_NONCE_LENGTH} characters` });
   }
   if (typeof obj.requestTimestamp !== 'string') {
     errors.push({ field: 'requestTimestamp', message: 'Must be a string (ISO 8601)' });
+  } else if (isNaN(Date.parse(obj.requestTimestamp as string))) {
+    errors.push({ field: 'requestTimestamp', message: 'Must be a valid ISO 8601 date string' });
   }
   if (typeof obj.credentialId !== 'string' || obj.credentialId.length === 0) {
     errors.push({ field: 'credentialId', message: 'Must be a non-empty string' });
+  } else if (obj.credentialId.length > 256) {
+    errors.push({ field: 'credentialId', message: 'Must be at most 256 characters' });
   }
   if (requireSignedCredential) {
     if (!obj.signedCredential || typeof obj.signedCredential !== 'object') {
@@ -2454,6 +2542,18 @@ export function validateMultiClaimResponsePayload(
             field: `proofs[${index}].proof.proof`,
             message: 'Must be a non-null object',
           });
+        } else {
+          const inner = proofObj.proof as Record<string, unknown>;
+          if (
+            !Array.isArray(inner.pi_a) ||
+            !Array.isArray(inner.pi_b) ||
+            !Array.isArray(inner.pi_c)
+          ) {
+            errors.push({
+              field: `proofs[${index}].proof.proof`,
+              message: 'Must contain pi_a, pi_b, and pi_c arrays',
+            });
+          }
         }
         if (!proofObj.publicSignals || typeof proofObj.publicSignals !== 'object') {
           errors.push({
@@ -2484,12 +2584,18 @@ export function validateSignedProofRequestPayload(body: unknown): PayloadValidat
   }
   if (typeof obj.issuer !== 'string' || obj.issuer.length === 0) {
     errors.push({ field: 'issuer', message: 'Must be a non-empty string' });
+  } else if (obj.issuer.length > 256) {
+    errors.push({ field: 'issuer', message: 'Must be at most 256 characters' });
   }
   if (typeof obj.nonce !== 'string' || obj.nonce.length === 0) {
     errors.push({ field: 'nonce', message: 'Must be a non-empty string' });
+  } else if (obj.nonce.length > MAX_NONCE_LENGTH) {
+    errors.push({ field: 'nonce', message: `Must be at most ${MAX_NONCE_LENGTH} characters` });
   }
   if (typeof obj.requestTimestamp !== 'string') {
     errors.push({ field: 'requestTimestamp', message: 'Must be a string (ISO 8601)' });
+  } else if (isNaN(Date.parse(obj.requestTimestamp as string))) {
+    errors.push({ field: 'requestTimestamp', message: 'Must be a valid ISO 8601 date string' });
   }
   if (!obj.proof || typeof obj.proof !== 'object') {
     errors.push({ field: 'proof', message: 'Must be a non-null object' });
@@ -2497,6 +2603,14 @@ export function validateSignedProofRequestPayload(body: unknown): PayloadValidat
     const proof = obj.proof as Record<string, unknown>;
     if (!proof.proof || typeof proof.proof !== 'object') {
       errors.push({ field: 'proof.proof', message: 'Must be a non-null object' });
+    } else {
+      const inner = proof.proof as Record<string, unknown>;
+      if (!Array.isArray(inner.pi_a) || !Array.isArray(inner.pi_b) || !Array.isArray(inner.pi_c)) {
+        errors.push({
+          field: 'proof.proof',
+          message: 'Must contain pi_a, pi_b, and pi_c arrays',
+        });
+      }
     }
     if (!proof.publicSignals || typeof proof.publicSignals !== 'object') {
       errors.push({ field: 'proof.publicSignals', message: 'Must be a non-null object' });
