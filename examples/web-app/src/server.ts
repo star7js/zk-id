@@ -501,11 +501,7 @@ async function main() {
       let verified = false;
 
       try {
-        const result = await zkIdServer.verifyProof(
-          proof,
-          clientIp,
-          getClientProtocolVersion(req),
-        );
+        const result = await zkIdServer.verifyProof(proof, clientIp, getClientProtocolVersion(req));
         verified = result.verified;
       } catch {
         verified = false;
@@ -514,7 +510,9 @@ async function main() {
       res.json({
         verified,
         scenario: scenario.name,
-        message: verified ? 'Senior discount eligibility verified' : 'Senior discount verification failed',
+        message: verified
+          ? 'Senior discount eligibility verified'
+          : 'Senior discount verification failed',
       });
     } catch (error) {
       console.error('Error verifying senior discount:', error);

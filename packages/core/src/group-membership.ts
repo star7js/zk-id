@@ -57,12 +57,7 @@ export class GroupRegistry {
    * @returns The created group
    * @throws ZkIdValidationError if group ID already exists
    */
-  createGroup(
-    id: string,
-    name: string,
-    description: string,
-    treeDepth: number = 10,
-  ): Group {
+  createGroup(id: string, name: string, description: string, treeDepth: number = 10): Group {
     if (this.groups.has(id)) {
       throw new ZkIdValidationError(`Group with id '${id}' already exists`, 'groupId');
     }

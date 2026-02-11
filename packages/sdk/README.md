@@ -139,15 +139,15 @@ If `scenarioVerificationEndpoint` is not configured, `verifyScenario()` falls ba
 
 ### Built-in Scenarios
 
-| Scenario Key | Name | Description | Claims |
-|--------------|------|-------------|--------|
-| `VOTING_ELIGIBILITY_US` | US Voting Eligibility | Verify user is 18+ and a US citizen | age >= 18, nationality = USA (840) |
-| `SENIOR_DISCOUNT` | Senior Discount | Verify user is 65+ for senior discounts | age >= 65 |
-| `ALCOHOL_PURCHASE_US` | US Alcohol Purchase | Verify user is 21+ for alcohol purchase | age >= 21 |
-| `TOBACCO_PURCHASE_US` | US Tobacco Purchase | Verify user is 21+ for tobacco purchase | age >= 21 |
-| `GAMBLING_US` | US Gambling | Verify user is 21+ for gambling | age >= 21 |
-| `EU_GDPR_AGE_CONSENT` | EU GDPR Age of Consent | Verify user is 16+ for GDPR data processing consent | age >= 16 |
-| `RENTAL_CAR_US` | US Rental Car | Verify user is 25+ for rental car (standard rate) | age >= 25 |
+| Scenario Key            | Name                   | Description                                         | Claims                             |
+| ----------------------- | ---------------------- | --------------------------------------------------- | ---------------------------------- |
+| `VOTING_ELIGIBILITY_US` | US Voting Eligibility  | Verify user is 18+ and a US citizen                 | age >= 18, nationality = USA (840) |
+| `SENIOR_DISCOUNT`       | Senior Discount        | Verify user is 65+ for senior discounts             | age >= 65                          |
+| `ALCOHOL_PURCHASE_US`   | US Alcohol Purchase    | Verify user is 21+ for alcohol purchase             | age >= 21                          |
+| `TOBACCO_PURCHASE_US`   | US Tobacco Purchase    | Verify user is 21+ for tobacco purchase             | age >= 21                          |
+| `GAMBLING_US`           | US Gambling            | Verify user is 21+ for gambling                     | age >= 21                          |
+| `EU_GDPR_AGE_CONSENT`   | EU GDPR Age of Consent | Verify user is 16+ for GDPR data processing consent | age >= 16                          |
+| `RENTAL_CAR_US`         | US Rental Car          | Verify user is 25+ for rental car (standard rate)   | age >= 25                          |
 
 ### VerificationScenario Interface
 

@@ -587,7 +587,8 @@ describe('SDK Client Tests', () => {
             }),
             statusText: 'OK',
             headers: {
-              get: (name: string) => (name === 'X-ZkId-Protocol-Version' ? 'zk-id/1.0-draft' : null),
+              get: (name: string) =>
+                name === 'X-ZkId-Protocol-Version' ? 'zk-id/1.0-draft' : null,
             },
           };
         };

@@ -1239,13 +1239,7 @@ export class ZkIdServer extends EventEmitter {
         const claimType = typeof proof?.claimType === 'string' ? proof.claimType : 'unknown';
         const label = typeof proof?.label === 'string' ? proof.label : 'unknown';
         const result: VerificationResult = { verified: false, error };
-        this.emitVerificationEvent(
-          claimType,
-          result,
-          startTime,
-          clientIdentifier,
-          internalError,
-        );
+        this.emitVerificationEvent(claimType, result, startTime, clientIdentifier, internalError);
         return { label, verified: false, error };
       });
 
@@ -1377,7 +1371,8 @@ export class ZkIdServer extends EventEmitter {
           }
         }
         if (claim.claimType === 'nationality') {
-          const requiredNationality = requiredPolicy?.nationality ?? this.config.requiredNationality;
+          const requiredNationality =
+            requiredPolicy?.nationality ?? this.config.requiredNationality;
           if (requiredNationality !== undefined) {
             const proof = claim.proof as NationalityProof;
             if (proof.publicSignals.targetNationality !== requiredNationality) {

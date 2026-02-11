@@ -32,7 +32,12 @@ describe('ManagedCredentialIssuer', () => {
         signedCred.issuedAt,
       );
       const signatureBuffer = Buffer.from(signedCred.signature, 'base64');
-      const isValid = verify(null, Buffer.from(message), keyManager.getPublicKey(), signatureBuffer);
+      const isValid = verify(
+        null,
+        Buffer.from(message),
+        keyManager.getPublicKey(),
+        signatureBuffer,
+      );
 
       expect(isValid).to.be.true;
     });

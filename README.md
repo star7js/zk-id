@@ -109,10 +109,7 @@ if (verified) {
 import { SCENARIOS } from '@zk-id/core';
 
 // Verify voting eligibility (age >= 18 AND nationality = USA)
-const result = await client.verifyScenario(
-  credential,
-  SCENARIOS.VOTING_ELIGIBILITY_US
-);
+const result = await client.verifyScenario(credential, SCENARIOS.VOTING_ELIGIBILITY_US);
 ```
 
 See the [SDK README](./packages/sdk/README.md#scenario-verification) for the full list of 7 built-in scenarios.

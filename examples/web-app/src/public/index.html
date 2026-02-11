@@ -807,7 +807,7 @@
           <h2 class="card-title">Verify Voting Eligibility</h2>
         </div>
         <div class="location-badge browser">Browser</div>
-        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px">
           Combined scenario: Verify you are 18+ AND a US citizen
         </p>
         <button
@@ -828,7 +828,7 @@
           <h2 class="card-title">Verify Senior Discount</h2>
         </div>
         <div class="location-badge browser">Browser</div>
-        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px">
           Verify you are 65+ for senior discounts
         </p>
         <button
@@ -1103,11 +1103,7 @@
         const wasmUrl = '/circuits/age-verify_js/age-verify.wasm';
         const zkeyUrl = '/circuits/age-verify.zkey';
 
-        const { proof, publicSignals } = await snarkjs.groth16.fullProve(
-          inputs,
-          wasmUrl,
-          zkeyUrl,
-        );
+        const { proof, publicSignals } = await snarkjs.groth16.fullProve(inputs, wasmUrl, zkeyUrl);
 
         timings.proofEnd = Date.now();
         document.getElementById(`${stepPrefix}-download`).classList.remove('active');
@@ -1117,8 +1113,9 @@
           .querySelector('.progress-step-icon').textContent = '✓';
         document.getElementById(`${stepPrefix}-compute`).classList.remove('active');
         document.getElementById(`${stepPrefix}-compute`).classList.add('complete');
-        document.getElementById(`${stepPrefix}-compute`).querySelector('.progress-step-icon').textContent =
-          '✓';
+        document
+          .getElementById(`${stepPrefix}-compute`)
+          .querySelector('.progress-step-icon').textContent = '✓';
 
         // Step 3: Send ONLY the proof to server (not the private data!)
         document.getElementById(`${stepPrefix}-verify`).classList.add('active');
@@ -1162,8 +1159,9 @@
 
         document.getElementById(`${stepPrefix}-verify`).classList.remove('active');
         document.getElementById(`${stepPrefix}-verify`).classList.add('complete');
-        document.getElementById(`${stepPrefix}-verify`).querySelector('.progress-step-icon').textContent =
-          '✓';
+        document
+          .getElementById(`${stepPrefix}-verify`)
+          .querySelector('.progress-step-icon').textContent = '✓';
 
         // Calculate timings
         const fetchTime = timings.fetchEnd - timings.fetchStart;
@@ -1276,7 +1274,11 @@
       }
 
       // Helper function: Generate nationality proof and verify (reusable)
-      async function generateNationalityProofAndVerify(targetNationality, resultElementId, stepPrefix) {
+      async function generateNationalityProofAndVerify(
+        targetNationality,
+        resultElementId,
+        stepPrefix,
+      ) {
         if (!state.credential) {
           throw new Error('Please issue a credential first');
         }
@@ -1364,11 +1366,7 @@
         const wasmUrl = '/circuits/nationality-verify_js/nationality-verify.wasm';
         const zkeyUrl = '/circuits/nationality-verify.zkey';
 
-        const { proof, publicSignals } = await snarkjs.groth16.fullProve(
-          inputs,
-          wasmUrl,
-          zkeyUrl,
-        );
+        const { proof, publicSignals } = await snarkjs.groth16.fullProve(inputs, wasmUrl, zkeyUrl);
 
         timings.proofEnd = Date.now();
         document.getElementById(`${stepPrefix}-download`).classList.remove('active');
@@ -1506,7 +1504,11 @@
         btn.disabled = true;
 
         try {
-          await generateNationalityProofAndVerify(targetNationality, 'verifyNationalityResult', 'step-nat');
+          await generateNationalityProofAndVerify(
+            targetNationality,
+            'verifyNationalityResult',
+            'step-nat',
+          );
         } catch (error) {
           console.error('Nationality verification error:', error);
 
@@ -1617,11 +1619,7 @@
         const wasmUrl = '/circuits/age-verify_js/age-verify.wasm';
         const zkeyUrl = '/circuits/age-verify.zkey';
 
-        const { proof, publicSignals } = await snarkjs.groth16.fullProve(
-          inputs,
-          wasmUrl,
-          zkeyUrl,
-        );
+        const { proof, publicSignals } = await snarkjs.groth16.fullProve(inputs, wasmUrl, zkeyUrl);
 
         // Format the proof properly (convert array to structured object)
         const formattedProof = {
@@ -1689,11 +1687,7 @@
         const wasmUrl = '/circuits/nationality-verify_js/nationality-verify.wasm';
         const zkeyUrl = '/circuits/nationality-verify.zkey';
 
-        const { proof, publicSignals } = await snarkjs.groth16.fullProve(
-          inputs,
-          wasmUrl,
-          zkeyUrl,
-        );
+        const { proof, publicSignals } = await snarkjs.groth16.fullProve(inputs, wasmUrl, zkeyUrl);
 
         // Format the proof properly (convert array to structured object)
         const formattedProof = {
@@ -1821,10 +1815,7 @@
 
           // Provide user-friendly error messages
           let errorMessage = error.message;
-          if (
-            error.message &&
-            error.message.includes('Assert Failed')
-          ) {
+          if (error.message && error.message.includes('Assert Failed')) {
             const birthYear = state.credential.credential.birthYear;
             const currentYear = new Date().getFullYear();
             const actualAge = currentYear - birthYear;
@@ -1889,9 +1880,7 @@
           const scenarioPayload = {
             scenarioId: 'senior-discount',
             response: {
-              proofs: [
-                { label: 'senior-age', claimType: 'age', proof: ageProofResponse.proof },
-              ],
+              proofs: [{ label: 'senior-age', claimType: 'age', proof: ageProofResponse.proof }],
               nonce: challenge.nonce,
               requestTimestamp: challenge.requestTimestamp,
               credentialId: state.credentialId,
