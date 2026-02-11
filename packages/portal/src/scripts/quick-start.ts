@@ -1,8 +1,8 @@
 // @ts-nocheck
 // Quick start guided flow
 
-// API base URL (from environment, falls back to relative URLs for dev)
-const API_BASE_URL = import.meta.env.PUBLIC_API_URL || '';
+// API base URL (from environment)
+const API_BASE_URL = import.meta.env.PUBLIC_API_URL || 'https://zk-id-1.onrender.com';
 
 const state = {
   credential: null,
