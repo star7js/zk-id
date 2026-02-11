@@ -137,3 +137,74 @@ These are concrete tickets derived from the near-term roadmap. Use them as GitHu
 **Acceptance Criteria**
 
 - `docs/openapi.yaml` covers all demo verification endpoints with request/response schemas.
+
+## Q2 2026
+
+### T-009: Mobile SDK (React Native)
+
+**Goal:** Provide a React Native wrapper for zk-id proof generation on mobile platforms.
+
+**Scope**
+
+- React Native wrapper around core TypeScript libraries
+- Proof generation on iOS and Android
+- Secure credential storage (Keychain/Keystore integration)
+- Example mobile app demonstrating age verification flow
+
+**Acceptance Criteria**
+
+- Proof generation works on iOS and Android
+- Credentials stored securely in platform keychain
+- Example app demonstrates age verification with signed credentials
+- Documentation covers mobile-specific considerations
+
+**Out of scope**
+
+- Native (non-RN) SDKs for iOS/Android
+- Production app store deployment and distribution
+
+### T-010: Credential Exchange Protocol
+
+**Goal:** Enable standardized credential exchange with the VC/VP ecosystem.
+
+**Scope**
+
+- DIF Presentation Exchange v2.0 support
+- OpenID4VP (OpenID for Verifiable Presentations) integration
+- Standardized wallet request/response flow
+- Interoperability with existing VC/VP ecosystems
+
+**Acceptance Criteria**
+
+- Presentation Exchange v2.0 request/response flow works end-to-end
+- OpenID4VP flow documented and tested
+- At least one external wallet tested for interoperability
+- Integration examples provided in documentation
+
+**Out of scope**
+
+- Full OIDC4VCI (credential issuance protocol)
+- SIOPv2 (self-issued OpenID Provider) implementation
+
+### T-011: Developer Portal & Playground
+
+**Goal:** Provide interactive documentation and a live sandbox for developers.
+
+**Scope**
+
+- Interactive tutorials and step-by-step guides
+- "Verify your first proof in 5 minutes" quick start experience
+- Live sandbox environment for testing proof generation/verification
+- API reference with multi-language code examples
+
+**Acceptance Criteria**
+
+- Quick start guide completes end-to-end in under 5 minutes
+- Sandbox runs in browser without local installation
+- API reference covers all public endpoints with examples
+- At least 3 programming languages covered in examples (TypeScript, Python, Go)
+
+**Out of scope**
+
+- Hosted production infrastructure for customer deployments
+- Billing system or account management features

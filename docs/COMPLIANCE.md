@@ -107,8 +107,11 @@ Use this checklist when deploying zk-id for regulatory compliance.
 - [ ] Configure server-issued challenges (`challengeStore` + `challengeTtlMs`)
 - [ ] Set `maxRequestAgeMs` to limit proof replay window (recommended: 300000 ms)
 - [ ] Deploy `AuditLogger` with persistent backend (SIEM, database)
-- [ ] Use rate limiting on verification endpoints
+- [ ] **Replace demo rate limiter with production-grade solution** (authenticated session-based, token buckets, or WAF)
 - [ ] Configure issuer registry with trusted, vetted issuers
+- [ ] **Review W3C VC limitations if eIDAS interoperability is required** (see [`docs/W3C-VC-INTEROPERABILITY.md`](W3C-VC-INTEROPERABILITY.md))
+- [ ] **Review credential schema extensibility** for attribute requirements (see [`docs/SCHEMA-EXTENSIBILITY.md`](SCHEMA-EXTENSIBILITY.md))
+- [ ] Review security hardening checklist (see [`docs/SECURITY-HARDENING.md`](SECURITY-HARDENING.md))
 
 ### UK Online Safety Act
 
@@ -133,9 +136,70 @@ Use this checklist when deploying zk-id for regulatory compliance.
 
 ---
 
-## 6. Limitations and Disclaimers
+## 6. Known Gaps Affecting Compliance
+
+While zk-id provides strong privacy-preserving verification capabilities, certain implementation limitations affect compliance claims in production deployments:
+
+### W3C VC Interoperability (eIDAS 2.0 Cross-Border Recognition)
+
+**Gap:** zk-id's W3C Verifiable Credentials support is partial and does not pass full VC validator suites.
+
+- The custom `@context` URL (`https://w3id.org/zk-id/credentials/v1`) is a placeholder and does not resolve
+- No credential status support — revocation is handled via zk-id's Merkle tree, not W3C RevocationList2020
+- The `zkCredential` field in `credentialSubject` is non-standard
+
+**Impact on eIDAS 2.0:** Cross-border recognition depends on standards compliance. Current W3C VC integration is sufficient for domestic deployments but may not interoperate with EUDIW-compliant wallets without additional work.
+
+**Mitigation:** v1.2-v1.3 roadmap includes JSON-LD context definition, credential status integration, and full VC v2.0 compliance. For immediate eIDAS deployment, verify that target relying parties accept custom VC formats.
+
+**Reference:** [`docs/W3C-VC-INTEROPERABILITY.md`](W3C-VC-INTEROPERABILITY.md), lines 182-196
+
+### Demo-Grade Rate Limiting
+
+**Gap:** The demo verification endpoints use IP-based rate limiting (60 requests/minute), which can be bypassed by IP rotation.
+
+**Impact on Production Deployment:** IP-based rate limiting is not sufficient for production security. Regulatory frameworks (UK OSA, EU DSA) assume production-grade anti-abuse measures.
+
+**Mitigation:** Replace with authenticated session-based rate limiting using token buckets or sliding windows. Deploy WAF or API gateway with distributed rate limiting (e.g., Redis-backed rate limiters).
+
+**Reference:** [`docs/KNOWN-LIMITATIONS.md`](KNOWN-LIMITATIONS.md), line 9
+
+### Fixed Credential Schema
+
+**Gap:** The Poseidon commitment binds exactly 3 fields (`birthYear`, `nationality`, `salt`). Adding attributes requires new circuits, new trusted setup, and credential reissuance.
+
+**Impact on eIDAS 2.0:** eIDAS 2.0 Person Identification Data (PID) requires additional attributes (name, date of birth, etc.). Current schema only supports `birthYear` and `nationality`.
+
+**Mitigation:** Extend credential schema for full PID support (requires new circuits). For immediate deployment, use zk-id for age/nationality verification and combine with traditional identity verification for full PID.
+
+**Reference:** [`docs/KNOWN-LIMITATIONS.md`](KNOWN-LIMITATIONS.md), line 13 | [`docs/SCHEMA-EXTENSIBILITY.md`](SCHEMA-EXTENSIBILITY.md)
+
+### On-Chain Verifier (Groth16 Only)
+
+**Gap:** The on-chain verifier (`@zk-id/contracts`) supports Groth16 proofs only. PLONK and BBS+ proofs cannot be verified on-chain.
+
+**Impact on Web3 Deployments:** Deployments requiring PLONK (universal setup) or BBS+ (selective disclosure) for on-chain verification are not currently supported.
+
+**Mitigation:** Use Groth16 for on-chain verification. PLONK and BBS+ are available for off-chain verification. On-chain PLONK support is planned for v2.0.
+
+**Reference:** [`docs/KNOWN-LIMITATIONS.md`](KNOWN-LIMITATIONS.md), line 10
+
+---
+
+## 7. Limitations and Disclaimers
 
 - **zk-id is not a certified age verification solution.** Regulatory compliance depends on the overall deployment architecture, the credential issuer's certification, and the legal framework of each jurisdiction.
 - **Credential issuers are outside zk-id's scope.** The cryptographic guarantees of ZK proofs depend on the trustworthiness of the issuer who creates credentials. Deployers must vet issuers independently.
 - **This document is informational, not legal advice.** Consult qualified legal counsel for compliance obligations in your jurisdiction.
 - **Regulations evolve.** This mapping reflects the state of legislation as of February 2026. Monitor Ofcom, EU Commission, and state legislative updates for changes.
+
+---
+
+## Related Documentation
+
+For comprehensive deployment guidance, review these additional documents:
+
+- **[W3C VC Interoperability](W3C-VC-INTEROPERABILITY.md)** — W3C Verifiable Credentials support, DID integration, eIDAS alignment
+- **[Known Limitations](KNOWN-LIMITATIONS.md)** — Current system limitations and production readiness gaps
+- **[Schema Extensibility](SCHEMA-EXTENSIBILITY.md)** — Guidance on extending credential attributes for PID compliance
+- **[Security Hardening](SECURITY-HARDENING.md)** — Security checklist and hardening best practices

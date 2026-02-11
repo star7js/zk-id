@@ -59,15 +59,11 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 
 ## Now (Next 2–6 Weeks)
 
-**Priority 1: Developer Experience**
-
-1. **Compliance Regulation Mapping**
-   - UK Online Safety Act compliance documentation
-   - EU Digital Services Act and Age Verification Regulation mapping
-   - eIDAS 2.0 alignment documentation
-   - Regulatory requirement checklist for deployers
+**All current "Now" items are complete!** The next focus area is Q2 2026 Near Term work.
 
 **Previous "Now" items (completed)**
+
+- ✅ Compliance Regulation Mapping: UK OSA, EU DSA, eIDAS 2.0 documentation with known gaps and deployment checklists
 
 - ✅ Revocation Root Distribution (MVP): root versioning, TTL policy, witness refresh rules, endpoint caching
 - ✅ Security Readiness: security policy, threat model, circuit artifact hashes, reproducible builds
@@ -187,11 +183,10 @@ This roadmap focuses on security, interoperability, and production readiness. Da
 - **v0.4.5**: Incremental Merkle tree optimization, witness freshness helper, Redis storage (done)
 - **v0.5.0**: Wallet prototype + distributed tree synchronization + benchmarks + deprecation policy (done)
 - **v0.6.0**: KMS/HSM + policy + dashboard + standards + multi-claim + proving abstraction + nullifiers + recursive scaffold + BBS selective disclosure + unified revocation + sparse Merkle tree + type safety (done)
-- **v1.0.0**: Audit-ready release (completed)
-- **v1.1.0** (done, except compliance docs): On-chain verifier + W3C VC interoperability
-- **v1.2.0** (Q3 2026): Mobile SDK + credential exchange protocol + developer portal
-- **v1.3.0** (Q4 2026): Multi-language SDKs + trusted setup ceremony + third-party audit
-- **v2.0.0** (2027+): Full W3C VC compliance + advanced cryptography + enterprise scale
+- **v0.7.0** (completed): On-chain verifier + W3C VC interoperability + compliance regulation mapping
+- **v0.8.0** (Q3 2026): Mobile SDK + credential exchange protocol + developer portal
+- **v1.0.0** (Q4 2026): Audit-ready release + multi-language SDKs + trusted setup ceremony
+- **v2.0.0** (2027+): Full W3C VC compliance + third-party audit + advanced cryptography + enterprise scale
 
 ---
 
