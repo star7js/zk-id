@@ -8,6 +8,7 @@
     "examples/*"
   ],
   "scripts": {
+    "prepare": "husky || true",
     "build": "npm run build --workspace=@zk-id/circuits && npm run build --workspace=@zk-id/core && npm run build --workspace=@zk-id/sdk && npm run build --workspace=@zk-id/issuer && npm run build --workspace=@zk-id/redis && npm run build --workspace=@zk-id/contracts && npm run build --workspace=@zk-id/example-web-app",
     "build:core": "npm run build --workspace=@zk-id/core && npm run build --workspace=@zk-id/sdk && npm run build --workspace=@zk-id/issuer && npm run build --workspace=@zk-id/redis",
     "test": "npm run test --workspaces",
@@ -36,7 +37,8 @@
     "docs": "typedoc",
     "portal:dev": "npm run dev --workspace=@zk-id/portal",
     "portal:build": "npm run build --workspace=@zk-id/portal",
-    "portal:preview": "npm run preview --workspace=@zk-id/portal"
+    "portal:preview": "npm run preview --workspace=@zk-id/portal",
+    "prepare": "husky"
   },
   "keywords": [
     "zero-knowledge",
@@ -55,6 +57,8 @@
     "eslint-config-prettier": "^10.1.8",
     "express": "^5.2.1",
     "globals": "^16.5.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
     "typedoc": "^0.28.16",
     "typescript": "^5.9.3",
@@ -66,5 +70,8 @@
     "tmp": "^0.2.4",
     "cookie": "^0.7.2",
     "undici": "^6.23.0"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,mjs,cjs,json,md,yml,yaml,css,html,astro}": "prettier --write"
   }
 }
