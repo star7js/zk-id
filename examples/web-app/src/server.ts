@@ -103,6 +103,7 @@ async function main() {
     revocationStore,
     validCredentialTree,
     issuerRegistry,
+    verboseErrors: false,
   });
 
   // Setup telemetry

@@ -166,6 +166,15 @@ export async function consumeNullifier(
 export class InMemoryNullifierStore implements NullifierStore {
   private used: Map<string, Set<string>> = new Map();
 
+  constructor() {
+    if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production') {
+      console.warn(
+        '[zk-id] InMemoryNullifierStore is not suitable for production. ' +
+          'Nullifier state will be lost on restart, breaking sybil resistance. Use a persistent store (Redis, PostgreSQL).',
+      );
+    }
+  }
+
   /**
    * Check if a nullifier has been used in the given scope
    *

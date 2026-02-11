@@ -333,6 +333,15 @@ export class ConsoleAuditLogger implements AuditLogger {
 export class InMemoryAuditLogger implements AuditLogger {
   readonly entries: AuditEntry[] = [];
 
+  constructor() {
+    if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production') {
+      console.warn(
+        '[zk-id] InMemoryAuditLogger is not suitable for production. ' +
+          'Audit entries will be lost on restart. Use a persistent audit logger (SIEM, database).',
+      );
+    }
+  }
+
   log(entry: AuditEntry): void {
     this.entries.push(entry);
   }

@@ -179,6 +179,12 @@ export class InMemoryIssuerRegistry implements IssuerRegistry {
     for (const r of records) {
       this.addRecord(r);
     }
+    if (process.env.NODE_ENV === 'production') {
+      console.warn(
+        '[zk-id] InMemoryIssuerRegistry is not suitable for production. ' +
+          'Issuer records will be lost on restart. Use a persistent registry (database, KMS).',
+      );
+    }
   }
 
   /**
@@ -432,6 +438,14 @@ export class ZkIdServer extends EventEmitter {
       this.revocableVerificationKey = config.verificationKeys.ageRevocable;
     } else if (config.revocableVerificationKeyPath) {
       this.revocableVerificationKey = this.loadVerificationKey(config.revocableVerificationKeyPath);
+    }
+
+    if (config.verboseErrors && process.env.NODE_ENV === 'production') {
+      console.warn(
+        '[zk-id] verboseErrors is enabled in production. ' +
+          'This exposes internal error details (circuit structure, validation logic) to clients. ' +
+          'Set verboseErrors: false for production deployments.',
+      );
     }
   }
 
@@ -2067,6 +2081,12 @@ export class InMemoryNonceStore implements NonceStore {
       this.pruneTimer = setInterval(() => this.prune(), this.pruneIntervalMs);
       this.pruneTimer.unref?.();
     }
+    if (process.env.NODE_ENV === 'production') {
+      console.warn(
+        '[zk-id] InMemoryNonceStore is not suitable for production. ' +
+          'Nonce state will be lost on restart, allowing replay attacks. Use a persistent store (Redis, PostgreSQL).',
+      );
+    }
   }
 
   async has(nonce: string): Promise<boolean> {
@@ -2117,6 +2137,15 @@ export class InMemoryNonceStore implements NonceStore {
  */
 export class InMemoryChallengeStore implements ChallengeStore {
   private challenges: Map<string, { requestTimestampMs: number; expiresAtMs: number }> = new Map();
+
+  constructor() {
+    if (process.env.NODE_ENV === 'production') {
+      console.warn(
+        '[zk-id] InMemoryChallengeStore is not suitable for production. ' +
+          'Challenge state will be lost on restart. Use a persistent store (Redis, PostgreSQL).',
+      );
+    }
+  }
 
   async issue(nonce: string, requestTimestampMs: number, ttlMs: number): Promise<void> {
     const expiresAtMs = Date.now() + ttlMs;

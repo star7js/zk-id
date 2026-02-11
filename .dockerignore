@@ -1,0 +1,21 @@
+node_modules/
+dist/
+.git/
+.github/
+.claude/
+coverage/
+.nyc_output/
+docs/api/
+*.log
+.env
+.DS_Store
+*.tsbuildinfo
+
+# Circuit source (build artifacts are needed)
+packages/circuits/*.zkey
+packages/circuits/*.wasm
+packages/circuits/*.r1cs
+packages/circuits/*.sym
+packages/circuits/verification_key.json
+packages/circuits/witness.wtns
+packages/circuits/pot/

@@ -31,6 +31,12 @@ export class InMemoryValidCredentialTree implements ValidCredentialTree {
     }
     this.depth = depth;
     this.ready = this.initialize();
+    if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production') {
+      console.warn(
+        '[zk-id] InMemoryValidCredentialTree is not suitable for production. ' +
+          'The valid credential set will be lost on restart. Use a persistent tree (PostgreSQL, Redis).',
+      );
+    }
   }
 
   private async initialize(): Promise<void> {
