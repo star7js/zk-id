@@ -4,6 +4,8 @@
  */
 export interface RedisClient {
   get(key: string): Promise<string | null>;
+  /** Atomically get and delete a key (Redis 6.2+). Optional; stores fall back to GET+DEL if absent. */
+  getdel?(key: string): Promise<string | null>;
   set(key: string, value: string, ...args: (string | number)[]): Promise<string | null>;
   del(...keys: string[]): Promise<number>;
   sadd(key: string, ...members: string[]): Promise<number>;

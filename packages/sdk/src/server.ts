@@ -2225,10 +2225,23 @@ export class SimpleRateLimiter implements RateLimiter {
   private requests: Map<string, number[]> = new Map();
   private limit: number;
   private windowMs: number;
+  private pruneTimer?: NodeJS.Timeout;
 
   constructor(limit: number = 10, windowMs: number = 60000) {
     this.limit = limit;
     this.windowMs = windowMs;
+
+    // Prune stale identifiers every 5 minutes to prevent unbounded memory growth
+    this.pruneTimer = setInterval(() => this.prune(), 5 * 60 * 1000);
+    this.pruneTimer.unref?.();
+
+    if (process.env.NODE_ENV === 'production') {
+      console.warn(
+        '[zk-id] SimpleRateLimiter is not suitable for production. ' +
+          'IP-based rate limiting is trivially bypassable. ' +
+          'Use RedisRateLimiter or an API gateway rate limiter.',
+      );
+    }
   }
 
   async allowRequest(identifier: string): Promise<boolean> {
@@ -2239,6 +2252,7 @@ export class SimpleRateLimiter implements RateLimiter {
     const recentRequests = requests.filter((time) => now - time < this.windowMs);
 
     if (recentRequests.length >= this.limit) {
+      this.requests.set(identifier, recentRequests);
       return false;
     }
 
@@ -2246,6 +2260,31 @@ export class SimpleRateLimiter implements RateLimiter {
     this.requests.set(identifier, recentRequests);
 
     return true;
+  }
+
+  /**
+   * Remove identifiers with no recent requests to prevent unbounded memory growth.
+   */
+  private prune(): void {
+    const now = Date.now();
+    for (const [id, timestamps] of this.requests.entries()) {
+      const recent = timestamps.filter((t) => now - t < this.windowMs);
+      if (recent.length === 0) {
+        this.requests.delete(id);
+      } else {
+        this.requests.set(id, recent);
+      }
+    }
+  }
+
+  /**
+   * Stop background pruning.
+   */
+  stop(): void {
+    if (this.pruneTimer) {
+      clearInterval(this.pruneTimer);
+      this.pruneTimer = undefined;
+    }
   }
 }
 

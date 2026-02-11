@@ -28,13 +28,24 @@ export class RedisNonceStore implements NonceStore {
     }
   }
 
+  private validateNonce(nonce: string): void {
+    if (!nonce || nonce.length === 0) {
+      throw new ZkIdValidationError('nonce must be a non-empty string', 'nonce');
+    }
+    if (nonce.length > 512) {
+      throw new ZkIdValidationError('nonce must be at most 512 characters', 'nonce');
+    }
+  }
+
   async has(nonce: string): Promise<boolean> {
+    this.validateNonce(nonce);
     const key = this.keyPrefix + nonce;
     const result = await this.client.get(key);
     return result !== null;
   }
 
   async add(nonce: string): Promise<void> {
+    this.validateNonce(nonce);
     const key = this.keyPrefix + nonce;
     await this.client.set(key, '1', 'EX', this.ttlSeconds);
   }
