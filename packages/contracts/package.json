@@ -21,7 +21,7 @@
     "@typechain/ethers-v6": "^0.5.1",
     "@typechain/hardhat": "^9.1.0",
     "@types/node": "^25.2.2",
-    "@zk-id/core": "0.6.0",
+    "@zk-id/core": "*",
     "hardhat": "^2.22.0",
     "hardhat-gas-reporter": "^2.3.0",
     "solidity-coverage": "^0.8.17",
