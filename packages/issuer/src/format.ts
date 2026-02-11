@@ -1,4 +1,4 @@
-import { SignedCredential } from '@zk-id/core';
+import { SignedCredential, ZkIdValidationError } from '@zk-id/core';
 
 /**
  * External credential format representation
@@ -53,10 +53,10 @@ export function toExternalCredentialFormat(
   }
 
   // Optionally include birthYear and nationality (can be omitted for privacy)
-  if (signedCredential.credential.birthYear) {
+  if (signedCredential.credential.birthYear != null) {
     external.credentialSubject.birthYear = signedCredential.credential.birthYear;
   }
-  if (signedCredential.credential.nationality) {
+  if (signedCredential.credential.nationality != null) {
     external.credentialSubject.nationality = signedCredential.credential.nationality;
   }
 
@@ -90,14 +90,14 @@ export function fromExternalCredentialFormat(
   createdAt: string,
 ): SignedCredential {
   if (!external.proof) {
-    throw new Error('External credential missing proof section');
+    throw new ZkIdValidationError('External credential missing proof section', 'proof');
   }
 
   return {
     credential: {
       id: credentialId,
-      birthYear: external.credentialSubject.birthYear || 0,
-      nationality: external.credentialSubject.nationality || 0,
+      birthYear: external.credentialSubject.birthYear ?? 0,
+      nationality: external.credentialSubject.nationality ?? 0,
       salt,
       commitment: external.credentialSubject.commitment,
       createdAt,

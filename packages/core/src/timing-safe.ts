@@ -32,15 +32,16 @@ export function constantTimeEqual(a: string, b: string): boolean {
  * @returns true if arrays are equal, false otherwise
  */
 export function constantTimeArrayEqual(a: string[], b: string[]): boolean {
-  if (a.length !== b.length) {
-    return false;
-  }
-
+  const maxLen = Math.max(a.length, b.length);
   let result = 0;
-  for (let i = 0; i < a.length; i++) {
-    // Use constantTimeEqual for each element instead of JS ===
-    // XOR accumulation - any difference will set result to non-zero
-    result |= constantTimeEqual(a[i], b[i]) ? 0 : 1;
+
+  // Length difference contributes to result
+  result |= a.length ^ b.length;
+
+  for (let i = 0; i < maxLen; i++) {
+    const elemA = i < a.length ? a[i] : '';
+    const elemB = i < b.length ? b[i] : '';
+    result |= constantTimeEqual(elemA, elemB) ? 0 : 1;
   }
 
   return result === 0;

@@ -34,10 +34,11 @@ import {
   RedisRateLimiter,
   RedisIssuerRegistry,
 } from '@zk-id/redis';
+import { ZkIdServer } from '@zk-id/sdk';
 
 const redis = new Redis(process.env.REDIS_URL);
 
-const server = createZkIdServer({
+const server = new ZkIdServer({
   nonceStore: new RedisNonceStore(redis, { ttlSeconds: 300 }),
   challengeStore: new RedisChallengeStore(redis),
   revocationStore: new RedisRevocationStore(redis),

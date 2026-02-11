@@ -13,6 +13,7 @@ import {
   MultiClaimResponse,
   InMemoryRevocationStore,
   InMemoryValidCredentialTree,
+  SignedCredential,
   PROTOCOL_VERSION,
   isProtocolCompatible,
   SCENARIOS,
@@ -117,8 +118,7 @@ async function main() {
   });
 
   // Store issued credentials (in-memory for demo - production would use database)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const issuedCredentials = new Map<string, any>();
+  const issuedCredentials = new Map<string, SignedCredential>();
 
   /**
    * Demo endpoint: Issue a credential

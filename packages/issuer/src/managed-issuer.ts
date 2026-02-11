@@ -6,6 +6,7 @@ import {
   credentialSignaturePayload,
   AuditLogger,
   ConsoleAuditLogger,
+  ZkIdConfigError,
 } from '@zk-id/core';
 import { IssuerKeyManager } from './key-management';
 
@@ -98,7 +99,7 @@ export class ManagedCredentialIssuer {
    */
   async revokeCredential(commitment: string): Promise<void> {
     if (!this.revocationStore) {
-      throw new Error('Revocation store not configured');
+      throw new ZkIdConfigError('Revocation store not configured');
     }
 
     await this.revocationStore.revoke(commitment);

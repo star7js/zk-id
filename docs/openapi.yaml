@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: zk-id Demo API
-  version: 0.4.5
+  version: 0.6.0
   description: |
     Demo REST API for zk-id verification flows.
 
@@ -287,8 +287,10 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
   /api/verify-signed:
     post:
-      summary: Verify a signed proof (in-circuit issuer signature)
+      summary: Verify a signed proof (in-circuit issuer signature) [NOT IMPLEMENTED IN DEMO]
       description: |
+        **Note: This endpoint is documented but not implemented in the demo server.**
+
         Verifies a proof that includes in-circuit BabyJub EdDSA issuer signature
         verification. The issuer must be registered in the server's issuer registry.
         See `docs/schemas/signed-proof-request.json` for the JSON schema.
@@ -307,6 +309,61 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VerificationResult'
+          headers:
+            X-ZkId-Protocol-Version:
+              $ref: '#/components/headers/ProtocolVersion'
+        '400':
+          description: Bad request (including incompatible protocol version)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/verify-scenario:
+    post:
+      summary: Verify a scenario bundle (multiple proofs)
+      description: |
+        Verifies a scenario bundle containing multiple proofs for combined claims.
+        Scenarios are pre-defined real-world use cases like voting eligibility or senior discounts.
+      parameters:
+        - $ref: '#/components/parameters/ProtocolVersionHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [scenarioId, response]
+              properties:
+                scenarioId:
+                  type: string
+                  description: The scenario identifier (e.g., "voting-eligibility-us")
+                response:
+                  type: object
+                  description: Scenario-specific response containing proofs and metadata
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verified:
+                    type: boolean
+                  message:
+                    type: string
           headers:
             X-ZkId-Protocol-Version:
               $ref: '#/components/headers/ProtocolVersion'
@@ -856,15 +913,17 @@ components:
       type: object
       description: Collection of verification keys for different proof types
       properties:
-        ageProof:
+        age:
           $ref: '#/components/schemas/VerificationKey'
-        nationalityProof:
+        nationality:
           $ref: '#/components/schemas/VerificationKey'
-        ageProofSigned:
+        signedAge:
           $ref: '#/components/schemas/VerificationKey'
-        nationalityProofSigned:
+        signedNationality:
           $ref: '#/components/schemas/VerificationKey'
-        ageProofRevocable:
+        ageRevocable:
+          $ref: '#/components/schemas/VerificationKey'
+        nullifier:
           $ref: '#/components/schemas/VerificationKey'
     VerificationKey:
       type: object
@@ -894,12 +953,12 @@ components:
       type: object
       description: Policy for proof validation requirements
       properties:
-        requireNonce:
-          type: boolean
-        requireTimestamp:
-          type: boolean
-        maxProofAgeSeconds:
+        minAge:
           type: integer
+          description: Minimum age requirement
+        nationality:
+          type: integer
+          description: Required nationality (ISO 3166-1 numeric code)
     ProofChallenge:
       type: object
       description: Challenge parameters for proof generation

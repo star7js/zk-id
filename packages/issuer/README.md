@@ -45,10 +45,10 @@ npm install @zk-id/issuer
 ## Quick Start
 
 ```typescript
-import { createTestIssuer } from '@zk-id/issuer';
+import { CredentialIssuer } from '@zk-id/issuer';
 
 // Create a test issuer (generates ephemeral keys)
-const issuer = createTestIssuer({ name: 'Test Issuer' });
+const issuer = CredentialIssuer.createTestIssuer('Test Issuer');
 
 // Issue a credential
 const credential = await issuer.issueCredential(1995, 840); // birth year, USA
@@ -64,7 +64,7 @@ import { FileKeyManager, ManagedCredentialIssuer } from '@zk-id/issuer';
 
 const keyManager = await FileKeyManager.fromPemFiles('./private-key.pem', './public-key.pem');
 
-const issuer = new ManagedCredentialIssuer('Production Issuer', keyManager);
+const issuer = new ManagedCredentialIssuer(keyManager);
 ```
 
 ### Envelope Encryption (At-Rest)

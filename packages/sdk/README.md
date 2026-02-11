@@ -55,13 +55,13 @@ npm install @zk-id/sdk
 ## Server Setup
 
 ```typescript
-import { createZkIdServer } from '@zk-id/sdk';
+import { ZkIdServer, InMemoryNonceStore, InMemoryIssuerRegistry } from '@zk-id/sdk';
 import { readFileSync } from 'fs';
 import express from 'express';
 
-const server = createZkIdServer({
+const server = new ZkIdServer({
   verificationKeyPath: './age-verify-verification-key.json',
-  nonceStore: new InMemoryNonceStore({ ttlSeconds: 300 }),
+  nonceStore: new InMemoryNonceStore({ ttlMs: 300_000 }),
   issuerRegistry: new InMemoryIssuerRegistry(),
   requiredPolicy: { maxProofAgeMs: 60000 },
   verboseErrors: false, // Don't leak circuit errors to clients
@@ -71,7 +71,7 @@ const app = express();
 app.use(express.json());
 
 app.post('/api/verify-age', async (req, res) => {
-  const result = await server.verifyAge(req.body);
+  const result = await server.verifyProof(req.body, req.ip);
   res.json(result);
 });
 
@@ -88,8 +88,8 @@ const client = new ZkIdClient({
 });
 
 // Request age verification
-const result = await client.verifyAge(credential, 18);
-if (result.success) {
+const verified = await client.verifyAge(18);
+if (verified) {
   console.log('Age verified!');
 }
 ```
@@ -205,9 +205,9 @@ Key configuration options:
 - **issuerRegistry** — Issuer registry implementation (e.g., `InMemoryIssuerRegistry`, `RedisIssuerRegistry`)
 - **revocationStore** — Revocation tracking (optional, for revocable proofs)
 - **validCredentialTree** — Merkle tree for valid credentials (optional, for revocable proofs)
-- **requiredPolicy** — Policy object with `maxProofAgeMs`, `minProtocolVersion`, `trustedIssuers`
+- **requiredPolicy** — Policy object with `minAge`, `nationality`, `maxProofAgeMs`, `minProtocolVersion`, `trustedIssuers`
 - **verboseErrors** — Return detailed circuit errors to clients (default: `false`, use `true` for debugging)
-- **maxFutureSkewMs** — Max allowed timestamp skew into future (default: 5000ms)
+- **maxFutureSkewMs** — Max allowed timestamp skew into future (default: 60000ms)
 - **auditLogger** — Audit logger implementation (default: `ConsoleAuditLogger`)
 - **protocolVersionPolicy** — How to handle version mismatches: `'strict'` (reject), `'warn'` (log), `'off'` (ignore)
 

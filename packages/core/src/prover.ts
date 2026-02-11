@@ -80,11 +80,11 @@ export async function generateAgeProof(
       curve: proof.curve,
     },
     publicSignals: {
-      currentYear: parseInt(publicSignals[0]),
-      minAge: parseInt(publicSignals[1]),
+      currentYear: parseInt(publicSignals[0], 10),
+      minAge: parseInt(publicSignals[1], 10),
       credentialHash: publicSignals[2],
       nonce: publicSignals[3],
-      requestTimestamp: parseInt(publicSignals[4]),
+      requestTimestamp: parseInt(publicSignals[4], 10),
     },
   };
 
@@ -170,10 +170,10 @@ export async function generateNationalityProof(
       curve: proof.curve,
     },
     publicSignals: {
-      targetNationality: parseInt(publicSignals[0]),
+      targetNationality: parseInt(publicSignals[0], 10),
       credentialHash: publicSignals[1],
       nonce: publicSignals[2],
-      requestTimestamp: parseInt(publicSignals[3]),
+      requestTimestamp: parseInt(publicSignals[3], 10),
     },
   };
 
@@ -273,11 +273,11 @@ export async function generateAgeProofSigned(
       curve: proof.curve,
     },
     publicSignals: {
-      currentYear: parseInt(publicSignals[0]),
-      minAge: parseInt(publicSignals[1]),
+      currentYear: parseInt(publicSignals[0], 10),
+      minAge: parseInt(publicSignals[1], 10),
       credentialHash: publicSignals[2],
       nonce: publicSignals[3],
-      requestTimestamp: parseInt(publicSignals[4]),
+      requestTimestamp: parseInt(publicSignals[4], 10),
       issuerPublicKey: issuerPublicKey,
     },
   };
@@ -376,10 +376,10 @@ export async function generateNationalityProofSigned(
       curve: proof.curve,
     },
     publicSignals: {
-      targetNationality: parseInt(publicSignals[0]),
+      targetNationality: parseInt(publicSignals[0], 10),
       credentialHash: publicSignals[1],
       nonce: publicSignals[2],
-      requestTimestamp: parseInt(publicSignals[3]),
+      requestTimestamp: parseInt(publicSignals[3], 10),
       issuerPublicKey: issuerPublicKey,
     },
   };
@@ -485,12 +485,12 @@ export async function generateAgeProofRevocable(
       curve: proof.curve,
     },
     publicSignals: {
-      currentYear: parseInt(publicSignals[0]),
-      minAge: parseInt(publicSignals[1]),
+      currentYear: parseInt(publicSignals[0], 10),
+      minAge: parseInt(publicSignals[1], 10),
       credentialHash: publicSignals[2],
       merkleRoot: publicSignals[3],
       nonce: publicSignals[4],
-      requestTimestamp: parseInt(publicSignals[5]),
+      requestTimestamp: parseInt(publicSignals[5], 10),
     },
   };
 

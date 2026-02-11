@@ -271,7 +271,6 @@ export function generateRotationPlan(
 
   const expiryMs = createdMs + policy.maxKeyAgeDays * 24 * 60 * 60 * 1000;
   const newKeyActivationMs = expiryMs - policy.minRotationOverlapDays * 24 * 60 * 60 * 1000;
-  const _warningMs = expiryMs - policy.rotationWarningDays * 24 * 60 * 60 * 1000;
 
   const steps: RotationPlanStep[] = [];
 

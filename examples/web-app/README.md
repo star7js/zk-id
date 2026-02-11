@@ -164,6 +164,7 @@ The web app demonstrates two built-in scenarios:
 - `GET /api/challenge` - Get nonce + timestamp challenge
 - `POST /api/verify-age` - Verify client-generated age proof
 - `POST /api/verify-nationality` - Verify client-generated nationality proof
+- `POST /api/verify-scenario` - Verify scenario bundle (e.g., voting eligibility, senior discount)
 - `POST /api/verify-voting-eligibility` - Verify voting eligibility (age + nationality)
 - `POST /api/verify-senior-discount` - Verify senior discount eligibility (age)
 

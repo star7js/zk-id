@@ -474,7 +474,7 @@ export class ZkIdClient {
       );
       return endpoint.origin === window.location.origin;
     } catch {
-      return true;
+      return false;
     }
   }
 
@@ -531,7 +531,7 @@ export class InMemoryWallet implements WalletConnector {
 
     // Generate proof based on claim type
     if (request.claimType === 'age') {
-      if (!request.minAge) {
+      if (request.minAge == null) {
         throw new ZkIdConfigError('minAge is required for age proof');
       }
 
@@ -553,7 +553,7 @@ export class InMemoryWallet implements WalletConnector {
         requestTimestamp: request.timestamp,
       };
     } else if (request.claimType === 'nationality') {
-      if (!request.targetNationality) {
+      if (request.targetNationality == null) {
         throw new ZkIdConfigError('targetNationality is required for nationality proof');
       }
 

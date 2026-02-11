@@ -21,6 +21,7 @@ import {
   RevocationRootInfo,
   IssuedCredentialIndex,
 } from './types';
+import { ZkIdValidationError } from './errors';
 
 // ---------------------------------------------------------------------------
 // In-memory IssuedCredentialIndex
@@ -37,7 +38,7 @@ export class InMemoryIssuedCredentialIndex implements IssuedCredentialIndex {
     try {
       return BigInt(commitment).toString();
     } catch {
-      throw new Error('Invalid commitment format');
+      throw new ZkIdValidationError('Invalid commitment format', 'commitment');
     }
   }
 

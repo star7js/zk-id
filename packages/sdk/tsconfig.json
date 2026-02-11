@@ -4,12 +4,13 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "lib": ["ES2022", "DOM"],
-    "types": ["node", "mocha", "chai"]
+    "types": ["node"]
   },
   "include": ["src/**/*"],
   "ts-node": {
     "compilerOptions": {
-      "module": "commonjs"
+      "module": "commonjs",
+      "types": ["node", "mocha", "chai"]
     },
     "files": true
   }
