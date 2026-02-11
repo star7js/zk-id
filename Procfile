@@ -1,1 +1,1 @@
-web: npm start --workspace=@zk-id/example-web-app
+web: cd examples/web-app && node dist/server.js
