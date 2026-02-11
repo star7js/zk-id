@@ -1,7 +1,14 @@
 import { Credential } from './types';
 import { poseidonHash } from './poseidon';
 import { randomBytes } from 'crypto';
-import { validateBirthYear, validateNationality, validateHexString } from './validation';
+import {
+  validateBirthYear,
+  validateNationality,
+  validateHexString,
+  MIN_BIRTH_YEAR,
+  MIN_NATIONALITY,
+  MAX_NATIONALITY,
+} from './validation';
 
 /**
  * Creates a new credential with the given birth year and nationality
@@ -49,15 +56,34 @@ export async function createCredential(
  * @returns true if the credential is valid, false otherwise
  */
 export function validateCredential(credential: Credential): boolean {
-  if (!credential.id || !credential.salt || !credential.commitment) {
+  if (
+    !credential.id ||
+    typeof credential.id !== 'string' ||
+    !credential.salt ||
+    typeof credential.salt !== 'string' ||
+    !credential.commitment ||
+    typeof credential.commitment !== 'string'
+  ) {
     return false;
   }
 
-  if (credential.birthYear < 1900 || credential.birthYear > new Date().getFullYear()) {
+  if (!/^[0-9a-fA-F]+$/.test(credential.salt)) {
     return false;
   }
 
-  if (credential.nationality < 1 || credential.nationality > 999) {
+  if (
+    !Number.isInteger(credential.birthYear) ||
+    credential.birthYear < MIN_BIRTH_YEAR ||
+    credential.birthYear > new Date().getFullYear()
+  ) {
+    return false;
+  }
+
+  if (
+    !Number.isInteger(credential.nationality) ||
+    credential.nationality < MIN_NATIONALITY ||
+    credential.nationality > MAX_NATIONALITY
+  ) {
     return false;
   }
 
