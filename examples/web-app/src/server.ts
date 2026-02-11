@@ -629,8 +629,10 @@ async function main() {
   });
 
   // Start server
-  app.listen(PORT, () => {
-    console.log(`\n🚀 ZK-ID Demo Web App running at http://localhost:${PORT}`);
+  // Bind to 0.0.0.0 for container/Railway deployment
+  const HOST = process.env.HOST || '0.0.0.0';
+  app.listen(PORT, HOST, () => {
+    console.log(`\n🚀 ZK-ID Demo Web App running at http://${HOST}:${PORT}`);
     console.log(`\nFeatures:`);
     console.log(`  ✓ Client-side ZK proof generation in browser`);
     console.log(`  ✓ Credential issuance with Ed25519 signatures`);
