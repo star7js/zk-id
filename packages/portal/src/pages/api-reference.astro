@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { parseOpenAPI, getMethodColor } from '../lib/openapi';
+import { getExample } from '../lib/code-examples';
 
 const endpoints = parseOpenAPI();
 ---
@@ -49,18 +50,34 @@ const endpoints = parseOpenAPI();
               <button class="tab-button" data-lang="go">Go</button>
             </div>
             <div class="tab-content">
-              <div class="tab-pane active" data-lang="typescript">
-                <pre><code>// TypeScript example for {endpoint.path}
-// Coming soon - check back later for complete examples</code></pre>
-              </div>
-              <div class="tab-pane" data-lang="python">
-                <pre><code># Python example for {endpoint.path}
-# Coming soon - check back later for complete examples</code></pre>
-              </div>
-              <div class="tab-pane" data-lang="go">
-                <pre><code>// Go example for {endpoint.path}
-// Coming soon - check back later for complete examples</code></pre>
-              </div>
+              {(() => {
+                const example = getExample(endpoint.method, endpoint.path);
+                return example ? (
+                  <>
+                    <div class="tab-pane active" data-lang="typescript">
+                      <pre><code>{example.typescript}</code></pre>
+                    </div>
+                    <div class="tab-pane" data-lang="python">
+                      <pre><code>{example.python}</code></pre>
+                    </div>
+                    <div class="tab-pane" data-lang="go">
+                      <pre><code>{example.go}</code></pre>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div class="tab-pane active" data-lang="typescript">
+                      <pre><code>// TypeScript example for {endpoint.path} — coming soon</code></pre>
+                    </div>
+                    <div class="tab-pane" data-lang="python">
+                      <pre><code># Python example for {endpoint.path} — coming soon</code></pre>
+                    </div>
+                    <div class="tab-pane" data-lang="go">
+                      <pre><code>// Go example for {endpoint.path} — coming soon</code></pre>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
         </section>
