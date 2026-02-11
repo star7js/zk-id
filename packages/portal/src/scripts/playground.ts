@@ -10,6 +10,15 @@ const state = {
   credentialId: null,
 };
 
+// Detect network/CORS errors from API cold starts
+function formatApiError(error: any): string {
+  const msg = error?.message || String(error);
+  if (msg === 'Load failed' || msg === 'Failed to fetch' || msg === 'NetworkError when attempting to fetch resource.') {
+    return 'Could not reach the API server. It may be starting up — please wait a moment and try again.';
+  }
+  return msg;
+}
+
 // Utility functions
 function showResult(elementId: string, type: string, content: string) {
   const el = document.getElementById(elementId);
@@ -75,7 +84,7 @@ async function issueCredential() {
       showResult('issueResult', 'error', `<strong>✗ ${data.error}</strong>`);
     }
   } catch (error: any) {
-    showResult('issueResult', 'error', `<strong>✗ ${error.message}</strong>`);
+    showResult('issueResult', 'error', `<strong>✗ ${formatApiError(error)}</strong>`);
   }
 }
 
@@ -112,12 +121,12 @@ async function verifyAge() {
       requestTimestamp: requestTimestampMs.toString(),
     };
 
-    // Generate proof
+    // Generate proof (circuit files are served from the API server)
     const proofStart = Date.now();
     const { proof, publicSignals } = await (window as any).snarkjs.groth16.fullProve(
       inputs,
-      '/circuits/age-verify_js/age-verify.wasm',
-      '/circuits/age-verify.zkey',
+      `${API_BASE_URL}/circuits/age-verify_js/age-verify.wasm`,
+      `${API_BASE_URL}/circuits/age-verify.zkey`,
     );
     const proofTime = Date.now() - proofStart;
 
@@ -181,7 +190,7 @@ async function verifyAge() {
       );
     }
   } catch (error: any) {
-    let errorMsg = error.message;
+    let errorMsg = formatApiError(error);
     if (error.message?.includes('Assert Failed')) {
       const actualAge = new Date().getFullYear() - state.credential.credential.birthYear;
       errorMsg = `Cannot generate proof: Your age (${actualAge}) does not meet the requirement (${minAge}). ZK proofs can only prove true statements.`;
@@ -224,12 +233,12 @@ async function verifyNationality() {
       requestTimestamp: requestTimestampMs.toString(),
     };
 
-    // Generate proof
+    // Generate proof (circuit files are served from the API server)
     const proofStart = Date.now();
     const { proof, publicSignals } = await (window as any).snarkjs.groth16.fullProve(
       inputs,
-      '/circuits/nationality-verify_js/nationality-verify.wasm',
-      '/circuits/nationality-verify.zkey',
+      `${API_BASE_URL}/circuits/nationality-verify_js/nationality-verify.wasm`,
+      `${API_BASE_URL}/circuits/nationality-verify.zkey`,
     );
     const proofTime = Date.now() - proofStart;
 
@@ -293,7 +302,7 @@ async function verifyNationality() {
       );
     }
   } catch (error: any) {
-    let errorMsg = error.message;
+    let errorMsg = formatApiError(error);
     if (error.message?.includes('Assert Failed')) {
       errorMsg = `Cannot generate proof: Your nationality (${state.credential.credential.nationality}) does not match target (${targetNationality}). ZK proofs can only prove true statements.`;
     }

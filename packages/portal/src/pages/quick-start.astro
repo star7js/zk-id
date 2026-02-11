@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+const base = import.meta.env.BASE_URL;
 ---
 
 <BaseLayout title="Quick Start" description="Get started with ZK-ID in under 5 minutes">
@@ -201,15 +202,15 @@ if (result.verified) {
       <div class="next-steps">
         <h3>Next Steps</h3>
         <div class="next-steps-grid">
-          <a href="/playground" class="next-step-card">
+          <a href={`${base}/playground`} class="next-step-card">
             <h4>🎮 Playground</h4>
             <p>Experiment with different proof types</p>
           </a>
-          <a href="/api-reference" class="next-step-card">
+          <a href={`${base}/api-reference`} class="next-step-card">
             <h4>📖 API Reference</h4>
             <p>Full API documentation</p>
           </a>
-          <a href="/docs/getting-started" class="next-step-card">
+          <a href={`${base}/docs`} class="next-step-card">
             <h4>📚 Documentation</h4>
             <p>In-depth guides and tutorials</p>
           </a>
