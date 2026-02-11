@@ -33,7 +33,8 @@ COPY packages/circuits/build/ packages/circuits/build/
 RUN npm run build --workspace=@zk-id/core && \
     npm run build --workspace=@zk-id/sdk && \
     npm run build --workspace=@zk-id/issuer && \
-    npm run build --workspace=@zk-id/redis
+    npm run build --workspace=@zk-id/redis && \
+    npm run build --workspace=@zk-id/example-web-app
 
 # --- Stage 2: Production runtime ---
 FROM node:20-slim AS runtime
@@ -61,6 +62,7 @@ COPY --from=builder /app/packages/core/dist/ packages/core/dist/
 COPY --from=builder /app/packages/sdk/dist/ packages/sdk/dist/
 COPY --from=builder /app/packages/issuer/dist/ packages/issuer/dist/
 COPY --from=builder /app/packages/redis/dist/ packages/redis/dist/
+COPY --from=builder /app/examples/web-app/dist/ examples/web-app/dist/
 
 # Copy source files needed at runtime (ts-node for demo server)
 COPY packages/core/ packages/core/
