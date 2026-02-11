@@ -95,7 +95,6 @@ export class ZkIdClient {
       if (error instanceof ZkIdError) {
         throw error;
       }
-      console.error('[zk-id] Age verification failed:', error);
       return false;
     }
   }
@@ -128,7 +127,6 @@ export class ZkIdClient {
       if (error instanceof ZkIdError) {
         throw error;
       }
-      console.error('[zk-id] Nationality verification failed:', error);
       return false;
     }
   }
@@ -161,7 +159,6 @@ export class ZkIdClient {
       if (error instanceof ZkIdError) {
         throw error;
       }
-      console.error('[zk-id] Revocable age verification failed:', error);
       return false;
     }
   }
@@ -217,7 +214,6 @@ export class ZkIdClient {
       if (error instanceof ZkIdError) {
         throw error;
       }
-      console.error('[zk-id] Scenario verification failed:', error);
       return false;
     }
   }

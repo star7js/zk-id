@@ -2019,10 +2019,14 @@ export class ZkIdServer extends EventEmitter {
         }
         return result;
       }
-      console.warn(
-        `[zk-id] Protocol version header missing for claimType=${claimType}. ` +
-          `Server=${PROTOCOL_VERSION}`,
-      );
+      this.auditLogger.log({
+        timestamp: new Date().toISOString(),
+        action: 'verify',
+        actor: 'server',
+        target: claimType,
+        success: true,
+        metadata: { warning: 'protocol_version_missing', serverVersion: PROTOCOL_VERSION },
+      });
       return null;
     }
 
@@ -2038,10 +2042,18 @@ export class ZkIdServer extends EventEmitter {
         }
         return result;
       }
-      console.warn(
-        `[zk-id] Protocol version mismatch for claimType=${claimType}. ` +
-          `Client=${clientProtocolVersion}, Server=${PROTOCOL_VERSION}`,
-      );
+      this.auditLogger.log({
+        timestamp: new Date().toISOString(),
+        action: 'verify',
+        actor: 'server',
+        target: claimType,
+        success: true,
+        metadata: {
+          warning: 'protocol_version_mismatch',
+          clientVersion: clientProtocolVersion,
+          serverVersion: PROTOCOL_VERSION,
+        },
+      });
     }
 
     return null;
