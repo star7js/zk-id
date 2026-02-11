@@ -2,8 +2,7 @@
 // Pings /api/health on load, shows a status banner, and auto-retries
 // until the server responds (handles Render free-tier cold starts).
 
-const API_BASE_URL =
-  (import.meta as any).env?.PUBLIC_API_URL || 'https://zk-id-1.onrender.com';
+const API_BASE_URL = (import.meta as any).env?.PUBLIC_API_URL || 'https://zk-id-1.onrender.com';
 
 type Status = 'checking' | 'online' | 'waking' | 'offline';
 
@@ -32,8 +31,7 @@ function render(status: Status) {
 
     case 'online':
       banner.className = 'api-status-banner status-online';
-      banner.innerHTML =
-        '<span class="status-dot"></span> API server is online';
+      banner.innerHTML = '<span class="status-dot"></span> API server is online';
       // Auto-hide after 3 seconds
       setTimeout(() => {
         banner.setAttribute('hidden', '');
