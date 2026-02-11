@@ -23,6 +23,18 @@ function formatApiError(error: any): string {
   return msg;
 }
 
+function getNationalityName(code: number): string {
+  const names: Record<number, string> = {
+    840: 'United States',
+    826: 'United Kingdom',
+    124: 'Canada',
+    276: 'Germany',
+    250: 'France',
+    392: 'Japan',
+  };
+  return names[code] || `Country ${code}`;
+}
+
 function showResult(elementId: string, type: string, content: string) {
   const el = document.getElementById(elementId);
   if (!el) return;
@@ -232,7 +244,7 @@ async function verifyProof() {
                 WHAT STAYED PRIVATE
               </div>
               <div style="color: var(--accent-client);">🔒 Exact birth year (${state.credential.credential.birthYear})</div>
-              <div style="color: var(--accent-client);">🔒 Nationality (${state.credential.credential.nationality})</div>
+              <div style="color: var(--accent-client);">🔒 Nationality: ${getNationalityName(state.credential.credential.nationality)} (${state.credential.credential.nationality})</div>
               <div style="color: var(--accent-client);">🔒 Credential salt</div>
             </div>
           </div>
