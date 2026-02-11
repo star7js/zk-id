@@ -16,21 +16,6 @@ import { ZkIdProofError, ZkIdConfigError } from './errors';
 /** Default staleness window for request timestamps (5 minutes). */
 const STALE_TIMESTAMP_MS = 5 * 60 * 1000;
 
-/**
- * Check whether a request timestamp is stale.
- * Pushes an error string into `errors` when the timestamp exceeds the
- * staleness window.
- */
-function checkTimestampStaleness(
-  requestTimestamp: number,
-  errors: string[],
-  windowMs: number = STALE_TIMESTAMP_MS,
-): void {
-  if (requestTimestamp > 0 && Date.now() - requestTimestamp > windowMs) {
-    errors.push('Request timestamp is stale (> 5 minutes old)');
-  }
-}
-
 /** Returns true if value is a non-empty string parseable as a BigInt. */
 function isValidBigIntString(value: string): boolean {
   if (!value || value.length === 0) return false;
@@ -39,6 +24,39 @@ function isValidBigIntString(value: string): boolean {
     return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Validates the common public-signal fields shared by all proof types:
+ * credentialHash, nonce, requestTimestamp, and staleness.
+ *
+ * Pushes human-readable error strings into the provided `errors` array.
+ */
+function validateCommonSignals(
+  signals: { credentialHash: string; nonce: string; requestTimestamp: number },
+  errors: string[],
+  windowMs: number = STALE_TIMESTAMP_MS,
+): void {
+  // Credential hash
+  if (
+    !signals.credentialHash ||
+    signals.credentialHash === '0' ||
+    !isValidBigIntString(signals.credentialHash)
+  ) {
+    errors.push('Missing or invalid credential hash');
+  }
+  // Nonce
+  if (!signals.nonce || signals.nonce.length === 0) {
+    errors.push('Missing nonce');
+  }
+  // Timestamp presence
+  if (!signals.requestTimestamp || signals.requestTimestamp <= 0) {
+    errors.push('Invalid request timestamp');
+  }
+  // Staleness
+  if (signals.requestTimestamp > 0 && Date.now() - signals.requestTimestamp > windowMs) {
+    errors.push('Request timestamp is stale (> 5 minutes old)');
   }
 }
 
@@ -100,22 +118,8 @@ export function validateProofConstraints(proof: AgeProof): {
     errors.push('Invalid minimum age requirement');
   }
 
-  // Check that credential hash is a valid numeric string (Poseidon output)
-  if (
-    !proof.publicSignals.credentialHash ||
-    proof.publicSignals.credentialHash === '0' ||
-    !isValidBigIntString(proof.publicSignals.credentialHash)
-  ) {
-    errors.push('Missing or invalid credential hash');
-  }
-  if (!proof.publicSignals.nonce || proof.publicSignals.nonce.length === 0) {
-    errors.push('Missing nonce');
-  }
-  if (!proof.publicSignals.requestTimestamp || proof.publicSignals.requestTimestamp <= 0) {
-    errors.push('Invalid request timestamp');
-  }
-  // Check timestamp staleness (5 minutes)
-  checkTimestampStaleness(proof.publicSignals.requestTimestamp, errors);
+  // Common signal checks (credentialHash, nonce, timestamp, staleness)
+  validateCommonSignals(proof.publicSignals, errors);
 
   return {
     valid: errors.length === 0,
@@ -277,21 +281,8 @@ export function validateNationalityProofConstraints(proof: NationalityProof): {
     errors.push('Invalid nationality code in proof');
   }
 
-  // Check that credential hash is a valid numeric string (Poseidon output)
-  if (
-    !proof.publicSignals.credentialHash ||
-    proof.publicSignals.credentialHash === '0' ||
-    !isValidBigIntString(proof.publicSignals.credentialHash)
-  ) {
-    errors.push('Missing or invalid credential hash');
-  }
-  if (!proof.publicSignals.nonce || proof.publicSignals.nonce.length === 0) {
-    errors.push('Missing nonce');
-  }
-  if (!proof.publicSignals.requestTimestamp || proof.publicSignals.requestTimestamp <= 0) {
-    errors.push('Invalid request timestamp');
-  }
-  checkTimestampStaleness(proof.publicSignals.requestTimestamp, errors);
+  // Common signal checks (credentialHash, nonce, timestamp, staleness)
+  validateCommonSignals(proof.publicSignals, errors);
 
   return {
     valid: errors.length === 0,
@@ -369,15 +360,6 @@ export function validateAgeProofRevocableConstraints(proof: AgeProofRevocable): 
     errors.push('Invalid minimum age requirement');
   }
 
-  // Check that credential hash is a valid numeric string (Poseidon output)
-  if (
-    !proof.publicSignals.credentialHash ||
-    proof.publicSignals.credentialHash === '0' ||
-    !isValidBigIntString(proof.publicSignals.credentialHash)
-  ) {
-    errors.push('Missing or invalid credential hash');
-  }
-
   // Check that merkle root is a valid numeric string
   if (
     !proof.publicSignals.merkleRoot ||
@@ -387,14 +369,8 @@ export function validateAgeProofRevocableConstraints(proof: AgeProofRevocable): 
     errors.push('Missing or invalid merkle root');
   }
 
-  if (!proof.publicSignals.nonce || proof.publicSignals.nonce.length === 0) {
-    errors.push('Missing nonce');
-  }
-
-  if (!proof.publicSignals.requestTimestamp || proof.publicSignals.requestTimestamp <= 0) {
-    errors.push('Invalid request timestamp');
-  }
-  checkTimestampStaleness(proof.publicSignals.requestTimestamp, errors);
+  // Common signal checks (credentialHash, nonce, timestamp, staleness)
+  validateCommonSignals(proof.publicSignals, errors);
 
   return {
     valid: errors.length === 0,

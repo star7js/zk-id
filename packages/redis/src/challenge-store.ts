@@ -47,6 +47,9 @@ export class RedisChallengeStore implements ChallengeStore {
     await this.client.set(key, String(requestTimestampMs), 'PX', ttlMs);
   }
 
+  /** Lua script that atomically GETs and DELs a key, returning the value or nil. */
+  private static readonly GETDEL_LUA = `local v = redis.call('GET', KEYS[1]) if v then redis.call('DEL', KEYS[1]) end return v`;
+
   async consume(nonce: string): Promise<number | null> {
     if (!nonce || nonce.length === 0 || nonce.length > 512) {
       return null;
@@ -54,11 +57,15 @@ export class RedisChallengeStore implements ChallengeStore {
     const key = this.keyPrefix + nonce;
 
     // Atomic get-and-delete to prevent double-consume race conditions.
-    // Uses GETDEL if available (Redis 6.2+), otherwise falls back to GET+DEL.
+    // Preference order: GETDEL (Redis 6.2+) > EVAL Lua > GET+DEL (last resort).
     let value: string | null;
     if (this.client.getdel) {
       value = await this.client.getdel(key);
+    } else if (this.client.eval) {
+      const result = await this.client.eval(RedisChallengeStore.GETDEL_LUA, 1, key);
+      value = typeof result === 'string' ? result : null;
     } else {
+      // Non-atomic fallback for clients that support neither GETDEL nor EVAL.
       value = await this.client.get(key);
       if (value !== null) {
         await this.client.del(key);
