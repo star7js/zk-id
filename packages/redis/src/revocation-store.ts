@@ -1,4 +1,5 @@
 import type { RevocationStore } from '@zk-id/core';
+import { ZkIdValidationError } from '@zk-id/core';
 import type { RedisClient } from './types';
 
 export interface RedisRevocationStoreOptions {
@@ -19,12 +20,23 @@ export class RedisRevocationStore implements RevocationStore {
     this.key = options.key ?? 'zkid:revoked';
   }
 
+  private validateCommitment(commitment: string): void {
+    if (!commitment || commitment.length === 0) {
+      throw new ZkIdValidationError('commitment must be a non-empty string', 'commitment');
+    }
+    if (commitment.length > 512) {
+      throw new ZkIdValidationError('commitment must be at most 512 characters', 'commitment');
+    }
+  }
+
   async isRevoked(commitment: string): Promise<boolean> {
+    this.validateCommitment(commitment);
     const result = await this.client.sismember(this.key, commitment);
     return result === 1;
   }
 
   async revoke(commitment: string): Promise<void> {
+    this.validateCommitment(commitment);
     await this.client.sadd(this.key, commitment);
   }
 

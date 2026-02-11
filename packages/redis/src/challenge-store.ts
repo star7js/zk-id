@@ -39,13 +39,23 @@ export class RedisChallengeStore implements ChallengeStore {
 
   async consume(nonce: string): Promise<number | null> {
     const key = this.keyPrefix + nonce;
-    const value = await this.client.get(key);
+
+    // Atomic get-and-delete to prevent double-consume race conditions.
+    // Uses GETDEL if available (Redis 6.2+), otherwise falls back to GET+DEL.
+    let value: string | null;
+    if (this.client.getdel) {
+      value = await this.client.getdel(key);
+    } else {
+      value = await this.client.get(key);
+      if (value !== null) {
+        await this.client.del(key);
+      }
+    }
 
     if (value === null) {
       return null;
     }
 
-    await this.client.del(key);
     const timestamp = parseInt(value, 10);
     return isNaN(timestamp) ? null : timestamp;
   }
