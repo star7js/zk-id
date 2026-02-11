@@ -13,6 +13,17 @@ import {
 import { constantTimeEqual, constantTimeArrayEqual } from './timing-safe';
 import { ZkIdProofError, ZkIdConfigError } from './errors';
 
+/** Returns true if value is a non-empty string parseable as a BigInt. */
+function isValidBigIntString(value: string): boolean {
+  if (!value || value.length === 0) return false;
+  try {
+    BigInt(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Verifies an age proof using the verification key
  *
@@ -71,8 +82,12 @@ export function validateProofConstraints(proof: AgeProof): {
     errors.push('Invalid minimum age requirement');
   }
 
-  // Check that credential hash is present
-  if (!proof.publicSignals.credentialHash || proof.publicSignals.credentialHash === '0') {
+  // Check that credential hash is a valid numeric string (Poseidon output)
+  if (
+    !proof.publicSignals.credentialHash ||
+    proof.publicSignals.credentialHash === '0' ||
+    !isValidBigIntString(proof.publicSignals.credentialHash)
+  ) {
     errors.push('Missing or invalid credential hash');
   }
   if (!proof.publicSignals.nonce || proof.publicSignals.nonce.length === 0) {
@@ -250,8 +265,12 @@ export function validateNationalityProofConstraints(proof: NationalityProof): {
     errors.push('Invalid nationality code in proof');
   }
 
-  // Check that credential hash is present
-  if (!proof.publicSignals.credentialHash || proof.publicSignals.credentialHash === '0') {
+  // Check that credential hash is a valid numeric string (Poseidon output)
+  if (
+    !proof.publicSignals.credentialHash ||
+    proof.publicSignals.credentialHash === '0' ||
+    !isValidBigIntString(proof.publicSignals.credentialHash)
+  ) {
     errors.push('Missing or invalid credential hash');
   }
   if (!proof.publicSignals.nonce || proof.publicSignals.nonce.length === 0) {
@@ -344,13 +363,21 @@ export function validateAgeProofRevocableConstraints(proof: AgeProofRevocable): 
     errors.push('Invalid minimum age requirement');
   }
 
-  // Check that credential hash is present
-  if (!proof.publicSignals.credentialHash || proof.publicSignals.credentialHash === '0') {
+  // Check that credential hash is a valid numeric string (Poseidon output)
+  if (
+    !proof.publicSignals.credentialHash ||
+    proof.publicSignals.credentialHash === '0' ||
+    !isValidBigIntString(proof.publicSignals.credentialHash)
+  ) {
     errors.push('Missing or invalid credential hash');
   }
 
-  // Check that merkle root is present
-  if (!proof.publicSignals.merkleRoot || proof.publicSignals.merkleRoot === '0') {
+  // Check that merkle root is a valid numeric string
+  if (
+    !proof.publicSignals.merkleRoot ||
+    proof.publicSignals.merkleRoot === '0' ||
+    !isValidBigIntString(proof.publicSignals.merkleRoot)
+  ) {
     errors.push('Missing or invalid merkle root');
   }
 

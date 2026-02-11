@@ -18,11 +18,21 @@ export class RedisChallengeStore implements ChallengeStore {
   constructor(client: RedisClient, options: RedisChallengeStoreOptions = {}) {
     this.client = client;
     this.keyPrefix = options.keyPrefix ?? 'zkid:challenge:';
+
+    if (typeof this.keyPrefix !== 'string' || this.keyPrefix.length === 0) {
+      throw new ZkIdValidationError('keyPrefix must be a non-empty string', 'keyPrefix');
+    }
+    if (this.keyPrefix.length > 128) {
+      throw new ZkIdValidationError('keyPrefix must be at most 128 characters', 'keyPrefix');
+    }
   }
 
   async issue(nonce: string, requestTimestampMs: number, ttlMs: number): Promise<void> {
     if (!nonce || nonce.length === 0) {
       throw new ZkIdValidationError('nonce must be a non-empty string', 'nonce');
+    }
+    if (nonce.length > 512) {
+      throw new ZkIdValidationError('nonce must be at most 512 characters', 'nonce');
     }
     if (!Number.isInteger(requestTimestampMs) || requestTimestampMs <= 0) {
       throw new ZkIdValidationError(
@@ -38,6 +48,9 @@ export class RedisChallengeStore implements ChallengeStore {
   }
 
   async consume(nonce: string): Promise<number | null> {
+    if (!nonce || nonce.length === 0 || nonce.length > 512) {
+      return null;
+    }
     const key = this.keyPrefix + nonce;
 
     // Atomic get-and-delete to prevent double-consume race conditions.
