@@ -14,3 +14,4 @@ typechain-types/
 pot/
 docs/api/
 docs/openapi.yaml
+.astro/

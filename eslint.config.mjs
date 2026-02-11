@@ -69,6 +69,14 @@ export default [
     },
   },
 
+  // Type definition files - allow any for third-party libraries
+  {
+    files: ['**/*.d.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+
   // Circuit JS tests - CommonJS
   {
     files: ['packages/circuits/test/**/*.js'],
