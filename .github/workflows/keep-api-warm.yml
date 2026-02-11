@@ -1,0 +1,23 @@
+name: Keep API Warm
+
+on:
+  schedule:
+    # Run every 14 minutes (within free tier limits)
+    - cron: '*/14 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping API server
+        run: |
+          echo "Pinging API server to keep it warm..."
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://zk-id-1.onrender.com/api/challenge)
+
+          if [ "$response" = "200" ]; then
+            echo "✓ API is warm (HTTP $response)"
+          else
+            echo "⚠ API responded with HTTP $response"
+            exit 1
+          fi
