@@ -70,11 +70,6 @@ describe('InMemoryIssuerKeyManager', () => {
 
     it('should not cross-verify with different key pairs', async () => {
       const otherKeyPair = generateKeyPairSync('ed25519');
-      const otherKeyManager = new InMemoryIssuerKeyManager(
-        'other-issuer',
-        otherKeyPair.privateKey,
-        otherKeyPair.publicKey,
-      );
 
       const payload = Buffer.from('test message');
       const signature = await keyManager.sign(payload);

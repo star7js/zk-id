@@ -7,7 +7,7 @@ import {
   getScenarioById,
   listScenarios,
 } from '../src/scenarios';
-import { expandMultiClaimRequest, ClaimVerificationResult } from '../src/multi-claim';
+import { expandMultiClaimRequest } from '../src/multi-claim';
 
 describe('Verification Scenarios', () => {
   describe('Scenario Definitions', () => {

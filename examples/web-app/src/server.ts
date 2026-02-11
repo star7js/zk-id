@@ -330,7 +330,14 @@ async function main() {
 
   const validateScenarioProofs = (
     scenario: typeof SCENARIOS.VOTING_ELIGIBILITY_US,
-    proofs: Array<{ label?: string; claimType?: string; proof?: any }>,
+    proofs: Array<{
+      label?: string;
+      claimType?: string;
+      proof?: {
+        proofType?: string;
+        publicSignals?: { minAge?: number; targetNationality?: number };
+      };
+    }>,
     requireLabels: boolean,
   ): string | null => {
     if (!proofs || !Array.isArray(proofs) || proofs.length !== scenario.claims.length) {

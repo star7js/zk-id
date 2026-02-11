@@ -1,6 +1,5 @@
 import { expect } from 'chai';
-import { GroupRegistry, Group } from '../src/group-membership';
-import { poseidonHash } from '../src/poseidon';
+import { GroupRegistry } from '../src/group-membership';
 
 describe('Group Membership', () => {
   let registry: GroupRegistry;

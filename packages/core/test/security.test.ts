@@ -9,12 +9,7 @@ import {
   BN128_FIELD_ORDER,
   MIN_NONCE_LENGTH,
   MAX_NONCE_LENGTH,
-  MIN_BIRTH_YEAR,
-  MAX_AGE,
-  MIN_NATIONALITY,
-  MAX_NATIONALITY,
 } from '../src/validation';
-import { constantTimeEqual, constantTimeArrayEqual } from '../src/timing-safe';
 
 describe('Security - Boundary Fuzzing', () => {
   describe('Boundary Fuzzing - Birth Year', () => {

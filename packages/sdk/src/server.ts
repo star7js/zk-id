@@ -1227,11 +1227,15 @@ export class ZkIdServer extends EventEmitter {
   ): Promise<MultiClaimVerificationResult> {
     const startTime = Date.now();
     const requireSigned = this.config.requireSignedCredentials !== false;
+    type LooseClaimProof = { label?: string; claimType?: string; proof?: unknown };
+    const responseProofs = (response as { proofs?: unknown }).proofs;
+    const safeProofs: LooseClaimProof[] = Array.isArray(responseProofs)
+      ? (responseProofs as LooseClaimProof[])
+      : [];
 
     const failAll = (internalError: string): MultiClaimVerificationResult => {
       const error = this.sanitizeError(internalError);
-      const proofs = Array.isArray((response as any)?.proofs) ? (response as any).proofs : [];
-      const results: ClaimVerificationResult[] = proofs.map((proof: any) => {
+      const results: ClaimVerificationResult[] = safeProofs.map((proof) => {
         const claimType = typeof proof?.claimType === 'string' ? proof.claimType : 'unknown';
         const label = typeof proof?.label === 'string' ? proof.label : 'unknown';
         const result: VerificationResult = { verified: false, error };
@@ -1323,13 +1327,12 @@ export class ZkIdServer extends EventEmitter {
       return failAll('Signed credential required');
     }
 
-    const proofs = Array.isArray((response as any).proofs) ? response.proofs : [];
-    if (proofs.length === 0) {
+    if (safeProofs.length === 0) {
       return failAll('No proofs provided');
     }
 
     const results: ClaimVerificationResult[] = [];
-    for (const claim of proofs) {
+    for (const claim of safeProofs) {
       const label = claim.label;
       let internalError: string | undefined;
       let result: VerificationResult | undefined;
@@ -1346,7 +1349,7 @@ export class ZkIdServer extends EventEmitter {
       if (!['age', 'nationality', 'age-revocable'].includes(claim.claimType)) {
         internalError = 'Unknown claim type';
       } else {
-        const proofType = (claim.proof as any)?.proofType;
+        const proofType = (claim.proof as { proofType?: string } | undefined)?.proofType;
         if (proofType && proofType !== claim.claimType) {
           internalError = 'Proof type does not match claim type';
         }
