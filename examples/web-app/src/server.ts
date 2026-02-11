@@ -118,6 +118,73 @@ async function main() {
     });
   });
 
+  // --- Request body shape validators ---
+
+  const isNonEmptyString = (v: unknown): v is string => typeof v === 'string' && v.length > 0;
+
+  /**
+   * Validates that a request body has the shape of a ProofResponse at runtime.
+   * Returns an error string if invalid, null if OK.
+   */
+  const validateProofResponseShape = (body: unknown): string | null => {
+    if (body == null || typeof body !== 'object' || Array.isArray(body)) {
+      return 'Request body must be a JSON object';
+    }
+    const obj = body as Record<string, unknown>;
+
+    if (!isNonEmptyString(obj.claimType)) return 'Missing or invalid claimType';
+    if (!isNonEmptyString(obj.nonce)) return 'Missing or invalid nonce';
+    if (!isNonEmptyString(obj.requestTimestamp)) return 'Missing or invalid requestTimestamp';
+
+    if (obj.proof == null || typeof obj.proof !== 'object' || Array.isArray(obj.proof)) {
+      return 'Missing or invalid proof object';
+    }
+    return null;
+  };
+
+  /**
+   * Validates that a request body has the shape of a MultiClaimResponse at runtime.
+   * Returns an error string if invalid, null if OK.
+   */
+  const validateMultiClaimResponseShape = (body: unknown): string | null => {
+    if (body == null || typeof body !== 'object' || Array.isArray(body)) {
+      return 'Request body must be a JSON object';
+    }
+    const obj = body as Record<string, unknown>;
+
+    if (!isNonEmptyString(obj.nonce)) return 'Missing or invalid nonce';
+    if (!isNonEmptyString(obj.requestTimestamp)) return 'Missing or invalid requestTimestamp';
+    if (!isNonEmptyString(obj.credentialId)) return 'Missing or invalid credentialId';
+
+    if (!Array.isArray(obj.proofs)) return 'proofs must be an array';
+    for (let i = 0; i < obj.proofs.length; i += 1) {
+      const p = obj.proofs[i] as Record<string, unknown> | undefined;
+      if (p == null || typeof p !== 'object') return `proofs[${i}] must be an object`;
+      if (!isNonEmptyString(p.claimType)) return `proofs[${i}].claimType is required`;
+      if (p.proof == null || typeof p.proof !== 'object') return `proofs[${i}].proof is required`;
+    }
+    return null;
+  };
+
+  /**
+   * Validates that a body.proofs is a non-empty array of proof-shaped objects.
+   * Returns an error string if invalid, null if OK.
+   */
+  const validateProofsArrayShape = (body: unknown): string | null => {
+    if (body == null || typeof body !== 'object' || Array.isArray(body)) {
+      return 'Request body must be a JSON object';
+    }
+    const obj = body as Record<string, unknown>;
+    if (!Array.isArray(obj.proofs) || obj.proofs.length === 0) {
+      return 'proofs must be a non-empty array';
+    }
+    for (let i = 0; i < obj.proofs.length; i += 1) {
+      const err = validateProofResponseShape(obj.proofs[i]);
+      if (err) return `proofs[${i}]: ${err}`;
+    }
+    return null;
+  };
+
   // Store issued credentials (in-memory for demo - production would use database)
   const issuedCredentials = new Map<string, SignedCredential>();
 
@@ -132,9 +199,27 @@ async function main() {
     try {
       const { birthYear, nationality, userId } = req.body;
 
-      if (!birthYear || !nationality) {
+      if (birthYear == null || nationality == null) {
         return res.status(400).json({
           error: 'Missing required fields: birthYear, nationality',
+        });
+      }
+
+      if (typeof birthYear !== 'number' || !Number.isInteger(birthYear)) {
+        return res.status(400).json({
+          error: 'birthYear must be an integer',
+        });
+      }
+
+      if (typeof nationality !== 'number' || !Number.isInteger(nationality)) {
+        return res.status(400).json({
+          error: 'nationality must be an integer',
+        });
+      }
+
+      if (userId !== undefined && (typeof userId !== 'string' || userId.length > 256)) {
+        return res.status(400).json({
+          error: 'userId must be a string of at most 256 characters',
         });
       }
 
@@ -168,10 +253,7 @@ async function main() {
       });
     } catch (error) {
       console.error('Error issuing credential:', error);
-      res.status(500).json({
-        error: 'Failed to issue credential',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      });
+      res.status(500).json({ error: 'Failed to issue credential' });
     }
   });
 
@@ -188,15 +270,12 @@ async function main() {
    */
   app.post('/api/verify-age', apiLimiter, async (req, res) => {
     try {
+      const shapeError = validateProofResponseShape(req.body);
+      if (shapeError) {
+        return res.status(400).json({ verified: false, error: shapeError });
+      }
       const proofResponse: ProofResponse = req.body;
       const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
-      if (!proofResponse.nonce || !proofResponse.requestTimestamp) {
-        return res.status(400).json({
-          verified: false,
-          error:
-            'Missing nonce or requestTimestamp. Fetch /api/challenge before generating a proof.',
-        });
-      }
 
       // Verify the proof
       const result = await zkIdServer.verifyProof(
@@ -221,11 +300,7 @@ async function main() {
       }
     } catch (error) {
       console.error('Error verifying proof:', error);
-      res.status(500).json({
-        verified: false,
-        error: 'Failed to verify proof',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      });
+      res.status(500).json({ verified: false, error: 'Failed to verify proof' });
     }
   });
 
@@ -234,15 +309,12 @@ async function main() {
    */
   app.post('/api/verify-nationality', apiLimiter, async (req, res) => {
     try {
+      const shapeError = validateProofResponseShape(req.body);
+      if (shapeError) {
+        return res.status(400).json({ verified: false, error: shapeError });
+      }
       const proofResponse: ProofResponse = req.body;
       const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
-      if (!proofResponse.nonce || !proofResponse.requestTimestamp) {
-        return res.status(400).json({
-          verified: false,
-          error:
-            'Missing nonce or requestTimestamp. Fetch /api/challenge before generating a proof.',
-        });
-      }
 
       // Verify the proof
       const result = await zkIdServer.verifyProof(
@@ -267,11 +339,7 @@ async function main() {
       }
     } catch (error) {
       console.error('Error verifying proof:', error);
-      res.status(500).json({
-        verified: false,
-        error: 'Failed to verify proof',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      });
+      res.status(500).json({ verified: false, error: 'Failed to verify proof' });
     }
   });
 
@@ -282,9 +350,9 @@ async function main() {
     try {
       const { credentialId } = req.body;
 
-      if (!credentialId) {
+      if (!isNonEmptyString(credentialId) || credentialId.length > 256) {
         return res.status(400).json({
-          error: 'Missing credentialId',
+          error: 'credentialId must be a non-empty string (max 256 characters)',
         });
       }
 
@@ -306,10 +374,7 @@ async function main() {
       });
     } catch (error) {
       console.error('Error revoking credential:', error);
-      res.status(500).json({
-        error: 'Failed to revoke credential',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      });
+      res.status(500).json({ error: 'Failed to revoke credential' });
     }
   });
 
@@ -322,10 +387,7 @@ async function main() {
       res.json(info);
     } catch (error) {
       console.error('Error fetching revocation root:', error);
-      res.status(500).json({
-        error: 'Failed to fetch revocation root',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      });
+      res.status(500).json({ error: 'Failed to fetch revocation root' });
     }
   });
 
@@ -388,16 +450,27 @@ async function main() {
         response?: MultiClaimResponse;
       };
 
-      if (!scenarioId || !response) {
+      if (!isNonEmptyString(scenarioId)) {
         return res.status(400).json({
-          error: 'Missing scenarioId or response',
+          error: 'scenarioId must be a non-empty string',
         });
+      }
+
+      if (!response) {
+        return res.status(400).json({
+          error: 'Missing response',
+        });
+      }
+
+      const responseShapeError = validateMultiClaimResponseShape(response);
+      if (responseShapeError) {
+        return res.status(400).json({ error: responseShapeError });
       }
 
       const scenario = getScenarioById(scenarioId);
       if (!scenario) {
         return res.status(404).json({
-          error: `Unknown scenario '${scenarioId}'`,
+          error: 'Unknown scenario',
         });
       }
 
@@ -423,10 +496,7 @@ async function main() {
       });
     } catch (error) {
       console.error('Error verifying scenario:', error);
-      res.status(500).json({
-        error: 'Scenario verification failed',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      });
+      res.status(500).json({ error: 'Scenario verification failed' });
     }
   });
 
@@ -436,6 +506,10 @@ async function main() {
   app.post('/api/verify-voting-eligibility', apiLimiter, async (req, res) => {
     try {
       const scenario = SCENARIOS.VOTING_ELIGIBILITY_US;
+      const proofsShapeError = validateProofsArrayShape(req.body);
+      if (proofsShapeError) {
+        return res.status(400).json({ error: proofsShapeError });
+      }
       const { proofs } = req.body as { proofs: ProofResponse[] };
       const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
 
@@ -474,10 +548,7 @@ async function main() {
       });
     } catch (error) {
       console.error('Error verifying voting eligibility:', error);
-      res.status(500).json({
-        error: 'Verification failed',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      });
+      res.status(500).json({ error: 'Verification failed' });
     }
   });
 
@@ -487,6 +558,10 @@ async function main() {
   app.post('/api/verify-senior-discount', apiLimiter, async (req, res) => {
     try {
       const scenario = SCENARIOS.SENIOR_DISCOUNT;
+      const proofsShapeError = validateProofsArrayShape(req.body);
+      if (proofsShapeError) {
+        return res.status(400).json({ error: proofsShapeError });
+      }
       const { proofs } = req.body as { proofs: ProofResponse[] };
       const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
 
@@ -517,10 +592,7 @@ async function main() {
       });
     } catch (error) {
       console.error('Error verifying senior discount:', error);
-      res.status(500).json({
-        error: 'Verification failed',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      });
+      res.status(500).json({ error: 'Verification failed' });
     }
   });
 
