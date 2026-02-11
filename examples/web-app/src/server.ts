@@ -339,6 +339,23 @@ async function main() {
         });
       }
 
+      // Validate claim types before verification
+      for (let i = 0; i < proofs.length; i += 1) {
+        const expected = scenario.claims[i]?.claimType;
+        const proof = proofs[i];
+        if (!expected || proof.claimType !== expected) {
+          return res.status(400).json({
+            error: `Expected proof ${i + 1} to be '${expected}' for ${scenario.name}`,
+          });
+        }
+        const proofType = (proof as ProofResponse).proof?.proofType;
+        if (proofType && proofType !== expected) {
+          return res.status(400).json({
+            error: `Proof ${i + 1} proofType '${proofType}' does not match claimType '${expected}'`,
+          });
+        }
+      }
+
       // Verify each proof in the scenario
       const results = await Promise.all(
         proofs.map(async (proof) => {
@@ -385,6 +402,20 @@ async function main() {
       if (!proofs || !Array.isArray(proofs) || proofs.length !== scenario.claims.length) {
         return res.status(400).json({
           error: `Expected ${scenario.claims.length} proof for ${scenario.name}`,
+        });
+      }
+
+      // Validate claim type before verification
+      const expected = scenario.claims[0]?.claimType;
+      if (!expected || proofs[0].claimType !== expected) {
+        return res.status(400).json({
+          error: `Expected proof to be '${expected}' for ${scenario.name}`,
+        });
+      }
+      const proofType = proofs[0].proof?.proofType;
+      if (proofType && proofType !== expected) {
+        return res.status(400).json({
+          error: `Proof proofType '${proofType}' does not match claimType '${expected}'`,
         });
       }
 

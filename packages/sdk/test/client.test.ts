@@ -6,6 +6,7 @@ import {
   ZkIdConfigError,
   ZkIdCredentialError,
   ZkIdProofError,
+  VerificationScenario,
 } from '@zk-id/core';
 
 describe('SDK Client Tests', () => {
@@ -540,6 +541,54 @@ describe('SDK Client Tests', () => {
         const result = await client.verifyNationality(840);
 
         expect(result).to.be.false;
+      });
+    });
+
+    describe('verifyScenario()', () => {
+      it('uses distinct nonces per claim to avoid replay', async () => {
+        const capturedRequests: ProofRequest[] = [];
+        const scenario: VerificationScenario = {
+          id: 'test-scenario',
+          name: 'Test Scenario',
+          description: 'Age + nationality',
+          claims: [
+            { label: 'age-18', claimType: 'age', minAge: 18 },
+            { label: 'us-citizen', claimType: 'nationality', targetNationality: 840 },
+          ],
+        };
+
+        const mockWallet: WalletConnector = {
+          isAvailable: async () => true,
+          requestProof: async (req) => {
+            capturedRequests.push(req);
+            return {
+              credentialId: 'test-cred',
+              claimType: req.claimType,
+              proof: {} as any,
+              signedCredential: mockSignedCredential,
+              nonce: req.nonce,
+              requestTimestamp: req.timestamp,
+            };
+          },
+        };
+
+        (global as any).fetch = async (_url: string, _options: any) => ({
+          ok: true,
+          json: async () => ({ verified: true }),
+          statusText: 'OK',
+        });
+
+        const client = new ZkIdClient({
+          verificationEndpoint: 'http://localhost:3000/verify',
+          walletConnector: mockWallet,
+        });
+
+        const result = await client.verifyScenario(scenario);
+        expect(result).to.be.true;
+        expect(capturedRequests).to.have.lengthOf(2);
+        expect(capturedRequests[0].nonce).to.not.equal(capturedRequests[1].nonce);
+        expect(capturedRequests[0].claimType).to.equal('age');
+        expect(capturedRequests[1].claimType).to.equal('nationality');
       });
     });
 

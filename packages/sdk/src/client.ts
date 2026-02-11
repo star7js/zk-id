@@ -25,8 +25,6 @@ import {
   ZkIdProofError,
   ZkIdError,
   VerificationScenario,
-  createScenarioRequest,
-  expandMultiClaimRequest,
 } from '@zk-id/core';
 
 export interface ZkIdClientConfig {
@@ -169,20 +167,26 @@ export class ZkIdClient {
    * Creates a multi-claim request from the scenario, generates proofs for each
    * claim, submits them, and returns true only if all pass.
    *
+   * Note: Each claim is verified independently with its own nonce to avoid
+   * replay protection failures on servers that enforce nonce uniqueness.
+   *
    * @param scenario - The verification scenario to verify
    * @returns true if all scenario claims verify successfully, false otherwise
    */
   async verifyScenario(scenario: VerificationScenario): Promise<boolean> {
     try {
-      // Create multi-claim request from scenario
-      const nonce = this.generateNonce();
-      const multiClaimRequest = createScenarioRequest(scenario, nonce);
+      const timestamp = new Date().toISOString();
 
-      // Expand into individual proof requests
-      const expandedRequests = expandMultiClaimRequest(multiClaimRequest);
+      // Generate and verify each proof with its own nonce
+      for (const claim of scenario.claims) {
+        const proofRequest: ProofRequest = {
+          claimType: claim.claimType,
+          minAge: claim.minAge,
+          targetNationality: claim.targetNationality,
+          nonce: this.generateNonce(),
+          timestamp,
+        };
 
-      // Generate and verify each proof
-      for (const { proofRequest } of expandedRequests) {
         // Get proof from wallet (or generate locally)
         const proofResponse = await this.requestProof(proofRequest);
 
