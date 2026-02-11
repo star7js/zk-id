@@ -6,7 +6,7 @@ services:
     plan: free
     branch: main
     buildCommand: npm ci && npm run build:core && npm run build --workspace=@zk-id/example-web-app
-    startCommand: cd examples/web-app && node dist/server.js
+    startCommand: npm start --workspace=@zk-id/example-web-app
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
