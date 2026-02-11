@@ -251,11 +251,44 @@ export class FileKeyManager implements IssuerKeyManager {
   ): FileKeyManager {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const fs = require('fs');
-    const privateKeyPem = fs.readFileSync(privateKeyPath, 'utf8');
-    const publicKeyPem = fs.readFileSync(publicKeyPath, 'utf8');
 
-    const privateKey = createPrivateKey(privateKeyPem);
-    const publicKey = createPublicKey(publicKeyPem);
+    let privateKeyPem: string;
+    try {
+      privateKeyPem = fs.readFileSync(privateKeyPath, 'utf8');
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      throw new ZkIdCryptoError(
+        `Failed to read private key file "${privateKeyPath}": ${code === 'ENOENT' ? 'file not found' : code === 'EACCES' ? 'permission denied' : String(err)}`,
+      );
+    }
+
+    let publicKeyPem: string;
+    try {
+      publicKeyPem = fs.readFileSync(publicKeyPath, 'utf8');
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      throw new ZkIdCryptoError(
+        `Failed to read public key file "${publicKeyPath}": ${code === 'ENOENT' ? 'file not found' : code === 'EACCES' ? 'permission denied' : String(err)}`,
+      );
+    }
+
+    let privateKey: KeyObject;
+    try {
+      privateKey = createPrivateKey(privateKeyPem);
+    } catch (err) {
+      throw new ZkIdCryptoError(
+        `Failed to parse private key from "${privateKeyPath}": ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
+    let publicKey: KeyObject;
+    try {
+      publicKey = createPublicKey(publicKeyPem);
+    } catch (err) {
+      throw new ZkIdCryptoError(
+        `Failed to parse public key from "${publicKeyPath}": ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
 
     // Validate key type
     if (privateKey.asymmetricKeyType !== 'ed25519') {
