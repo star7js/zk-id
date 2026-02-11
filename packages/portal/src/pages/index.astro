@@ -1,0 +1,246 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout>
+  <div class="container">
+    <header class="hero">
+      <div class="hero-badge">CLIENT-SIDE ZK PROOFS</div>
+      <h1>ZK-ID</h1>
+      <p class="hero-subtitle">
+        Privacy-Preserving Identity Verification with Zero-Knowledge Proofs
+      </p>
+      <div class="hero-actions">
+        <a href="/quick-start" class="btn btn-primary">Get Started</a>
+        <a href="/playground" class="btn btn-secondary">Try Playground</a>
+      </div>
+    </header>
+
+    <div class="privacy-banner">
+      <div class="privacy-icon">🔒</div>
+      <div class="privacy-content">
+        <h3>Your Data Never Leaves Your Browser</h3>
+        <p>
+          All proofs are generated locally on your device. Your birth year, nationality, and
+          credential data remain completely private. Only the zero-knowledge proof is transmitted
+          to the server for verification.
+        </p>
+      </div>
+    </div>
+
+    <section class="features">
+      <h2>Features</h2>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🎯</div>
+          <h3>Selective Disclosure</h3>
+          <p>Prove you're 18+ without revealing your exact birth year. Verify citizenship without exposing other attributes.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <h3>Browser-Based Proofs</h3>
+          <p>Generate ZK proofs entirely in the browser using snarkjs. No server round-trips for proof generation.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔐</div>
+          <h3>Production-Ready Security</h3>
+          <p>Groth16 ZK-SNARKs with trusted setup from Powers of Tau. Poseidon hash-based credentials.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📦</div>
+          <h3>TypeScript SDK</h3>
+          <p>Simple integration with TypeScript, Python, and Go SDKs. RESTful API for verification.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="quick-links">
+      <h2>Quick Links</h2>
+      <div class="link-grid">
+        <a href="/quick-start" class="link-card">
+          <h3>🚀 Quick Start</h3>
+          <p>Interactive 4-step guide to issue credentials and generate proofs in under 5 minutes</p>
+        </a>
+        <a href="/playground" class="link-card">
+          <h3>🎮 Playground</h3>
+          <p>Live sandbox for generating ZK proofs in your browser</p>
+        </a>
+        <a href="/api-reference" class="link-card">
+          <h3>📖 API Reference</h3>
+          <p>Complete API documentation with TypeScript, Python, and Go examples</p>
+        </a>
+        <a href="/docs" class="link-card">
+          <h3>📚 Documentation</h3>
+          <p>Architecture, protocol details, compliance, and deployment guides</p>
+        </a>
+      </div>
+    </section>
+  </div>
+
+  <style>
+    .hero {
+      text-align: center;
+      margin-bottom: 80px;
+      padding-top: 60px;
+      animation: fadeInDown 0.8s ease-out;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      padding: 6px 14px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-medium);
+      border-radius: 20px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent-client);
+      margin-bottom: 24px;
+      letter-spacing: 0.5px;
+    }
+
+    .hero h1 {
+      margin-bottom: 16px;
+    }
+
+    .hero-subtitle {
+      font-size: 20px;
+      color: var(--text-primary);
+      font-weight: 300;
+      max-width: 600px;
+      margin: 0 auto 40px;
+      opacity: 0.8;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+    }
+
+    .privacy-banner {
+      background: rgba(16, 185, 129, 0.1);
+      border: 2px solid var(--accent-client);
+      border-radius: 12px;
+      padding: 24px 32px;
+      margin-bottom: 60px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      animation: fadeIn 0.8s ease-out 0.3s both;
+    }
+
+    .privacy-icon {
+      font-size: 32px;
+      flex-shrink: 0;
+    }
+
+    .privacy-content h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .privacy-content p {
+      font-size: 14px;
+      line-height: 1.5;
+      opacity: 0.9;
+    }
+
+    .features {
+      margin-bottom: 60px;
+    }
+
+    .features h2 {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 32px;
+      transition: all 0.3s ease;
+    }
+
+    .feature-card:hover {
+      border-color: var(--border-medium);
+      transform: translateY(-4px);
+    }
+
+    .feature-icon {
+      font-size: 40px;
+      margin-bottom: 16px;
+    }
+
+    .feature-card h3 {
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+
+    .feature-card p {
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .quick-links {
+      margin-bottom: 60px;
+    }
+
+    .quick-links h2 {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .link-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 24px;
+    }
+
+    .link-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 32px;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: block;
+    }
+
+    .link-card:hover {
+      border-color: var(--accent-client);
+      transform: translateY(-4px);
+    }
+
+    .link-card h3 {
+      font-size: 20px;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+    }
+
+    .link-card p {
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 768px) {
+      .hero-actions {
+        flex-direction: column;
+      }
+
+      .feature-grid,
+      .link-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</BaseLayout>

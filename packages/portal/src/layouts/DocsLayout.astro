@@ -1,0 +1,265 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+
+// Get all docs and group by category
+const allDocs = await getCollection('docs');
+const docsByCategory = allDocs.reduce((acc, doc) => {
+  const category = doc.data.category;
+  if (!acc[category]) {
+    acc[category] = [];
+  }
+  acc[category].push(doc);
+  return acc;
+}, {} as Record<string, typeof allDocs>);
+
+// Sort docs within each category by order
+Object.keys(docsByCategory).forEach(category => {
+  docsByCategory[category].sort((a, b) => a.data.order - b.data.order);
+});
+
+const categories = ['Getting Started', 'Architecture', 'Security', 'Operations', 'Development', 'Reference'];
+---
+
+<BaseLayout title={title} description={description}>
+  <div class="docs-container">
+    <aside class="docs-sidebar">
+      <nav class="sidebar-nav">
+        {categories.map(category => {
+          const docs = docsByCategory[category] || [];
+          if (docs.length === 0) return null;
+
+          return (
+            <div class="sidebar-section">
+              <h3 class="sidebar-category">{category}</h3>
+              <ul class="sidebar-links">
+                {docs.map(doc => (
+                  <li>
+                    <a href={`/docs/${doc.slug}`} class={Astro.url.pathname.includes(doc.slug) ? 'active' : ''}>
+                      {doc.data.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
+      </nav>
+    </aside>
+
+    <main class="docs-content">
+      <article class="prose">
+        <slot />
+      </article>
+    </main>
+  </div>
+
+  <style>
+    .docs-container {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 60px;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 40px 32px;
+    }
+
+    .docs-sidebar {
+      position: sticky;
+      top: 80px;
+      height: fit-content;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+    }
+
+    .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    .sidebar-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .sidebar-category {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    .sidebar-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .sidebar-links a {
+      display: block;
+      padding: 6px 12px;
+      border-radius: 6px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .sidebar-links a:hover {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+    }
+
+    .sidebar-links a.active {
+      background: var(--accent-client-glow);
+      color: var(--accent-client);
+      font-weight: 500;
+    }
+
+    .docs-content {
+      min-width: 0;
+    }
+
+    .prose {
+      max-width: 800px;
+    }
+
+    /* Prose styling */
+    .prose :global(h1) {
+      font-size: 42px;
+      margin-bottom: 24px;
+      margin-top: 0;
+    }
+
+    .prose :global(h2) {
+      font-size: 32px;
+      margin-top: 48px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .prose :global(h3) {
+      font-size: 24px;
+      margin-top: 32px;
+      margin-bottom: 12px;
+    }
+
+    .prose :global(h4) {
+      font-size: 18px;
+      margin-top: 24px;
+      margin-bottom: 8px;
+    }
+
+    .prose :global(p) {
+      margin-bottom: 16px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+    }
+
+    .prose :global(ul),
+    .prose :global(ol) {
+      margin-bottom: 16px;
+      padding-left: 24px;
+      color: var(--text-secondary);
+    }
+
+    .prose :global(li) {
+      margin-bottom: 8px;
+      line-height: 1.7;
+    }
+
+    .prose :global(a) {
+      color: var(--accent-client);
+      text-decoration: underline;
+      text-decoration-color: rgba(16, 185, 129, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    .prose :global(a:hover) {
+      text-decoration-color: var(--accent-client);
+    }
+
+    .prose :global(table) {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+      font-size: 14px;
+    }
+
+    .prose :global(th) {
+      background: var(--bg-elevated);
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .prose :global(td) {
+      padding: 12px;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+    }
+
+    .prose :global(tr:hover) {
+      background: var(--bg-elevated);
+    }
+
+    .prose :global(blockquote) {
+      border-left: 4px solid var(--accent-client);
+      padding: 16px 20px;
+      margin: 24px 0;
+      background: rgba(16, 185, 129, 0.05);
+      border-radius: 4px;
+    }
+
+    .prose :global(blockquote p) {
+      margin: 0;
+    }
+
+    .prose :global(hr) {
+      border: none;
+      border-top: 1px solid var(--border-subtle);
+      margin: 40px 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .docs-container {
+        grid-template-columns: 1fr;
+        gap: 32px;
+      }
+
+      .docs-sidebar {
+        position: static;
+        max-height: none;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .docs-container {
+        padding: 40px 20px;
+      }
+
+      .prose :global(h1) {
+        font-size: 32px;
+      }
+
+      .prose :global(h2) {
+        font-size: 24px;
+      }
+    }
+  </style>
+</BaseLayout>

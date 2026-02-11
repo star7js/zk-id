@@ -16,6 +16,7 @@ export default [
       '**/artifacts/',
       '**/typechain-types/',
       '**/docs/api/',
+      'packages/portal/',
     ],
   },
 

@@ -60,6 +60,25 @@ Current age verification systems force users to expose sensitive information:
 
 ## Quick Start
 
+### 🎮 Try the Interactive Portal
+
+Experience ZK-ID in your browser with our developer portal:
+
+```bash
+# Start the demo server
+npm run dev
+
+# In a separate terminal, start the portal
+npm run portal:dev
+```
+
+Then visit http://localhost:4321 for:
+
+- **Quick Start** - Interactive 4-step guide (< 5 minutes)
+- **Playground** - Live sandbox for ZK proof generation
+- **API Reference** - Complete documentation
+- **Docs** - Comprehensive guides
+
 ### Try the Demo
 
 The fastest way to see zk-id in action:

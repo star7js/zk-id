@@ -1,0 +1,185 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'ZK-ID · Privacy-Preserving Identity Verification',
+  description = 'Zero-knowledge proof-based identity verification for privacy-preserving age and nationality verification'
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <nav class="navbar">
+      <div class="navbar-container">
+        <a href="/" class="navbar-logo">
+          <span class="logo-icon">🔐</span>
+          <span class="logo-text">ZK-ID</span>
+        </a>
+        <div class="navbar-links">
+          <a href="/quick-start">Quick Start</a>
+          <a href="/playground">Playground</a>
+          <a href="/api-reference">API Reference</a>
+          <a href="/docs">Documentation</a>
+          <a href="https://github.com/star7js/zk-id" target="_blank" rel="noopener" class="btn-secondary">
+            GitHub
+          </a>
+        </div>
+      </div>
+    </nav>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="footer">
+      <div class="footer-container">
+        <div class="footer-left">
+          <p>&copy; {new Date().getFullYear()} ZK-ID. Licensed under Apache-2.0.</p>
+        </div>
+        <div class="footer-links">
+          <a href="https://github.com/star7js/zk-id" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://github.com/star7js/zk-id/issues" target="_blank" rel="noopener">Issues</a>
+          <a href="/docs/contributing">Contributing</a>
+        </div>
+      </div>
+    </footer>
+
+    <style>
+      /* Navbar */
+      .navbar {
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border-subtle);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        backdrop-filter: blur(10px);
+      }
+
+      .navbar-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 16px 32px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .navbar-logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-primary);
+        text-decoration: none;
+      }
+
+      .logo-icon {
+        font-size: 24px;
+      }
+
+      .navbar-links {
+        display: flex;
+        align-items: center;
+        gap: 32px;
+      }
+
+      .navbar-links a {
+        color: var(--text-secondary);
+        font-weight: 500;
+        font-size: 15px;
+        text-decoration: none;
+        transition: color 0.2s ease;
+      }
+
+      .navbar-links a:hover {
+        color: var(--text-primary);
+      }
+
+      .navbar-links .btn-secondary {
+        padding: 8px 16px;
+        font-size: 14px;
+      }
+
+      /* Footer */
+      .footer {
+        background: var(--bg-secondary);
+        border-top: 1px solid var(--border-subtle);
+        margin-top: 80px;
+      }
+
+      .footer-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .footer-left p {
+        color: var(--text-muted);
+        font-size: 14px;
+      }
+
+      .footer-links {
+        display: flex;
+        gap: 24px;
+      }
+
+      .footer-links a {
+        color: var(--text-secondary);
+        font-size: 14px;
+        text-decoration: none;
+        transition: color 0.2s ease;
+      }
+
+      .footer-links a:hover {
+        color: var(--text-primary);
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .navbar-container {
+          padding: 16px 20px;
+        }
+
+        .navbar-links {
+          gap: 20px;
+          font-size: 14px;
+        }
+
+        .footer-container {
+          flex-direction: column;
+          gap: 20px;
+          text-align: center;
+        }
+
+        .footer-links {
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+      }
+    </style>
+  </body>
+</html>

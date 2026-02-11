@@ -7,6 +7,7 @@ build/
 *.tsbuildinfo
 .claude/
 packages/*/test/**/*.d.ts
+packages/portal/dist/
 
 # Circuit build artifacts - built in CI
 packages/circuits/build/

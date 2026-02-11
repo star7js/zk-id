@@ -1,0 +1,83 @@
+---
+import { getCollection } from 'astro:content';
+import DocsLayout from '../../layouts/DocsLayout.astro';
+
+const allDocs = await getCollection('docs');
+const docsByCategory = allDocs.reduce((acc, doc) => {
+  const category = doc.data.category;
+  if (!acc[category]) {
+    acc[category] = [];
+  }
+  acc[category].push(doc);
+  return acc;
+}, {} as Record<string, typeof allDocs>);
+
+Object.keys(docsByCategory).forEach(category => {
+  docsByCategory[category].sort((a, b) => a.data.order - b.data.order);
+});
+
+const categories = ['Getting Started', 'Architecture', 'Security', 'Operations', 'Development', 'Reference'];
+---
+
+<DocsLayout title="Documentation" description="Complete documentation for ZK-ID">
+  <h1>Documentation</h1>
+  <p style="color: var(--text-secondary); font-size: 18px; margin-bottom: 40px;">
+    Comprehensive guides and references for building privacy-preserving identity verification with ZK-ID.
+  </p>
+
+  {categories.map(category => {
+    const docs = docsByCategory[category] || [];
+    if (docs.length === 0) return null;
+
+    return (
+      <section class="doc-category" style="margin-bottom: 48px;">
+        <h2>{category}</h2>
+        <div class="doc-grid">
+          {docs.map(doc => (
+            <a href={`/docs/${doc.slug}`} class="doc-card">
+              <h3>{doc.data.title}</h3>
+              <p>{doc.data.description}</p>
+            </a>
+          ))}
+        </div>
+      </section>
+    );
+  })}
+
+  <style>
+    .doc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      margin-top: 24px;
+    }
+
+    .doc-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 24px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      display: block;
+    }
+
+    .doc-card:hover {
+      border-color: var(--accent-client);
+      transform: translateY(-2px);
+    }
+
+    .doc-card h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .doc-card p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin: 0;
+    }
+  </style>
+</DocsLayout>

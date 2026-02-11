@@ -33,7 +33,10 @@
     "fresh": "npm run clean && rm -rf node_modules package-lock.json && npm install && npm run build",
     "start": "npm start --workspace=@zk-id/example-web-app",
     "dev": "npm run dev --workspace=@zk-id/example-web-app",
-    "docs": "typedoc"
+    "docs": "typedoc",
+    "portal:dev": "npm run dev --workspace=@zk-id/portal",
+    "portal:build": "npm run build --workspace=@zk-id/portal",
+    "portal:preview": "npm run preview --workspace=@zk-id/portal"
   },
   "keywords": [
     "zero-knowledge",

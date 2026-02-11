@@ -1,27 +1,13 @@
+---
+title: 'Getting Started'
+description: 'This guide walks you through everything you need to know to integrate zk-id into your application, from initial setup to production deployment.'
+category: 'Getting Started'
+order: 1
+---
+
 # Getting Started with zk-id
 
 This guide walks you through everything you need to know to integrate zk-id into your application, from initial setup to production deployment.
-
-## 🎮 Interactive Quick Start
-
-**New!** Try our interactive quick start guide in the developer portal:
-
-```bash
-# Start the demo server
-npm run dev
-
-# In a separate terminal, start the portal
-npm run portal:dev
-```
-
-Visit http://localhost:4321/quick-start for a guided 4-step experience (< 5 minutes) that:
-
-- Issues a credential
-- Generates a zero-knowledge proof in your browser
-- Verifies the proof
-- Shows exactly what stays private and what gets revealed
-
-Continue reading below for detailed integration instructions.
 
 ## Table of Contents
 

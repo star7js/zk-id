@@ -1,0 +1,1011 @@
+---
+title: 'Protocol Specification'
+description: 'This document specifies the zk-id protocol for privacy-preserving identity verification.'
+category: 'Architecture'
+order: 11
+---
+
+# zk-id Protocol Specification
+
+This document specifies the zk-id protocol for privacy-preserving identity verification.
+
+## Version
+
+**Protocol Version**: zk-id/1.0-draft
+**Status**: Draft / Experimental
+**Last Updated**: 2026-02-08
+
+## Protocol Versioning
+
+The zk-id protocol uses semantic versioning for wire-format compatibility, decoupled from npm package versions.
+
+**Format**: `zk-id/<major>.<minor>[-suffix]`
+
+**Version Components:**
+
+- **Major version**: Incremented for breaking protocol changes (incompatible proof structures, public signals format changes)
+- **Minor version**: Incremented for backward-compatible additions (new claim types, optional fields)
+- **Suffix**: Pre-release indicators (`-draft`, `-rc1`, etc.)
+
+**Compatibility Rules:**
+
+- Implementations with the same major version MUST be compatible
+- Minor version differences SHOULD be handled gracefully
+- Clients and servers communicate protocol version via the `X-ZkId-Protocol-Version` HTTP header
+- Browser clients should note that this custom header may trigger CORS preflight requests.
+  - The SDK defaults to sending the header only for same-origin endpoints.
+  - For cross-origin verification endpoints, either allow the header in CORS or set `protocolVersionHeader: "always"` in the SDK config.
+- Servers may reject incompatible protocol versions with `400` (recommended for demo and strict deployments).
+- Server SDKs can enforce this with `protocolVersionPolicy: "strict" | "warn" | "off"`.
+
+**Compatibility Checking:**
+
+```typescript
+import { PROTOCOL_VERSION, isProtocolCompatible } from '@zk-id/core';
+
+// Check if two versions are compatible
+const compatible = isProtocolCompatible('zk-id/1.0-draft', 'zk-id/1.2');
+// Returns true (same major version)
+```
+
+**Version History:**
+
+| Version         | Date       | Status | Changes                                                                             |
+| --------------- | ---------- | ------ | ----------------------------------------------------------------------------------- |
+| zk-id/1.0-draft | 2026-02-08 | Active | Initial protocol specification with age, nationality, and age-revocable claim types |
+
+### Deprecation Policy
+
+Protocol versions follow a three-stage lifecycle: **Active**, **Deprecated**, and **Sunset**.
+
+**Lifecycle Stages:**
+
+| Stage          | Meaning                                                      | Server Behavior                                                      |
+| -------------- | ------------------------------------------------------------ | -------------------------------------------------------------------- |
+| **Active**     | Fully supported; clients and servers should use this version | Normal processing                                                    |
+| **Deprecated** | Still functional but scheduled for removal                   | Respond normally but include `Deprecation` and `Sunset` HTTP headers |
+| **Sunset**     | No longer accepted by conforming servers                     | Reject with `400 Gone` or `410 Gone`                                 |
+
+**Deprecation Rules:**
+
+1. **Minimum deprecation window**: At least 90 days must pass between a deprecation announcement and the sunset date.
+2. **Recommended migration lead time**: Clients should begin migration at least 60 days before the sunset date.
+3. **Announcement**: Deprecation is announced via:
+   - An update to the `DEPRECATION_SCHEDULE` in `@zk-id/core` (machine-readable)
+   - A changelog entry and release note
+   - HTTP response headers on affected endpoints
+4. **Successor**: Every deprecated version must specify a successor version that clients should migrate to.
+
+**HTTP Headers for Deprecation Signaling:**
+
+Servers using `@zk-id/sdk` automatically include deprecation headers when a client sends a deprecated protocol version. Headers follow [RFC 8594](https://www.rfc-editor.org/rfc/rfc8594) and the [IETF Deprecation draft](https://datatracker.ietf.org/doc/draft-ietf-httpapi-deprecation-header/).
+
+| Header        | Value                           | When                                  |
+| ------------- | ------------------------------- | ------------------------------------- |
+| `Deprecation` | ISO 8601 date of deprecation    | Deprecated or Sunset                  |
+| `Sunset`      | ISO 8601 date of sunset         | Deprecated or Sunset                  |
+| `Link`        | `<migration-url>; rel="sunset"` | When migration docs URL is configured |
+
+**Programmatic Usage:**
+
+```typescript
+import {
+  getVersionStatus,
+  isVersionDeprecated,
+  isVersionSunset,
+  buildDeprecationHeaders,
+  DEPRECATION_SCHEDULE,
+} from '@zk-id/core';
+
+// Check if a client's version is deprecated
+const entry = getVersionStatus(clientVersion);
+if (entry && isVersionDeprecated(clientVersion)) {
+  const headers = buildDeprecationHeaders(entry, 'https://docs.example.com/migrate');
+  // Add headers to HTTP response
+}
+
+// Reject sunset versions
+if (isVersionSunset(clientVersion)) {
+  return res.status(410).json({ error: 'Protocol version has been sunset' });
+}
+```
+
+**Current Deprecation Schedule:**
+
+| Version         | Status | Deprecated | Sunset | Successor |
+| --------------- | ------ | ---------- | ------ | --------- |
+| zk-id/1.0-draft | Active | -          | -      | -         |
+
+## Goals
+
+1. **Privacy**: Users prove eligibility without revealing personal data
+2. **Security**: Proofs cannot be forged or reused maliciously
+3. **Simplicity**: Easy integration for websites
+4. **Performance**: Fast verification (<100ms)
+5. **Decentralization**: No single point of failure or trust
+
+## Actors
+
+### Issuer
+
+A trusted entity that verifies user identities and issues credentials.
+
+**Examples**: Government identity services, banks, trusted identity providers
+
+**Responsibilities:**
+
+- Verify user identity through KYC/ID documents
+- Issue signed credentials containing verified attributes with Ed25519 signatures
+- Manage signing keys securely
+- Maintain audit logs
+- Handle credential revocation through revocation store
+
+### User (Prover)
+
+An individual who holds a credential and generates zero-knowledge proofs.
+
+**Responsibilities:**
+
+- Obtain credential from issuer
+- Store credential securely
+- Generate proofs when requested
+- Protect private keys and salt values
+
+### Verifier
+
+A website or service that requests and verifies proofs.
+
+**Responsibilities:**
+
+- Request specific proofs (e.g., "prove age >= 18")
+- Verify proofs cryptographically
+- Implement replay protection
+- Respect user privacy
+
+## Data Structures
+
+### Credential
+
+```typescript
+{
+  id: string; // Unique credential identifier (UUID)
+  birthYear: number; // Private: user's birth year (e.g., 1995)
+  nationality: number; // Private: ISO 3166-1 numeric code (e.g., 840 for USA)
+  salt: string; // Private: random 256-bit value (hex)
+  commitment: string; // Public: Poseidon(birthYear, nationality, salt)
+  createdAt: string; // ISO 8601 timestamp
+}
+```
+
+**Privacy Properties:**
+
+- `birthYear`, `nationality`, and `salt` are private, never shared
+- `commitment` is public and can be shared freely
+- `commitment` binds all credential attributes without revealing them
+- Different proof circuits enable selective disclosure of attributes
+
+### Signed Credential
+
+```typescript
+{
+  credential: Credential;
+  issuer: string; // Issuer identifier (name or DID)
+  signature: string; // Issuer's Ed25519 signature over commitment
+  issuedAt: string; // ISO 8601 timestamp
+}
+```
+
+**Signature**: Ed25519 (EdDSA) signatures provide production-grade asymmetric cryptography for credential authentication.
+
+### Proof Request
+
+```typescript
+{
+  claimType: 'age' | 'nationality' | 'age-revocable';  // Type of claim to prove
+  minAge?: number;                    // For age claims (e.g., 18, 21)
+  targetNationality?: number;         // For nationality claims (ISO 3166-1 code)
+  nonce: string;                      // 128-bit random value (hex)
+  timestamp: string;                  // ISO 8601 timestamp
+}
+```
+
+**Replay Protection:**
+
+- `nonce` must be unique and validated by verifier
+- `timestamp` can be checked to reject old requests
+
+### Age Proof
+
+```typescript
+{
+  proof: {
+    pi_a: string[];        // Groth16 proof component A
+    pi_b: string[][];      // Groth16 proof component B
+    pi_c: string[];        // Groth16 proof component C
+    protocol: 'groth16';
+    curve: 'bn128';
+  };
+  publicSignals: {
+    currentYear: number;   // Year used in proof (e.g., 2024)
+    minAge: number;        // Minimum age requirement (e.g., 18)
+    credentialHash: string; // Public credential commitment
+  };
+}
+```
+
+**Selective Disclosure:** Nationality is included in the credential hash computation but not revealed in the proof.
+
+### Nationality Proof
+
+```typescript
+{
+  proof: {
+    pi_a: string[];        // Groth16 proof component A
+    pi_b: string[][];      // Groth16 proof component B
+    pi_c: string[];        // Groth16 proof component C
+    protocol: 'groth16';
+    curve: 'bn128';
+  };
+  publicSignals: {
+    targetNationality: number;  // Nationality being proven (ISO 3166-1 code)
+    credentialHash: string;     // Public credential commitment
+  };
+}
+```
+
+**Selective Disclosure:** Birth year is included in the credential hash computation but not revealed in the proof.
+
+### Age Proof (Revocable)
+
+```typescript
+{
+  proof: {
+    pi_a: string[];        // Groth16 proof component A
+    pi_b: string[][];      // Groth16 proof component B
+    pi_c: string[];        // Groth16 proof component C
+    protocol: 'groth16';
+    curve: 'bn128';
+  };
+  publicSignals: {
+    currentYear: number;   // Year used in proof (e.g., 2026)
+    minAge: number;        // Minimum age requirement (e.g., 18)
+    credentialHash: string; // Public credential commitment
+    nonce: string;         // Replay protection nonce
+    requestTimestamp: number; // Request timestamp (Unix ms)
+    merkleRoot: string;    // Root of valid credentials Merkle tree
+  };
+}
+```
+
+**Revocation Support:** The `merkleRoot` public signal binds the proof to a specific state of the valid credentials tree, enabling privacy-preserving revocation checks.
+
+**Root Distribution:** See the _Revocation Root Distribution_ section below for versioning, TTL, and freshness rules.
+
+**Storage Implementations:** The SDK includes a Postgres-backed `ValidCredentialTree` implementation for production deployments.
+
+### Proof Response
+
+```typescript
+{
+  credentialId: string; // ID of credential used
+  claimType: string; // Type of claim proven ('age', 'nationality', 'age-revocable')
+  proof: AgeProof | NationalityProof | AgeProofRevocable; // The zero-knowledge proof
+  signedCredential: SignedCredential | CircuitSignedCredential; // Issuer-signed credential
+  nonce: string; // From the request (replay protection)
+  requestTimestamp: string; // ISO 8601 timestamp from request
+}
+```
+
+### Verification Result
+
+```typescript
+{
+  verified: boolean;         // True if proof is valid
+  claimType?: string;        // Type of claim verified
+  minAge?: number;           // Minimum age proven (for age claims)
+  targetNationality?: number; // Nationality proven (for nationality claims)
+  error?: string;            // Error message if verification failed
+  protocolVersion?: string;  // Protocol version used for verification (e.g., "zk-id/1.0-draft")
+}
+```
+
+## Protocol Flows
+
+### 1. Credential Issuance
+
+```
+┌──────┐                                    ┌────────┐
+│ User │                                    │ Issuer │
+└──────┘                                    └────────┘
+    │                                            │
+    │  1. Request credential + identity proof    │
+    ├───────────────────────────────────────────>│
+    │                                            │
+    │                        2. Verify identity  │
+    │                           (KYC, ID check)  │
+    │                                            │
+    │  3. Signed credential                      │
+    │<───────────────────────────────────────────┤
+    │                                            │
+```
+
+**Steps:**
+
+1. User requests credential from issuer, provides identity proof (ID document, biometrics, etc.)
+2. Issuer verifies user's identity through KYC process
+3. Issuer extracts birth year and nationality from verified ID
+4. Issuer generates credential:
+   ```typescript
+   salt = randomBytes(32);
+   commitment = Poseidon(birthYear, nationality, salt);
+   credential = { id, birthYear, nationality, salt, commitment, createdAt };
+   signature = Sign(issuer.privateKey, commitment);
+   signedCredential = { credential, issuer, signature, issuedAt };
+   ```
+5. Issuer returns signed credential to user
+6. User stores credential securely (encrypted storage, wallet app)
+
+**Security Considerations:**
+
+- Issuer must verify identity thoroughly (real-world ID, biometrics)
+- Signing key must be protected (HSM, KMS)
+- All issuance events should be logged for audit
+
+### 2. Age Verification
+
+```
+┌──────┐                                    ┌──────────┐
+│ User │                                    │ Verifier │
+└──────┘                                    └──────────┘
+    │                                            │
+    │  1. Access age-restricted content          │
+    ├───────────────────────────────────────────>│
+    │                                            │
+    │  2. Proof request (minAge, nonce)          │
+    │<───────────────────────────────────────────┤
+    │                                            │
+    │  3. Generate ZK proof locally              │
+    │                                            │
+    │  4. Proof response                         │
+    ├───────────────────────────────────────────>│
+    │                                            │
+    │                      5. Verify proof       │
+    │                                            │
+    │  6. Verification result                    │
+    │<───────────────────────────────────────────┤
+    │                                            │
+```
+
+**Steps:**
+
+1. User attempts to access age-restricted content
+2. Verifier sends proof request:
+   ```typescript
+   request = {
+     claimType: 'age',
+     minAge: 18,
+     nonce: randomHex(16),
+     timestamp: new Date().toISOString(),
+   };
+   ```
+3. User generates proof locally:
+
+   ```typescript
+   // Circuit inputs
+   input = {
+     birthYear: credential.birthYear,        // Private
+     nationality: credential.nationality,    // Private (not constrained, hidden)
+     salt: credential.salt,                  // Private
+     currentYear: new Date().getFullYear(), // Public
+     minAge: request.minAge,                 // Public
+     credentialHash: credential.commitment   // Public
+   };
+
+   // Generate Groth16 proof
+   { proof, publicSignals } = await generateProof(input, wasm, zkey);
+   ```
+
+4. User submits proof response:
+   ```typescript
+   response = {
+     credentialId: credential.id,
+     claimType: 'age',
+     proof: { proof, publicSignals },
+     nonce: request.nonce,
+   };
+   ```
+5. Verifier verifies proof:
+   - Check nonce hasn't been used (replay protection)
+   - Validate public signals (year, age requirement)
+   - Cryptographically verify proof using verification key
+   - Check rate limits
+6. Verifier returns result and grants/denies access
+
+**Security Considerations:**
+
+- Nonce must be checked to prevent replay attacks
+- Proof must be verified using authentic verification key
+- Rate limiting prevents brute-force attempts
+- User's birth year is never revealed
+
+## Cryptographic Details
+
+### Poseidon Hash
+
+Used for credential commitments.
+
+```
+commitment = Poseidon(birthYear, nationality, salt)
+```
+
+**Properties:**
+
+- ZK-friendly (efficient inside SNARKs)
+- Collision-resistant
+- One-way function (can't reverse without salt)
+- Binds all attributes together in a single commitment
+
+**Implementation**: circomlibjs
+
+### Groth16 ZK-SNARK
+
+Used for age verification proofs.
+
+**Circuit**: `age-verify.circom`
+
+**Constraints:**
+
+```
+age = currentYear - birthYear
+age >= minAge  (using GreaterEqThan comparator)
+birthYear <= currentYear  (sanity check)
+credentialHash included as public input
+```
+
+**Proving Key**: Generated via trusted setup (Powers of Tau)
+**Verification Key**: Public, used by verifiers
+
+**Security:**
+
+- Proof is zero-knowledge: reveals nothing beyond validity
+- Soundness: impossible to generate valid proof for false statement (assuming trusted setup)
+- Succinctness: proof is ~200 bytes
+
+### Trusted Setup
+
+zk-id uses Groth16, which requires a trusted setup ceremony.
+
+**Process:**
+
+1. Powers of Tau ceremony (multi-party computation)
+2. Phase 2: Circuit-specific setup
+3. Generate proving key (private, destroyed after setup)
+4. Generate verification key (public)
+
+**Security:**
+
+- If at least one participant is honest, setup is secure
+- Use existing Powers of Tau ceremonies (Hermez, Perpetual Powers of Tau)
+- For production, participate in multi-party ceremony
+
+### Ed25519 Signatures
+
+Used for credential authentication by issuers.
+
+**Properties:**
+
+- Asymmetric cryptography (public/private key pairs)
+- Fast signature generation and verification
+- Small signatures (64 bytes)
+- Widely used and battle-tested (OpenSSH, Signal, etc.)
+
+**Implementation**: Node.js crypto module or tweetnacl
+
+### Credential Revocation
+
+Implemented via revocation stores that track revoked credential commitments.
+
+**Implementation:**
+
+- `InMemoryRevocationStore`: In-memory store for demo/testing
+- Verifiers check credential commitment against revocation store during verification
+- Issuer can revoke credentials by commitment hash
+
+**Revocation Check:**
+
+```typescript
+if (await revocationStore.isRevoked(credentialCommitment)) {
+  return { verified: false, error: 'Credential has been revoked' };
+}
+```
+
+### Revocation Root Distribution
+
+Revocable proofs bind to the current valid-set Merkle root. Verifiers and clients need a
+reliable way to obtain fresh root data and detect stale state.
+
+**Root Info Endpoint:** `GET /api/revocation/root`
+
+Returns a `RevocationRootInfo` object:
+
+```typescript
+{
+  root: string;          // Current Merkle root (decimal string)
+  version: number;       // Monotonic root version (increments on every add/remove)
+  updatedAt: string;     // ISO 8601 timestamp of last tree mutation
+  expiresAt?: string;    // ISO 8601 timestamp after which this root should be re-fetched
+  ttlSeconds?: number;   // Recommended cache lifetime in seconds (default: 300)
+  source?: string;       // Identifier for the root source (issuer name, registry URL)
+}
+```
+
+**Versioning Rules:**
+
+- `version` is a monotonically increasing counter; each tree mutation (add or remove) increments it by 1.
+- Clients SHOULD track the last-seen version and re-fetch witnesses when the version advances.
+- Verifiers MAY accept proofs against a recent-but-not-latest root within a configurable tolerance window (`maxRevocationRootAgeMs`).
+
+**TTL & Caching Policy:**
+
+- Servers set `ttlSeconds` (default: 300s / 5 minutes) and compute `expiresAt` from `updatedAt + ttlSeconds`.
+- HTTP responses SHOULD include `Cache-Control: public, max-age=<ttlSeconds>` when served behind a CDN or reverse proxy.
+- Clients SHOULD cache root info for at most `ttlSeconds` and re-fetch before generating proofs with stale roots.
+- When `expiresAt` has passed, clients MUST re-fetch before relying on the root.
+
+**Freshness Policy:**
+
+- Servers can enforce a maximum root age via `maxRevocationRootAgeMs` in `ZkIdServerConfig`. When set, revocable proof verification rejects proofs if the tree's `updatedAt` is older than the threshold.
+- Clients can set `maxRevocationRootAgeMs` in `ZkIdClientConfig`; `fetchRevocationRootInfo()` logs a warning when the root exceeds this age.
+- Recommended defaults: 5 minutes for interactive flows, up to 1 hour for batch/offline scenarios.
+
+**Witness Refresh:**
+
+- When the root version advances, existing Merkle witnesses become invalid.
+- Clients holding credentials SHOULD re-fetch witnesses from the tree before generating new proofs.
+- The SDK's `ValidCredentialTree.getWitness(commitment)` always returns a witness for the current root.
+
+### External Credential Formats
+
+The system includes optional external format conversion utilities for interoperability.
+
+**Conversion:**
+
+```typescript
+// Convert to external credential format
+const external = toExternalCredentialFormat(signedCredential);
+
+// Parse from external credential format
+const signedCredential = fromExternalCredentialFormat(external);
+```
+
+**Properties:**
+
+- JSON-based format with issuer, subject, and proof metadata
+- Intended for interoperability demos, not production use
+
+## Security Analysis
+
+### Threat Model
+
+**What We Protect Against:**
+
+1. **Privacy leakage**: User's birth year never revealed
+   - Proof reveals only age >= threshold
+   - Credential commitment is hiding
+
+2. **Proof forgery**: Cannot create valid proof without valid credential
+   - ZK-SNARK soundness guarantees
+   - Issuer signature required on credential
+
+3. **Proof replay**: Cannot reuse same proof multiple times
+   - Nonce-based replay protection
+   - Verifiers check nonce uniqueness
+
+4. **Proof reuse**: Cannot use proof from different user
+   - Credential hash binds proof to specific credential
+   - Commitments are unique per credential
+
+5. **Impersonation**: Cannot use someone else's credential
+   - Private salt value required to generate proofs
+   - Credentials stored securely by user
+
+**What We Don't Protect Against (with Mitigations):**
+
+1. **Issuer compromise**: If issuer is malicious or key is stolen, fake credentials can be issued.
+   - _Detection_: Audit logs (`AuditLogger`) record every issuance event with timestamp, credential ID, and user ID. Anomalous issuance volume triggers investigation.
+   - _Containment_: Suspend the issuer via `IssuerRegistry.suspend()` immediately. All proofs from the compromised issuer will fail verification.
+   - _Recovery_: Rotate issuer key with overlapping validity windows (`validFrom`/`validTo`). Revoke affected credentials via the revocation store. Deactivate old key once overlap expires.
+   - _Prevention_: Use HSM/KMS for key storage (`IssuerKeyManager` interface). Restrict issuance to authenticated, rate-limited endpoints.
+   - _Future_: Multi-issuer credentials (threshold issuance) eliminate single-issuer trust.
+
+2. **Credential theft**: If attacker obtains credential + salt, they can impersonate the holder.
+   - _Prevention_: Store credentials in encrypted wallet storage. Never transmit raw credential data — only ZK proofs leave the client.
+   - _Detection_: If a credential is suspected stolen, revoke it. The revocation proof circuit ensures revoked credentials cannot produce valid proofs.
+   - _Limitation_: Revocation only works for `age-revocable` claim type. Standard `age` and `nationality` proofs do not check revocation status.
+   - _Future_: Biometric binding (credential tied to holder's biometric hash).
+
+3. **Circuit bugs**: Flaws in circuit constraint logic could break soundness (allow forged proofs).
+   - _Prevention_: Professional audit before production. Open-source circuits for community review.
+   - _Detection_: Circuit artifact hash manifest (when available) allows verifiers to confirm they use audited artifacts.
+   - _Limitation_: No formal verification of circuits yet (planned for v1.0).
+
+4. **Replay attacks**: Attacker intercepts and resubmits a valid proof.
+   - _Prevention_: Server-issued nonce (`/api/challenge`) bound as a public signal in the circuit. `NonceStore` tracks consumed nonces. `ChallengeStore` enforces TTL.
+   - _Configuration_: Set `maxRequestAgeMs` to reject stale proofs. Use `challengeTtlMs` to limit challenge window.
+
+5. **Merkle root staleness**: Verifier accepts a proof against an outdated revocation root, allowing a revoked credential to pass.
+   - _Prevention_: Set `maxRevocationRootAgeMs` in server config. Client caches root for at most `ttlSeconds`.
+   - _Detection_: Client `fetchRevocationRootInfo()` warns when root is stale. Server rejects proofs with stale roots before cryptographic verification.
+
+6. **Metadata leakage**: Verification timing, request patterns, or issuer identity may leak information about the user.
+   - _Limitation_: The `issuer` field in `SignedCredential` reveals which authority issued the credential. `issuedAt` reveals approximate issuance time.
+   - _Mitigation_: Use generic issuer names. Avoid correlating verification requests across sessions. Future: credential re-randomization.
+
+7. **Revocation correlation**: Observing which commitments are added/removed from the valid-credential tree may reveal information.
+   - _Limitation_: The valid-set model leaks the set of valid commitments (though commitments are hiding).
+   - _Mitigation_: Batch tree updates to reduce timing correlation. Future: sparse Merkle exclusion proofs for better privacy.
+
+### Privacy Properties
+
+**Unlinkability**: Different proofs from same credential are unlinkable
+
+- Proofs don't contain credential ID
+- Proofs use different nonces
+- Cannot tell if two proofs came from same user
+
+**Forward Secrecy**: Compromising credential doesn't reveal past proofs
+
+- Proofs are ephemeral (not stored long-term)
+- Each proof uses fresh randomness
+
+**Selective Disclosure**: User reveals only required information
+
+- Age threshold met, not exact age
+- No other attributes revealed
+
+## API Specification
+
+### Client API
+
+```typescript
+class ZkIdClient {
+  constructor(config: ZkIdClientConfig);
+
+  // Request age verification
+  async verifyAge(minAge: number): Promise<boolean>;
+
+  // Check if wallet is available
+  async hasWallet(): Promise<boolean>;
+}
+```
+
+### Server API
+
+```typescript
+class ZkIdServer {
+  constructor(config: ZkIdServerConfig);
+
+  // Verify a proof submission
+  async verifyProof(
+    proofResponse: ProofResponse,
+    clientIdentifier?: string,
+  ): Promise<VerificationResult>;
+}
+```
+
+**Policy enforcement**:
+
+- Prefer `requiredPolicy` in server config to enforce minAge or nationality.
+
+**ProofResponse (required fields)**:
+
+- `credentialId`
+- `claimType`
+- `proof`
+- `signedCredential` (issuer-signed credential binding commitment + issuer)
+- `nonce`
+
+**Nonce binding**:
+
+- `nonce` is a public input in both circuits and must match `ProofResponse.nonce`.
+
+**Timestamp binding**:
+
+- `requestTimestamp` is a public input in both circuits and must match `ProofResponse.requestTimestamp`.
+
+**Challenge flow (recommended)**:
+
+- Server issues `nonce` + `requestTimestamp` (see `/api/challenge`).
+- Clients must embed these values into the proof.
+
+### JSON Schemas
+
+Machine-readable JSON schemas for the core protocol payloads are published in
+`docs/schemas/`:
+
+| Schema                      | Description                                                 |
+| --------------------------- | ----------------------------------------------------------- |
+| `proof-request.json`        | ProofRequest — sent to a wallet to request a proof          |
+| `proof-response.json`       | ProofResponse — proof + credential submitted to verifier    |
+| `signed-proof-request.json` | SignedProofRequest — proof with in-circuit issuer signature |
+| `verification-result.json`  | VerificationResult — verifier response                      |
+| `defs.json`                 | Shared definitions (Proof, PublicSignals, Credential, etc.) |
+
+Schemas use JSON Schema draft-07 and reference each other via relative `$ref`.
+
+**Strict payload validation**: The SDK server supports optional structural
+validation before cryptographic verification. Enable it with
+`validatePayloads: true` in `ZkIdServerConfig`. When enabled, `verifyProof()`
+and `verifySignedProof()` return early with `{ verified: false, error: "Invalid payload: ..." }`
+if required fields are missing or malformed.
+
+### Issuer Trust & Registry
+
+Verifiers maintain an issuer registry that maps issuer identifiers to their
+public keys, lifecycle status, and metadata.
+
+**IssuerRecord:**
+
+```typescript
+{
+  issuer: string;          // Issuer identifier (name or DID)
+  publicKey: KeyObject;    // Ed25519 public key
+  status?: 'active' | 'revoked' | 'suspended';
+  validFrom?: string;      // ISO 8601 — key not valid before this time
+  validTo?: string;        // ISO 8601 — key not valid after this time
+  jurisdiction?: string;   // ISO 3166-1 alpha-2 code (e.g., "US", "DE")
+  policyUrl?: string;      // URL to issuance/attestation policy
+  auditUrl?: string;       // URL to audit report or compliance reference
+}
+```
+
+**Status Lifecycle:**
+
+```
+  onboard         rotate key        suspend         reactivate
+    ──→ active ──────→ active ──────→ suspended ──────→ active
+                        │                                  │
+                        └──→ revoked (permanent) ←─────────┘
+                                                   deactivate
+```
+
+- **active**: Issuer credentials are accepted. This is the default.
+- **suspended**: Issuer is temporarily blocked. Credentials signed by this
+  issuer are rejected during verification. Use for incident response or
+  pending investigation.
+- **revoked**: Issuer is permanently deactivated. Credentials are rejected.
+  This is irreversible in the default registry.
+
+**Key Rotation:**
+
+Issuers SHOULD rotate signing keys periodically. The registry supports
+overlapping validity windows to allow a smooth transition:
+
+1. Register the new key with `validFrom` set to the rotation time.
+2. Keep the old key active until its `validTo` expires.
+3. During the overlap window, both keys are accepted.
+4. After the old key expires, the verifier only accepts the new key.
+
+```typescript
+// Example: rotate issuer key with 24-hour overlap
+registry.upsert({
+  issuer: 'gov-issuer',
+  publicKey: newKey,
+  status: 'active',
+  validFrom: '2026-03-01T00:00:00Z',
+  jurisdiction: 'US',
+  policyUrl: 'https://issuer.example.gov/policy',
+});
+// Old key remains valid until its validTo
+```
+
+**Suspension Workflow:**
+
+```typescript
+// Emergency: suspend all keys for an issuer
+registry.suspend('compromised-issuer');
+
+// After investigation: reactivate
+registry.reactivate('compromised-issuer');
+
+// Permanent removal
+registry.deactivate('compromised-issuer');
+```
+
+**Metadata Fields:**
+
+- `jurisdiction`: Indicates the legal jurisdiction under which the issuer
+  operates. Verifiers MAY use this to accept only issuers from specific
+  jurisdictions.
+- `policyUrl`: Points to the issuer's attestation policy (what identity
+  checks they perform, data retention rules, etc.).
+- `auditUrl`: Points to an external audit report or compliance certification.
+
+### Issuer API
+
+```typescript
+class CredentialIssuer {
+  constructor(config: IssuerConfig);
+
+  // Issue a credential after identity verification
+  async issueCredential(
+    birthYear: number,
+    nationality: number,
+    userId?: string,
+  ): Promise<SignedCredential>;
+
+  // Revoke a credential by commitment
+  async revokeCredential(commitment: string): Promise<void>;
+}
+```
+
+## Threat Model
+
+See `docs/THREAT-MODEL.md`.
+
+## Known Limitations
+
+See `docs/KNOWN-LIMITATIONS.md`.
+
+## Extension Points
+
+### Additional Claim Types
+
+The protocol can be extended with new circuits for:
+
+- **Attribute claims**: Prove possession of attribute without revealing value
+- **Range proofs**: Prove value is in range without revealing exact value
+- **Set membership**: Prove element is in set without revealing which one
+
+### Multi-Issuer Credentials
+
+Support credentials signed by multiple issuers:
+
+```typescript
+{
+  credentials: Credential[];
+  issuers: string[];
+  signatures: string[];
+}
+```
+
+Useful for:
+
+- Cross-border verification (multiple governments)
+- Enhanced trust (multiple identity providers)
+- Redundancy (if one issuer goes offline)
+
+## Comparison to Related Protocols
+
+### Iden3 Protocol
+
+**Similarities:**
+
+- Both use ZK-SNARKs
+- Both support identity verification
+- Both are decentralized
+
+**Differences:**
+
+- Iden3 uses identity trees and on-chain verification
+- zk-id is simpler and off-chain focused
+- Different circuit designs
+
+### BBS+ Signatures
+
+**Similarities:**
+
+- Both enable selective disclosure
+- Both provide unlinkability
+- Both are used for credentials
+
+**Differences:**
+
+- BBS+ uses signature schemes, not SNARKs
+- BBS+ doesn't natively support range proofs
+
+## OpenAPI
+
+See `docs/openapi.yaml` for the demo/server REST API schema.
+
+- Different trust models
+
+## W3C Verifiable Credentials Interoperability
+
+**Status:** v1.1.0 (February 2026) - Production-ready with limitations
+
+zk-id supports W3C Verifiable Credentials Data Model v2.0 for interoperability with the W3C VC ecosystem.
+
+### W3C VC Format
+
+zk-id credentials can be wrapped in W3C VC format:
+
+```json
+{
+  "@context": ["https://www.w3.org/ns/credentials/v2", "https://w3id.org/zk-id/credentials/v1"],
+  "type": ["VerifiableCredential", "ZkIdCredential"],
+  "id": "urn:uuid:123e4567-e89b-12d3-a456-426614174000",
+  "issuer": "did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK",
+  "issuanceDate": "2026-02-09T01:00:00.000Z",
+  "credentialSubject": {
+    "zkCredential": {
+      "commitment": "12345678901234567890",
+      "createdAt": "2026-02-09T00:00:00.000Z"
+    }
+  },
+  "proof": {
+    "type": "Ed25519Signature2020",
+    "created": "2026-02-09T01:00:00.000Z",
+    "verificationMethod": "did:key:z6Mk...#key-1",
+    "proofPurpose": "assertionMethod",
+    "proofValue": "base64-encoded-signature"
+  }
+}
+```
+
+### Key Differences from Traditional W3C VCs
+
+**Traditional W3C VC:**
+
+- Reveals all credential attributes
+- Signature proves authenticity
+- Holder shares full credential to prove claims
+
+**zk-id W3C VC:**
+
+- Only reveals the commitment (Poseidon hash)
+- Signature proves authenticity of commitment
+- Holder generates **ZK proofs** to prove claims without revealing commitment or attributes
+
+### DID Support
+
+- **did:key** - Fully supported for Ed25519 keys (v1.1.0)
+- **did:web** - Planned (v1.2.0)
+- **did:ion** - Planned (v2.0.0)
+
+### Current Gaps (v1.1.0)
+
+1. **zk-id `@context` is placeholder** - `https://w3id.org/zk-id/credentials/v1` does not resolve yet. Full JSON-LD vocabulary planned for v1.2.
+
+2. **Proof type is standard Ed25519, not ZK-specific** - `Ed25519Signature2020` signs the commitment. Custom `zkProof2026` proof suite planned for v1.2.
+
+3. **No W3C Credential Status support** - Revocation uses zk-id Merkle trees, not RevocationList2020. Integration planned for v1.3.
+
+### Usage
+
+```typescript
+import { toW3CVerifiableCredential, fromW3CVerifiableCredential } from '@zk-id/core';
+
+// Convert to W3C VC
+const vc = toW3CVerifiableCredential(signedCredential, {
+  issuerDID: 'did:key:z6Mk...',
+  subjectDID: 'did:key:z6Mk...',
+  expirationDate: '2027-02-09T00:00:00.000Z',
+});
+
+// Convert back to zk-id format
+const zkCredential = fromW3CVerifiableCredential(vc);
+```
+
+**Full documentation:** See `docs/W3C-VC-INTEROPERABILITY.md`
+
+## Future Work
+
+- ~~Standardize JSON schemas for interoperability~~ **Done** (v1.0.0)
+- ~~W3C VC Data Model v2.0 compliance~~ **Done** (v1.1.0)
+- Define zk-id JSON-LD `@context` vocabulary (v1.2.0)
+- Custom W3C Data Integrity proof suite (`zkProof2026`) (v1.2.0)
+- Implement mobile wallet specification (React Native SDK, v1.2.0)
+- DIF Presentation Exchange v2.0 support (v1.2.0)
+- `did:web` and `did:ion` support (v1.2-v2.0)
+- Add accumulator-based revocation for improved privacy
+- Browser extension implementation
+- W3C RevocationList2020 integration (v1.3.0)
+- Full W3C VC v2.0 compliance (passes VC validators) (v2.0.0)
+
+## Optional Signed Circuits
+
+This repo includes optional circuits that verify issuer signatures inside the proof.
+Use these for stronger, fully in-circuit issuer binding at the cost of larger public inputs and slower proving.
+
+See `docs/SIGNED-CIRCUITS.md` for details.

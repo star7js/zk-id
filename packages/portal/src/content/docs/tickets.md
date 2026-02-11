@@ -1,3 +1,10 @@
+---
+title: 'Project Tickets'
+description: 'These are concrete tickets derived from the near-term roadmap. Use them as GitHub issues or a backlog seed.'
+category: 'Reference'
+order: 53
+---
+
 # Roadmap Tickets (Draft)
 
 These are concrete tickets derived from the near-term roadmap. Use them as GitHub issues or a backlog seed.
@@ -186,11 +193,9 @@ These are concrete tickets derived from the near-term roadmap. Use them as GitHu
 - Full OIDC4VCI (credential issuance protocol)
 - SIOPv2 (self-issued OpenID Provider) implementation
 
-### T-011: Developer Portal & Playground ✅
+### T-011: Developer Portal & Playground
 
 **Goal:** Provide interactive documentation and a live sandbox for developers.
-
-**Status:** Complete (v0.7.0)
 
 **Scope**
 
@@ -199,22 +204,11 @@ These are concrete tickets derived from the near-term roadmap. Use them as GitHu
 - Live sandbox environment for testing proof generation/verification
 - API reference with multi-language code examples
 
-**Implementation**
-
-- Built with Astro static site generator
-- Landing page with features and quick links
-- Interactive Quick Start (4 steps, < 5 minutes)
-- Live Playground for ZK proof generation
-- API Reference with endpoint documentation
-- All 24 project docs organized by category
-- Browser-based proof generation using snarkjs
-
 **Acceptance Criteria**
 
-- ✅ Quick start guide completes end-to-end in under 5 minutes
-- ✅ Sandbox runs in browser without local installation
-- ✅ API reference covers all public endpoints with examples
-- ✅ Deployed to GitHub Pages at /zk-id base path
+- Quick start guide completes end-to-end in under 5 minutes
+- Sandbox runs in browser without local installation
+- API reference covers all public endpoints with examples
 - At least 3 programming languages covered in examples (TypeScript, Python, Go)
 
 **Out of scope**

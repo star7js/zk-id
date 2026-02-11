@@ -1,0 +1,358 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Playground" description="Interactive sandbox for generating zero-knowledge proofs">
+  <!-- snarkjs library -->
+  <script
+    src="https://cdn.jsdelivr.net/npm/snarkjs@0.7.6/build/snarkjs.min.js"
+    integrity="sha384-0BwXUQOD9YoCtCxJEZteYrXCzG2h539Nyk+Nedmo+epTK4kk17sAl/EfoYrRddZT"
+    crossorigin="anonymous"
+    is:inline
+  ></script>
+
+  <div class="container">
+    <header class="playground-header">
+      <div class="badge">INTERACTIVE SANDBOX</div>
+      <h1>ZK Proof Playground</h1>
+      <p class="subtitle">
+        Generate zero-knowledge proofs directly in your browser. All computation happens client-side - your data never leaves your device.
+      </p>
+    </header>
+
+    <div class="privacy-notice">
+      <div class="privacy-icon">🔒</div>
+      <div>
+        <strong>Privacy Guarantee:</strong> All proof generation happens in your browser using WebAssembly.
+        Your birth year, nationality, and credential salt remain completely private.
+      </div>
+    </div>
+
+    <!-- Panel 1: Issue Credential -->
+    <section class="card">
+      <div class="card-header">
+        <div class="step-number">1</div>
+        <h2>Issue Credential</h2>
+      </div>
+      <div class="location-badge server">
+        <span class="dot"></span>
+        SERVER OPERATION
+      </div>
+      <p class="card-description">
+        Request a signed credential from the issuing authority. In production, this requires identity verification. For this demo, create a test credential with any attributes.
+      </p>
+
+      <div class="form-group">
+        <label for="birthYear">Birth Year</label>
+        <input type="number" id="birthYear" value="1990" min="1900" max="2026" />
+      </div>
+
+      <div class="form-group">
+        <label for="nationality">Nationality (ISO 3166-1)</label>
+        <select id="nationality">
+          <option value="840">United States (840)</option>
+          <option value="826">United Kingdom (826)</option>
+          <option value="124">Canada (124)</option>
+          <option value="276">Germany (276)</option>
+          <option value="250">France (250)</option>
+          <option value="392">Japan (392)</option>
+        </select>
+      </div>
+
+      <button class="btn btn-primary" id="issueBtn">Issue Credential</button>
+      <div id="issueResult" class="result"></div>
+    </section>
+
+    <!-- Panel 2: Generate Proof -->
+    <section class="card">
+      <div class="card-header">
+        <div class="step-number">2</div>
+        <h2>Generate Zero-Knowledge Proof</h2>
+      </div>
+      <div class="location-badge client">
+        <span class="dot"></span>
+        CLIENT-SIDE COMPUTATION
+      </div>
+      <p class="card-description">
+        Prove you meet age or nationality requirements without revealing exact attributes. Proof generation takes 2-5 seconds in your browser.
+      </p>
+
+      <div class="proof-type-tabs">
+        <button class="proof-tab active" data-type="age">Age Proof</button>
+        <button class="proof-tab" data-type="nationality">Nationality Proof</button>
+      </div>
+
+      <div class="proof-form age-form">
+        <div class="form-group">
+          <label for="minAge">Minimum Age Required</label>
+          <input type="number" id="minAge" value="18" min="0" max="150" />
+        </div>
+        <button class="btn btn-primary" id="verifyAgeBtn" disabled>Generate Age Proof</button>
+      </div>
+
+      <div class="proof-form nationality-form" style="display: none;">
+        <div class="form-group">
+          <label for="targetNationality">Target Nationality</label>
+          <select id="targetNationality">
+            <option value="840">United States (840)</option>
+            <option value="826">United Kingdom (826)</option>
+            <option value="124">Canada (124)</option>
+            <option value="276">Germany (276)</option>
+            <option value="250">France (250)</option>
+            <option value="392">Japan (392)</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" id="verifyNationalityBtn" disabled>Generate Nationality Proof</button>
+      </div>
+
+      <div id="proofResult" class="result"></div>
+    </section>
+
+    <!-- Panel 3: Result & Analysis -->
+    <section class="card">
+      <div class="card-header">
+        <div class="step-number">3</div>
+        <h2>Verification Result</h2>
+      </div>
+      <div class="location-badge server">
+        <span class="dot"></span>
+        SERVER VERIFICATION
+      </div>
+      <p class="card-description">
+        The server verifies the proof without learning your private data. Only the proof result is revealed.
+      </p>
+      <div id="verifyResult" class="result-placeholder">
+        Generate a proof to see verification results
+      </div>
+    </section>
+  </div>
+
+  <script src="../scripts/playground.ts"></script>
+
+  <style>
+    .playground-header {
+      text-align: center;
+      padding-top: 40px;
+      margin-bottom: 60px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 6px 14px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-medium);
+      border-radius: 20px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent-proof);
+      letter-spacing: 0.5px;
+      margin-bottom: 20px;
+    }
+
+    .subtitle {
+      font-size: 18px;
+      color: var(--text-secondary);
+      max-width: 700px;
+      margin: 16px auto 0;
+    }
+
+    .privacy-notice {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 20px 24px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 2px solid var(--accent-client);
+      border-radius: 12px;
+      margin-bottom: 40px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .privacy-icon {
+      font-size: 28px;
+      flex-shrink: 0;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .step-number {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--bg-elevated);
+      border: 2px solid var(--accent-client);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--accent-client);
+      flex-shrink: 0;
+    }
+
+    .card-header h2 {
+      font-size: 24px;
+      margin: 0;
+    }
+
+    .card-description {
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+      line-height: 1.7;
+    }
+
+    .location-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+
+    .location-badge.client {
+      background: var(--accent-client-glow);
+      color: var(--accent-client);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .location-badge.server {
+      background: var(--accent-server-glow);
+      color: var(--accent-server);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-medium);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 16px;
+      transition: all 0.2s ease;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--accent-client);
+      box-shadow: 0 0 0 3px var(--accent-client-glow);
+    }
+
+    .proof-type-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .proof-tab {
+      padding: 12px 24px;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .proof-tab:hover {
+      color: var(--text-primary);
+    }
+
+    .proof-tab.active {
+      color: var(--accent-client);
+      border-bottom-color: var(--accent-client);
+    }
+
+    .result {
+      margin-top: 20px;
+      padding: 16px 20px;
+      border-radius: 8px;
+      border-left: 4px solid;
+      font-size: 14px;
+      line-height: 1.6;
+      display: none;
+    }
+
+    .result.success {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: var(--success);
+      display: block;
+    }
+
+    .result.error {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: var(--error);
+      display: block;
+    }
+
+    .result.loading {
+      background: rgba(6, 182, 212, 0.15);
+      border-color: var(--accent-proof);
+      display: block;
+    }
+
+    .result-placeholder {
+      padding: 40px;
+      text-align: center;
+      color: var(--text-muted);
+      font-style: italic;
+      background: var(--bg-elevated);
+      border-radius: 8px;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</BaseLayout>
