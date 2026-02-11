@@ -23,7 +23,7 @@
     "@types/node": "^25.2.2",
     "@zk-id/core": "0.6.0",
     "hardhat": "^2.22.0",
-    "hardhat-gas-reporter": "^1.0.10",
+    "hardhat-gas-reporter": "^2.3.0",
     "solidity-coverage": "^0.8.17",
     "ts-node": "^10.9.2",
     "typechain": "^8.3.2",
