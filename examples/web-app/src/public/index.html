@@ -1536,6 +1536,45 @@
         }
       }
 
+      function renderScenarioProgress(resultElementId, stepPrefix, title, steps) {
+        showResult(
+          resultElementId,
+          'loading',
+          `
+                  <div class="result-title">${escapeHtml(title)}</div>
+                  <div class="progress-container">
+                      <div class="progress-steps">
+                          ${steps
+                            .map(
+                              (step, index) => `
+                                  <div class="progress-step" id="${stepPrefix}-${step.id}">
+                                      <div class="progress-step-icon">${index + 1}</div>
+                                      <div>${escapeHtml(step.label)}</div>
+                                  </div>
+                              `,
+                            )
+                            .join('')}
+                      </div>
+                  </div>
+              `,
+        );
+      }
+
+      function markStepActive(stepPrefix, stepId) {
+        const el = document.getElementById(`${stepPrefix}-${stepId}`);
+        if (!el) return;
+        el.classList.add('active');
+      }
+
+      function markStepComplete(stepPrefix, stepId) {
+        const el = document.getElementById(`${stepPrefix}-${stepId}`);
+        if (!el) return;
+        el.classList.remove('active');
+        el.classList.add('complete');
+        const icon = el.querySelector('.progress-step-icon');
+        if (icon) icon.textContent = '✓';
+      }
+
       // Helper function: Generate age proof with a provided challenge (no verification)
       async function generateAgeProofWithChallenge(minAge, challenge) {
         if (!state.credential) {
@@ -1689,38 +1728,42 @@
         btn.disabled = true;
 
         try {
-          showResult('verifyVotingResult', 'loading', '<div class="result-title">Fetching challenge...</div>');
+          const stepPrefix = 'step-voting-scenario';
+          renderScenarioProgress(
+            'verifyVotingResult',
+            stepPrefix,
+            'Verifying voting eligibility...',
+            [
+              { id: 'challenge', label: 'Fetching challenge' },
+              { id: 'age', label: 'Generating age proof (18+)' },
+              { id: 'nationality', label: 'Generating nationality proof (US)' },
+              { id: 'submit', label: 'Submitting scenario bundle' },
+            ],
+          );
+
+          markStepActive(stepPrefix, 'challenge');
           const challengeResponse = await fetch('/api/challenge');
           if (!challengeResponse.ok) {
             throw new Error('Failed to fetch challenge');
           }
           const challenge = await challengeResponse.json();
+          markStepComplete(stepPrefix, 'challenge');
 
           // Step 1: Generate age proof (18+)
-          showResult(
-            'verifyVotingResult',
-            'loading',
-            '<div class="result-title">Generating age proof (18+)...</div>',
-          );
+          markStepActive(stepPrefix, 'age');
           const ageProofResponse = await generateAgeProofWithChallenge(18, challenge);
+          markStepComplete(stepPrefix, 'age');
 
           // Step 2: Generate nationality proof (USA = 840)
-          showResult(
-            'verifyVotingResult',
-            'loading',
-            '<div class="result-title">Generating nationality proof (US citizen)...</div>',
-          );
+          markStepActive(stepPrefix, 'nationality');
           const nationalityProofResponse = await generateNationalityProofWithChallenge(
             840,
             challenge,
           );
+          markStepComplete(stepPrefix, 'nationality');
 
           // Step 3: Submit scenario bundle
-          showResult(
-            'verifyVotingResult',
-            'loading',
-            '<div class="result-title">Submitting scenario bundle...</div>',
-          );
+          markStepActive(stepPrefix, 'submit');
 
           const scenarioPayload = {
             scenarioId: 'voting-eligibility-us',
@@ -1750,6 +1793,7 @@
           if (!verifyResponse.ok) {
             throw new Error(result.error || 'Scenario verification failed');
           }
+          markStepComplete(stepPrefix, 'submit');
 
           const satisfied =
             result.satisfied === true || result.allVerified === true || result.verified === true;
@@ -1814,31 +1858,33 @@
         btn.disabled = true;
 
         try {
-          showResult(
+          const stepPrefix = 'step-senior-scenario';
+          renderScenarioProgress(
             'verifySeniorResult',
-            'loading',
-            '<div class="result-title">Fetching challenge...</div>',
+            stepPrefix,
+            'Verifying senior discount eligibility...',
+            [
+              { id: 'challenge', label: 'Fetching challenge' },
+              { id: 'age', label: 'Generating age proof (65+)' },
+              { id: 'submit', label: 'Submitting scenario bundle' },
+            ],
           );
+
+          markStepActive(stepPrefix, 'challenge');
           const challengeResponse = await fetch('/api/challenge');
           if (!challengeResponse.ok) {
             throw new Error('Failed to fetch challenge');
           }
           const challenge = await challengeResponse.json();
+          markStepComplete(stepPrefix, 'challenge');
 
           // Generate age proof (65+)
-          showResult(
-            'verifySeniorResult',
-            'loading',
-            '<div class="result-title">Generating proof (65+)...</div>',
-          );
+          markStepActive(stepPrefix, 'age');
           const ageProofResponse = await generateAgeProofWithChallenge(65, challenge);
+          markStepComplete(stepPrefix, 'age');
 
           // Submit scenario bundle
-          showResult(
-            'verifySeniorResult',
-            'loading',
-            '<div class="result-title">Submitting scenario bundle...</div>',
-          );
+          markStepActive(stepPrefix, 'submit');
 
           const scenarioPayload = {
             scenarioId: 'senior-discount',
@@ -1863,6 +1909,7 @@
           if (!verifyResponse.ok) {
             throw new Error(result.error || 'Scenario verification failed');
           }
+          markStepComplete(stepPrefix, 'submit');
 
           const satisfied =
             result.satisfied === true || result.allVerified === true || result.verified === true;
