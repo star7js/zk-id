@@ -1970,7 +1970,7 @@ export class ZkIdServer extends EventEmitter {
    */
   async getRevocationRootInfo(): Promise<RevocationRootInfo> {
     if (!this.config.validCredentialTree) {
-      throw new Error('Valid credential tree not configured');
+      throw new ZkIdConfigError('Valid credential tree not configured');
     }
 
     let info: RevocationRootInfo;
