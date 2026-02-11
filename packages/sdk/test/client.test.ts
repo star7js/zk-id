@@ -545,6 +545,71 @@ describe('SDK Client Tests', () => {
     });
 
     describe('verifyScenario()', () => {
+      it('submits a scenario bundle when scenarioVerificationEndpoint is configured', async () => {
+        const capturedRequests: ProofRequest[] = [];
+        let capturedUrl: string | undefined;
+        let capturedBody: any;
+
+        const scenario: VerificationScenario = {
+          id: 'test-scenario',
+          name: 'Test Scenario',
+          description: 'Age + nationality',
+          claims: [
+            { label: 'age-18', claimType: 'age', minAge: 18 },
+            { label: 'us-citizen', claimType: 'nationality', targetNationality: 840 },
+          ],
+        };
+
+        const mockWallet: WalletConnector = {
+          isAvailable: async () => true,
+          requestProof: async (req) => {
+            capturedRequests.push(req);
+            return {
+              credentialId: 'test-cred',
+              claimType: req.claimType,
+              proof: {} as any,
+              signedCredential: mockSignedCredential,
+              nonce: req.nonce,
+              requestTimestamp: req.timestamp,
+            };
+          },
+        };
+
+        (global as any).fetch = async (url: string, options: any) => {
+          capturedUrl = url;
+          capturedBody = JSON.parse(options.body);
+          return {
+            ok: true,
+            json: async () => ({
+              satisfied: true,
+              failedClaims: [],
+              details: { results: [], allVerified: true, verifiedCount: 2, totalCount: 2 },
+            }),
+            statusText: 'OK',
+            headers: {
+              get: (name: string) => (name === 'X-ZkId-Protocol-Version' ? 'zk-id/1.0-draft' : null),
+            },
+          };
+        };
+
+        const client = new ZkIdClient({
+          verificationEndpoint: 'http://localhost:3000/verify',
+          scenarioVerificationEndpoint: 'http://localhost:3000/verify-scenario',
+          walletConnector: mockWallet,
+        });
+
+        const result = await client.verifyScenario(scenario);
+        expect(result).to.be.true;
+        expect(capturedUrl).to.equal('http://localhost:3000/verify-scenario');
+        expect(capturedRequests).to.have.lengthOf(2);
+        expect(capturedRequests[0].nonce).to.equal(capturedRequests[1].nonce);
+        expect(capturedBody.scenarioId).to.equal(scenario.id);
+        expect(capturedBody.response).to.have.property('proofs');
+        expect(capturedBody.response.proofs).to.have.lengthOf(2);
+        expect(capturedBody.response.credentialId).to.equal('test-cred');
+        expect(capturedBody.response.signedCredential).to.deep.equal(mockSignedCredential);
+      });
+
       it('uses distinct nonces per claim to avoid replay', async () => {
         const capturedRequests: ProofRequest[] = [];
         const scenario: VerificationScenario = {

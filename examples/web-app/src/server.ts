@@ -10,11 +10,14 @@ import {
 } from '@zk-id/sdk';
 import {
   ProofResponse,
+  MultiClaimResponse,
   InMemoryRevocationStore,
   InMemoryValidCredentialTree,
   PROTOCOL_VERSION,
   isProtocolCompatible,
   SCENARIOS,
+  getScenarioById,
+  verifyScenario,
 } from '@zk-id/core';
 
 async function main() {
@@ -325,6 +328,100 @@ async function main() {
     }
   });
 
+  const validateScenarioProofs = (
+    scenario: typeof SCENARIOS.VOTING_ELIGIBILITY_US,
+    proofs: Array<{ label?: string; claimType?: string; proof?: any }>,
+    requireLabels: boolean,
+  ): string | null => {
+    if (!proofs || !Array.isArray(proofs) || proofs.length !== scenario.claims.length) {
+      return `Expected ${scenario.claims.length} proofs for ${scenario.name}`;
+    }
+
+    for (let i = 0; i < proofs.length; i += 1) {
+      const expected = scenario.claims[i];
+      const proof = proofs[i];
+
+      if (requireLabels && proof.label !== expected.label) {
+        return `Expected proof ${i + 1} label '${expected.label}' for ${scenario.name}`;
+      }
+      if (!expected || proof.claimType !== expected.claimType) {
+        return `Expected proof ${i + 1} to be '${expected?.claimType}' for ${scenario.name}`;
+      }
+      const proofType = proof.proof?.proofType;
+      if (proofType && proofType !== expected.claimType) {
+        return `Proof ${i + 1} proofType '${proofType}' does not match claimType '${expected.claimType}'`;
+      }
+
+      const publicSignals = proof.proof?.publicSignals ?? {};
+      if (expected.claimType === 'age' || expected.claimType === 'age-revocable') {
+        const minAge = Number(publicSignals.minAge);
+        if (Number.isNaN(minAge) || minAge !== expected.minAge) {
+          return `Expected proof ${i + 1} minAge ${expected.minAge} for ${scenario.name}`;
+        }
+      }
+      if (expected.claimType === 'nationality') {
+        const targetNationality = Number(publicSignals.targetNationality);
+        if (Number.isNaN(targetNationality) || targetNationality !== expected.targetNationality) {
+          return `Expected proof ${i + 1} nationality ${expected.targetNationality} for ${scenario.name}`;
+        }
+      }
+    }
+
+    return null;
+  };
+
+  /**
+   * Scenario endpoint: Verify built-in scenario bundle via multi-claim response.
+   */
+  app.post('/api/verify-scenario', apiLimiter, async (req, res) => {
+    try {
+      const { scenarioId, response } = req.body as {
+        scenarioId?: string;
+        response?: MultiClaimResponse;
+      };
+
+      if (!scenarioId || !response) {
+        return res.status(400).json({
+          error: 'Missing scenarioId or response',
+        });
+      }
+
+      const scenario = getScenarioById(scenarioId);
+      if (!scenario) {
+        return res.status(404).json({
+          error: `Unknown scenario '${scenarioId}'`,
+        });
+      }
+
+      const validationError = validateScenarioProofs(scenario, response.proofs, true);
+      if (validationError) {
+        return res.status(400).json({
+          error: validationError,
+        });
+      }
+
+      const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+      const result = await zkIdServer.verifyMultiClaim(
+        response,
+        clientIp,
+        getClientProtocolVersion(req),
+      );
+
+      const scenarioResult = verifyScenario(scenario, result);
+
+      res.json({
+        scenario: scenario.name,
+        ...scenarioResult,
+      });
+    } catch (error) {
+      console.error('Error verifying scenario:', error);
+      res.status(500).json({
+        error: 'Scenario verification failed',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  });
+
   /**
    * Scenario endpoint: Verify US voting eligibility (age >= 18 AND nationality = USA)
    */
@@ -332,28 +429,13 @@ async function main() {
     try {
       const scenario = SCENARIOS.VOTING_ELIGIBILITY_US;
       const { proofs } = req.body as { proofs: ProofResponse[] };
+      const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
 
-      if (!proofs || !Array.isArray(proofs) || proofs.length !== scenario.claims.length) {
+      const validationError = validateScenarioProofs(scenario, proofs, false);
+      if (validationError) {
         return res.status(400).json({
-          error: `Expected ${scenario.claims.length} proofs for ${scenario.name}`,
+          error: validationError,
         });
-      }
-
-      // Validate claim types before verification
-      for (let i = 0; i < proofs.length; i += 1) {
-        const expected = scenario.claims[i]?.claimType;
-        const proof = proofs[i];
-        if (!expected || proof.claimType !== expected) {
-          return res.status(400).json({
-            error: `Expected proof ${i + 1} to be '${expected}' for ${scenario.name}`,
-          });
-        }
-        const proofType = (proof as ProofResponse).proof?.proofType;
-        if (proofType && proofType !== expected) {
-          return res.status(400).json({
-            error: `Proof ${i + 1} proofType '${proofType}' does not match claimType '${expected}'`,
-          });
-        }
       }
 
       // Verify each proof in the scenario
@@ -362,7 +444,7 @@ async function main() {
           try {
             const result = await zkIdServer.verifyProof(
               proof,
-              undefined,
+              clientIp,
               getClientProtocolVersion(req),
             );
             return result.verified;
@@ -398,24 +480,12 @@ async function main() {
     try {
       const scenario = SCENARIOS.SENIOR_DISCOUNT;
       const { proofs } = req.body as { proofs: ProofResponse[] };
+      const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
 
-      if (!proofs || !Array.isArray(proofs) || proofs.length !== scenario.claims.length) {
+      const validationError = validateScenarioProofs(scenario, proofs, false);
+      if (validationError) {
         return res.status(400).json({
-          error: `Expected ${scenario.claims.length} proof for ${scenario.name}`,
-        });
-      }
-
-      // Validate claim type before verification
-      const expected = scenario.claims[0]?.claimType;
-      if (!expected || proofs[0].claimType !== expected) {
-        return res.status(400).json({
-          error: `Expected proof to be '${expected}' for ${scenario.name}`,
-        });
-      }
-      const proofType = proofs[0].proof?.proofType;
-      if (proofType && proofType !== expected) {
-        return res.status(400).json({
-          error: `Proof proofType '${proofType}' does not match claimType '${expected}'`,
+          error: validationError,
         });
       }
 
@@ -426,7 +496,7 @@ async function main() {
       try {
         const result = await zkIdServer.verifyProof(
           proof,
-          undefined,
+          clientIp,
           getClientProtocolVersion(req),
         );
         verified = result.verified;
@@ -474,6 +544,7 @@ async function main() {
     console.log(`  GET  /api/challenge`);
     console.log(`  POST /api/verify-age`);
     console.log(`  POST /api/verify-nationality`);
+    console.log(`  POST /api/verify-scenario`);
     console.log(`  POST /api/revoke-credential`);
     console.log(`  GET  /api/revocation/root`);
     console.log(`  GET  /api/health\n`);

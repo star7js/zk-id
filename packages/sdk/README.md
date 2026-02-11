@@ -105,19 +105,37 @@ import { ZkIdClient } from '@zk-id/sdk';
 import { SCENARIOS } from '@zk-id/core';
 
 const client = new ZkIdClient({
-  verificationEndpoint: '/api/verify-voting-eligibility',
+  verificationEndpoint: '/api/verify-age',
+  scenarioVerificationEndpoint: '/api/verify-scenario',
 });
 
 // Verify voting eligibility (age >= 18 AND nationality = USA)
-const result = await client.verifyScenario(
-  credential,
-  SCENARIOS.VOTING_ELIGIBILITY_US
-);
+const verified = await client.verifyScenario(SCENARIOS.VOTING_ELIGIBILITY_US);
 
-if (result.verified) {
+if (verified) {
   console.log('Voter is eligible!');
 }
 ```
+
+`scenarioVerificationEndpoint` should accept a scenario bundle payload:
+
+```json
+{
+  "scenarioId": "voting-eligibility-us",
+  "response": {
+    "proofs": [
+      { "label": "age-requirement", "claimType": "age", "proof": { "...": "..." } },
+      { "label": "citizenship", "claimType": "nationality", "proof": { "...": "..." } }
+    ],
+    "nonce": "shared-nonce",
+    "requestTimestamp": "2026-02-11T12:00:00.000Z",
+    "credentialId": "cred-123",
+    "signedCredential": { "...": "..." }
+  }
+}
+```
+
+If `scenarioVerificationEndpoint` is not configured, `verifyScenario()` falls back to verifying each claim independently with its own nonce.
 
 ### Built-in Scenarios
 
@@ -171,7 +189,7 @@ const customScenario: VerificationScenario = {
   ],
 };
 
-const result = await client.verifyScenario(credential, customScenario);
+const result = await client.verifyScenario(customScenario);
 ```
 
 ## Configuration Reference

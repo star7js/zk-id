@@ -13,6 +13,10 @@ import {
   AgeProof,
   NationalityProof,
   AgeProofRevocable,
+  MultiClaimResponse,
+  ClaimVerificationResult,
+  MultiClaimVerificationResult,
+  aggregateVerificationResults,
   VerificationKey,
   RevocationStore,
   ValidCredentialTree,
@@ -1209,10 +1213,276 @@ export class ZkIdServer extends EventEmitter {
   }
 
   /**
+   * Verify a multi-claim proof bundle with a shared nonce + timestamp.
+   *
+   * @param response - Multi-claim proof response
+   * @param clientIdentifier - Optional client IP/session for rate limiting
+   * @param clientProtocolVersion - Optional client protocol version for compatibility checking
+   * @returns Multi-claim verification result
+   */
+  async verifyMultiClaim(
+    response: MultiClaimResponse,
+    clientIdentifier?: string,
+    clientProtocolVersion?: string,
+  ): Promise<MultiClaimVerificationResult> {
+    const startTime = Date.now();
+    const requireSigned = this.config.requireSignedCredentials !== false;
+
+    const failAll = (internalError: string): MultiClaimVerificationResult => {
+      const error = this.sanitizeError(internalError);
+      const proofs = Array.isArray((response as any)?.proofs) ? (response as any).proofs : [];
+      const results: ClaimVerificationResult[] = proofs.map((proof: any) => {
+        const claimType = typeof proof?.claimType === 'string' ? proof.claimType : 'unknown';
+        const label = typeof proof?.label === 'string' ? proof.label : 'unknown';
+        const result: VerificationResult = { verified: false, error };
+        this.emitVerificationEvent(
+          claimType,
+          result,
+          startTime,
+          clientIdentifier,
+          internalError,
+        );
+        return { label, verified: false, error };
+      });
+
+      if (results.length === 0) {
+        return { results: [], allVerified: false, verifiedCount: 0, totalCount: 0 };
+      }
+
+      return aggregateVerificationResults(results);
+    };
+
+    // Strict payload validation (enabled by default)
+    if (this.config.validatePayloads !== false) {
+      const payloadErrors = validateMultiClaimResponsePayload(response, requireSigned);
+      if (payloadErrors.length > 0) {
+        const msg = payloadErrors.map((e) => `${e.field}: ${e.message}`).join('; ');
+        return failAll(`Invalid payload: ${msg}`);
+      }
+    }
+
+    // Rate limiting
+    if (this.config.rateLimiter && clientIdentifier) {
+      const allowed = await this.config.rateLimiter.allowRequest(clientIdentifier);
+      if (!allowed) {
+        return failAll('Rate limit exceeded');
+      }
+    }
+
+    // Protocol version enforcement (no per-proof event emission here)
+    const protocolResult = this.checkProtocolVersion(
+      clientProtocolVersion,
+      'multi-claim',
+      startTime,
+      clientIdentifier,
+      false,
+    );
+    if (protocolResult) {
+      return failAll(protocolResult.error ?? 'Incompatible protocol version');
+    }
+
+    // Request timestamp validation
+    const requestTimestamp = response.requestTimestamp;
+    if (!requestTimestamp) {
+      return failAll('Missing request timestamp');
+    }
+    const requestMs = Date.parse(requestTimestamp);
+    if (Number.isNaN(requestMs)) {
+      return failAll('Invalid request timestamp');
+    }
+
+    // Check for future timestamps (time-shifted proofs)
+    const maxFutureSkew = this.config.maxFutureSkewMs ?? 60000;
+    const timeDiffMs = requestMs - Date.now();
+    if (timeDiffMs > maxFutureSkew) {
+      return failAll('Request timestamp is too far in the future');
+    }
+
+    // Check for stale timestamps (replay protection)
+    if (this.config.maxRequestAgeMs !== undefined) {
+      const ageMs = Date.now() - requestMs;
+      if (ageMs > this.config.maxRequestAgeMs) {
+        return failAll('Request timestamp is too old');
+      }
+    }
+
+    const challengeError = await this.validateChallenge(response.nonce, requestMs);
+    if (challengeError) {
+      return failAll(challengeError);
+    }
+
+    // Replay protection
+    if (this.config.nonceStore) {
+      const nonceUsed = await this.config.nonceStore.has(response.nonce);
+      if (nonceUsed) {
+        return failAll('Nonce already used (replay attack detected)');
+      }
+    }
+
+    if (requireSigned && !response.signedCredential) {
+      return failAll('Signed credential required');
+    }
+
+    const proofs = Array.isArray((response as any).proofs) ? response.proofs : [];
+    if (proofs.length === 0) {
+      return failAll('No proofs provided');
+    }
+
+    const results: ClaimVerificationResult[] = [];
+    for (const claim of proofs) {
+      const label = claim.label;
+      let internalError: string | undefined;
+      let result: VerificationResult | undefined;
+
+      const proofResponse: ProofResponse = {
+        credentialId: response.credentialId,
+        claimType: claim.claimType,
+        proof: claim.proof,
+        signedCredential: response.signedCredential,
+        nonce: response.nonce,
+        requestTimestamp: response.requestTimestamp,
+      };
+
+      if (!['age', 'nationality', 'age-revocable'].includes(claim.claimType)) {
+        internalError = 'Unknown claim type';
+      } else {
+        const proofType = (claim.proof as any)?.proofType;
+        if (proofType && proofType !== claim.claimType) {
+          internalError = 'Proof type does not match claim type';
+        }
+      }
+
+      // Policy enforcement
+      if (!internalError) {
+        const requiredPolicy = this.config.requiredPolicy;
+        if (claim.claimType === 'age') {
+          const requiredMinAge = requiredPolicy?.minAge ?? this.config.requiredMinAge;
+          if (requiredMinAge !== undefined) {
+            const proof = claim.proof as AgeProof;
+            if (proof.publicSignals.minAge !== requiredMinAge) {
+              internalError = 'Proof does not satisfy required minimum age';
+            }
+          }
+        }
+        if (claim.claimType === 'age-revocable') {
+          const requiredMinAge = requiredPolicy?.minAge ?? this.config.requiredMinAge;
+          if (requiredMinAge !== undefined) {
+            const proof = claim.proof as AgeProofRevocable;
+            if (proof.publicSignals.minAge !== requiredMinAge) {
+              internalError = 'Proof does not satisfy required minimum age';
+            }
+          }
+        }
+        if (claim.claimType === 'nationality') {
+          const requiredNationality = requiredPolicy?.nationality ?? this.config.requiredNationality;
+          if (requiredNationality !== undefined) {
+            const proof = claim.proof as NationalityProof;
+            if (proof.publicSignals.targetNationality !== requiredNationality) {
+              internalError = 'Proof does not satisfy required nationality';
+            }
+          }
+        }
+      }
+
+      // Nonce binding: ensure proof public nonce matches the request nonce
+      if (!internalError) {
+        const proofNonce = this.getProofNonce(proofResponse);
+        if (!constantTimeEqual(proofNonce, response.nonce)) {
+          internalError = 'Proof nonce does not match request nonce';
+        }
+      }
+
+      // Timestamp binding: ensure proof public timestamp matches request timestamp
+      if (!internalError) {
+        const proofTimestamp = this.getProofTimestamp(proofResponse);
+        if (proofTimestamp !== requestMs) {
+          internalError = 'Proof timestamp does not match request timestamp';
+        }
+      }
+
+      // Signed credential validation (issuer trust + binding)
+      if (!internalError && requireSigned) {
+        const signedCredential = response.signedCredential!;
+        const bindingCheck = await this.validateSignedCredentialBinding(
+          signedCredential,
+          proofResponse,
+        );
+        if (!bindingCheck.valid) {
+          internalError = bindingCheck.error!;
+        }
+      }
+
+      // Revocation check (use credential commitment)
+      if (!internalError && this.config.revocationStore) {
+        const commitment = this.getCredentialCommitmentFromProof(proofResponse);
+        const isRevoked = await this.config.revocationStore.isRevoked(commitment);
+        if (isRevoked) {
+          internalError = 'Credential has been revoked';
+        }
+      }
+
+      if (internalError) {
+        result = {
+          verified: false,
+          error: this.sanitizeError(internalError),
+        };
+      } else if (claim.claimType === 'age') {
+        const verification = await this.verifyAgeProofInternal(proofResponse, { markNonce: false });
+        result = verification.result;
+        internalError = verification.internalError;
+      } else if (claim.claimType === 'nationality') {
+        const verification = await this.verifyNationalityProofInternal(proofResponse, {
+          markNonce: false,
+        });
+        result = verification.result;
+        internalError = verification.internalError;
+      } else if (claim.claimType === 'age-revocable') {
+        const verification = await this.verifyAgeProofRevocableInternal(proofResponse, {
+          markNonce: false,
+        });
+        result = verification.result;
+        internalError = verification.internalError;
+      } else {
+        internalError = 'Unknown claim type';
+        result = {
+          verified: false,
+          error: this.sanitizeError(internalError),
+        };
+      }
+
+      this.emitVerificationEvent(
+        claim.claimType,
+        result,
+        startTime,
+        clientIdentifier,
+        internalError,
+      );
+
+      results.push({
+        label,
+        verified: result.verified,
+        error: result.error,
+      });
+    }
+
+    if (results.length === 0) {
+      return { results: [], allVerified: false, verifiedCount: 0, totalCount: 0 };
+    }
+
+    const aggregated = aggregateVerificationResults(results);
+    if (aggregated.allVerified && this.config.nonceStore) {
+      await this.config.nonceStore.add(response.nonce);
+    }
+
+    return aggregated;
+  }
+
+  /**
    * Internal age proof verification
    */
   private async verifyAgeProofInternal(
     proofResponse: ProofResponse,
+    options: { markNonce?: boolean } = {},
   ): Promise<{ result: VerificationResult; internalError?: string }> {
     const proof = proofResponse.proof as AgeProof;
 
@@ -1234,8 +1504,7 @@ export class ZkIdServer extends EventEmitter {
       const isValid = await verifyAgeProof(proof, this.verificationKey);
 
       if (isValid) {
-        // Mark nonce as used
-        if (this.config.nonceStore) {
+        if (options.markNonce !== false && this.config.nonceStore) {
           await this.config.nonceStore.add(proofResponse.nonce);
         }
 
@@ -1274,6 +1543,7 @@ export class ZkIdServer extends EventEmitter {
    */
   private async verifyNationalityProofInternal(
     proofResponse: ProofResponse,
+    options: { markNonce?: boolean } = {},
   ): Promise<{ result: VerificationResult; internalError?: string }> {
     const proof = proofResponse.proof as NationalityProof;
 
@@ -1306,8 +1576,7 @@ export class ZkIdServer extends EventEmitter {
       const isValid = await verifyNationalityProof(proof, this.nationalityVerificationKey);
 
       if (isValid) {
-        // Mark nonce as used
-        if (this.config.nonceStore) {
+        if (options.markNonce !== false && this.config.nonceStore) {
           await this.config.nonceStore.add(proofResponse.nonce);
         }
 
@@ -1346,6 +1615,7 @@ export class ZkIdServer extends EventEmitter {
    */
   private async verifyAgeProofRevocableInternal(
     proofResponse: ProofResponse,
+    options: { markNonce?: boolean } = {},
   ): Promise<{ result: VerificationResult; internalError?: string }> {
     const proof = proofResponse.proof as AgeProofRevocable;
 
@@ -1406,8 +1676,7 @@ export class ZkIdServer extends EventEmitter {
       );
 
       if (isValid) {
-        // Mark nonce as used
-        if (this.config.nonceStore) {
+        if (options.markNonce !== false && this.config.nonceStore) {
           await this.config.nonceStore.add(proofResponse.nonce);
         }
 
@@ -1722,6 +1991,7 @@ export class ZkIdServer extends EventEmitter {
     claimType: string,
     startTime: number,
     clientIdentifier?: string,
+    emitEvent: boolean = true,
   ): VerificationResult | null {
     const policy: ProtocolVersionPolicy = this.config.protocolVersionPolicy ?? 'warn';
     if (policy === 'off') {
@@ -1735,7 +2005,9 @@ export class ZkIdServer extends EventEmitter {
           error: this.sanitizeError('Missing protocol version'),
           protocolVersion: PROTOCOL_VERSION,
         };
-        this.emitVerificationEvent(claimType, result, startTime, clientIdentifier);
+        if (emitEvent) {
+          this.emitVerificationEvent(claimType, result, startTime, clientIdentifier);
+        }
         return result;
       }
       console.warn(
@@ -1752,7 +2024,9 @@ export class ZkIdServer extends EventEmitter {
           error: this.sanitizeError('Incompatible protocol version'),
           protocolVersion: PROTOCOL_VERSION,
         };
-        this.emitVerificationEvent(claimType, result, startTime, clientIdentifier);
+        if (emitEvent) {
+          this.emitVerificationEvent(claimType, result, startTime, clientIdentifier);
+        }
         return result;
       }
       console.warn(
@@ -2005,6 +2279,80 @@ export function validateProofResponsePayload(
       errors.push({ field: 'signedCredential', message: 'Must be a non-null object' });
     }
   }
+  return errors;
+}
+
+/**
+ * Validate a MultiClaimResponse payload structure.
+ * Returns an empty array when the payload is well-formed.
+ */
+export function validateMultiClaimResponsePayload(
+  body: unknown,
+  requireSignedCredential: boolean = true,
+): PayloadValidationError[] {
+  const errors: PayloadValidationError[] = [];
+  if (!body || typeof body !== 'object') {
+    return [{ field: '(root)', message: 'Body must be a non-null object' }];
+  }
+  const obj = body as Record<string, unknown>;
+
+  if (!Array.isArray(obj.proofs) || obj.proofs.length === 0) {
+    errors.push({ field: 'proofs', message: 'Must be a non-empty array' });
+  }
+  if (typeof obj.nonce !== 'string' || obj.nonce.length === 0) {
+    errors.push({ field: 'nonce', message: 'Must be a non-empty string' });
+  }
+  if (typeof obj.requestTimestamp !== 'string') {
+    errors.push({ field: 'requestTimestamp', message: 'Must be a string (ISO 8601)' });
+  }
+  if (typeof obj.credentialId !== 'string' || obj.credentialId.length === 0) {
+    errors.push({ field: 'credentialId', message: 'Must be a non-empty string' });
+  }
+  if (requireSignedCredential) {
+    if (!obj.signedCredential || typeof obj.signedCredential !== 'object') {
+      errors.push({ field: 'signedCredential', message: 'Must be a non-null object' });
+    }
+  }
+
+  if (Array.isArray(obj.proofs)) {
+    obj.proofs.forEach((proof, index) => {
+      if (!proof || typeof proof !== 'object') {
+        errors.push({ field: `proofs[${index}]`, message: 'Must be a non-null object' });
+        return;
+      }
+      const claim = proof as Record<string, unknown>;
+      if (typeof claim.label !== 'string' || claim.label.length === 0) {
+        errors.push({ field: `proofs[${index}].label`, message: 'Must be a non-empty string' });
+      }
+      if (
+        typeof claim.claimType !== 'string' ||
+        !['age', 'nationality', 'age-revocable'].includes(claim.claimType)
+      ) {
+        errors.push({
+          field: `proofs[${index}].claimType`,
+          message: "Must be 'age', 'nationality', or 'age-revocable'",
+        });
+      }
+      if (!claim.proof || typeof claim.proof !== 'object') {
+        errors.push({ field: `proofs[${index}].proof`, message: 'Must be a non-null object' });
+      } else {
+        const proofObj = claim.proof as Record<string, unknown>;
+        if (!proofObj.proof || typeof proofObj.proof !== 'object') {
+          errors.push({
+            field: `proofs[${index}].proof.proof`,
+            message: 'Must be a non-null object',
+          });
+        }
+        if (!proofObj.publicSignals || typeof proofObj.publicSignals !== 'object') {
+          errors.push({
+            field: `proofs[${index}].proof.publicSignals`,
+            message: 'Must be a non-null object',
+          });
+        }
+      }
+    });
+  }
+
   return errors;
 }
 

@@ -7,7 +7,13 @@
  * them into a single request/response and verifying them atomically.
  */
 
-import { AgeProof, NationalityProof, AgeProofRevocable, ProofRequest } from './types';
+import {
+  AgeProof,
+  NationalityProof,
+  AgeProofRevocable,
+  ProofRequest,
+  SignedCredential,
+} from './types';
 import { validateNonce, validateMinAge, validateNationality } from './validation';
 import { ZkIdValidationError } from './errors';
 
@@ -65,6 +71,8 @@ export interface MultiClaimResponse {
   requestTimestamp: string;
   /** Credential ID used for all proofs */
   credentialId: string;
+  /** Signed credential (optional when requireSignedCredentials is false). */
+  signedCredential?: SignedCredential;
 }
 
 /**

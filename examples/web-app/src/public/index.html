@@ -1536,37 +1536,242 @@
         }
       }
 
+      // Helper function: Generate age proof with a provided challenge (no verification)
+      async function generateAgeProofWithChallenge(minAge, challenge) {
+        if (!state.credential) {
+          throw new Error('Please issue a credential first');
+        }
+
+        if (typeof snarkjs === 'undefined') {
+          throw new Error('snarkjs library not loaded. Please refresh the page.');
+        }
+
+        if (!challenge || !challenge.nonce || !challenge.requestTimestamp) {
+          throw new Error('Invalid challenge');
+        }
+
+        if (isNaN(minAge)) {
+          throw new Error('Invalid minimum age');
+        }
+
+        // Prepare circuit inputs (ALL DONE LOCALLY)
+        const currentYear = new Date().getFullYear();
+        const requestTimestampMs = Date.parse(challenge.requestTimestamp);
+
+        // Convert hex salt to decimal string
+        const saltDecimal = BigInt('0x' + state.credential.credential.salt).toString();
+
+        const inputs = {
+          birthYear: state.credential.credential.birthYear.toString(),
+          nationality: state.credential.credential.nationality.toString(),
+          salt: saltDecimal,
+          currentYear: currentYear.toString(),
+          minAge: minAge.toString(),
+          credentialHash: state.credential.credential.commitment,
+          nonce: challenge.nonce.toString(),
+          requestTimestamp: requestTimestampMs.toString(),
+        };
+
+        console.log('Circuit inputs:', inputs);
+
+        // Generate proof using snarkjs (downloads artifacts automatically)
+        const wasmUrl = '/circuits/age-verify_js/age-verify.wasm';
+        const zkeyUrl = '/circuits/age-verify.zkey';
+
+        const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+          inputs,
+          wasmUrl,
+          zkeyUrl,
+        );
+
+        // Format the proof properly (convert array to structured object)
+        const formattedProof = {
+          proof: {
+            pi_a: proof.pi_a.slice(0, 2),
+            pi_b: proof.pi_b.slice(0, 2),
+            pi_c: proof.pi_c.slice(0, 2),
+            protocol: proof.protocol,
+            curve: proof.curve,
+          },
+          publicSignals: {
+            currentYear: parseInt(publicSignals[0]),
+            minAge: parseInt(publicSignals[1]),
+            credentialHash: publicSignals[2],
+            nonce: publicSignals[3],
+            requestTimestamp: parseInt(publicSignals[4]),
+          },
+        };
+
+        return {
+          proof: formattedProof,
+          nonce: challenge.nonce,
+          requestTimestamp: challenge.requestTimestamp,
+          claimType: 'age',
+          credentialId: state.credentialId,
+          signedCredential: state.credential,
+        };
+      }
+
+      // Helper function: Generate nationality proof with a provided challenge (no verification)
+      async function generateNationalityProofWithChallenge(targetNationality, challenge) {
+        if (!state.credential) {
+          throw new Error('Please issue a credential first');
+        }
+
+        if (typeof snarkjs === 'undefined') {
+          throw new Error('snarkjs library not loaded. Please refresh the page.');
+        }
+
+        if (!challenge || !challenge.nonce || !challenge.requestTimestamp) {
+          throw new Error('Invalid challenge');
+        }
+
+        if (isNaN(targetNationality)) {
+          throw new Error('Invalid nationality');
+        }
+
+        const requestTimestampMs = Date.parse(challenge.requestTimestamp);
+
+        // Convert hex salt to decimal string
+        const saltDecimal = BigInt('0x' + state.credential.credential.salt).toString();
+
+        const inputs = {
+          birthYear: state.credential.credential.birthYear.toString(),
+          nationality: state.credential.credential.nationality.toString(),
+          salt: saltDecimal,
+          targetNationality: targetNationality.toString(),
+          credentialHash: state.credential.credential.commitment,
+          nonce: challenge.nonce.toString(),
+          requestTimestamp: requestTimestampMs.toString(),
+        };
+
+        console.log('Circuit inputs:', inputs);
+
+        const wasmUrl = '/circuits/nationality-verify_js/nationality-verify.wasm';
+        const zkeyUrl = '/circuits/nationality-verify.zkey';
+
+        const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+          inputs,
+          wasmUrl,
+          zkeyUrl,
+        );
+
+        // Format the proof properly (convert array to structured object)
+        const formattedProof = {
+          proof: {
+            pi_a: proof.pi_a.slice(0, 2),
+            pi_b: proof.pi_b.slice(0, 2),
+            pi_c: proof.pi_c.slice(0, 2),
+            protocol: proof.protocol,
+            curve: proof.curve,
+          },
+          publicSignals: {
+            targetNationality: parseInt(publicSignals[0]),
+            credentialHash: publicSignals[1],
+            nonce: publicSignals[2],
+            requestTimestamp: parseInt(publicSignals[3]),
+          },
+        };
+
+        return {
+          proof: formattedProof,
+          nonce: challenge.nonce,
+          requestTimestamp: challenge.requestTimestamp,
+          claimType: 'nationality',
+          credentialId: state.credentialId,
+          signedCredential: state.credential,
+        };
+      }
+
       // Step 4: Verify Voting Eligibility (Combined Scenario)
       async function verifyVotingEligibility() {
         const btn = document.getElementById('verifyVotingBtn');
         btn.disabled = true;
 
         try {
-          // Step 1: Generate and verify age proof (18+)
-          showResult('verifyVotingResult', 'loading', '<div class="result-title">Generating age proof (18+)...</div>');
+          showResult('verifyVotingResult', 'loading', '<div class="result-title">Fetching challenge...</div>');
+          const challengeResponse = await fetch('/api/challenge');
+          if (!challengeResponse.ok) {
+            throw new Error('Failed to fetch challenge');
+          }
+          const challenge = await challengeResponse.json();
 
-          const ageResult = await generateAgeProofAndVerify(18, 'verifyVotingResult', 'step-voting-age');
+          // Step 1: Generate age proof (18+)
+          showResult(
+            'verifyVotingResult',
+            'loading',
+            '<div class="result-title">Generating age proof (18+)...</div>',
+          );
+          const ageProofResponse = await generateAgeProofWithChallenge(18, challenge);
 
-          if (!ageResult.success) {
-            showResult('verifyVotingResult', 'error',
-              `<div class="result-title">✗ Voting Eligibility Verification Failed</div><p>Age verification (18+) failed: ${escapeHtml(ageResult.error || 'Unknown error')}</p>`);
-            return;
+          // Step 2: Generate nationality proof (USA = 840)
+          showResult(
+            'verifyVotingResult',
+            'loading',
+            '<div class="result-title">Generating nationality proof (US citizen)...</div>',
+          );
+          const nationalityProofResponse = await generateNationalityProofWithChallenge(
+            840,
+            challenge,
+          );
+
+          // Step 3: Submit scenario bundle
+          showResult(
+            'verifyVotingResult',
+            'loading',
+            '<div class="result-title">Submitting scenario bundle...</div>',
+          );
+
+          const scenarioPayload = {
+            scenarioId: 'voting-eligibility-us',
+            response: {
+              proofs: [
+                { label: 'age-requirement', claimType: 'age', proof: ageProofResponse.proof },
+                {
+                  label: 'citizenship',
+                  claimType: 'nationality',
+                  proof: nationalityProofResponse.proof,
+                },
+              ],
+              nonce: challenge.nonce,
+              requestTimestamp: challenge.requestTimestamp,
+              credentialId: state.credentialId,
+              signedCredential: state.credential,
+            },
+          };
+
+          const verifyResponse = await fetch('/api/verify-scenario', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(scenarioPayload),
+          });
+
+          const result = await verifyResponse.json();
+          if (!verifyResponse.ok) {
+            throw new Error(result.error || 'Scenario verification failed');
           }
 
-          // Step 2: Generate and verify nationality proof (USA = 840)
-          showResult('verifyVotingResult', 'loading', '<div class="result-title">Generating nationality proof (US citizen)...</div>');
-
-          const nationalityResult = await generateNationalityProofAndVerify(840, 'verifyVotingResult', 'step-voting-nat');
-
-          if (!nationalityResult.success) {
-            showResult('verifyVotingResult', 'error',
-              `<div class="result-title">✗ Voting Eligibility Verification Failed</div><p>US citizenship verification failed: ${escapeHtml(nationalityResult.error || 'Unknown error')}</p>`);
-            return;
+          const satisfied =
+            result.satisfied === true || result.allVerified === true || result.verified === true;
+          if (satisfied) {
+            showResult(
+              'verifyVotingResult',
+              'success',
+              '<div class="result-title">✓ Voting Eligibility Verified</div><p>You are 18+ and a US citizen - eligible to vote!</p>',
+            );
+          } else {
+            const failedClaims =
+              Array.isArray(result.failedClaims) && result.failedClaims.length > 0
+                ? `Failed claims: ${result.failedClaims.join(', ')}`
+                : result.error || result.message || 'Scenario verification failed';
+            showResult(
+              'verifyVotingResult',
+              'error',
+              `<div class="result-title">✗ Voting Eligibility Verification Failed</div><p>${escapeHtml(
+                failedClaims,
+              )}</p>`,
+            );
           }
-
-          // Both passed!
-          showResult('verifyVotingResult', 'success',
-            '<div class="result-title">✓ Voting Eligibility Verified</div><p>You are 18+ and a US citizen - eligible to vote!</p>');
         } catch (error) {
           console.error('Voting eligibility verification error:', error);
 
@@ -1609,20 +1814,77 @@
         btn.disabled = true;
 
         try {
-          // Generate and verify age proof (65+)
-          showResult('verifySeniorResult', 'loading', '<div class="result-title">Generating proof (65+)...</div>');
+          showResult(
+            'verifySeniorResult',
+            'loading',
+            '<div class="result-title">Fetching challenge...</div>',
+          );
+          const challengeResponse = await fetch('/api/challenge');
+          if (!challengeResponse.ok) {
+            throw new Error('Failed to fetch challenge');
+          }
+          const challenge = await challengeResponse.json();
 
-          const ageResult = await generateAgeProofAndVerify(65, 'verifySeniorResult', 'step-senior');
+          // Generate age proof (65+)
+          showResult(
+            'verifySeniorResult',
+            'loading',
+            '<div class="result-title">Generating proof (65+)...</div>',
+          );
+          const ageProofResponse = await generateAgeProofWithChallenge(65, challenge);
 
-          if (!ageResult.success) {
-            showResult('verifySeniorResult', 'error',
-              `<div class="result-title">✗ Senior Discount Verification Failed</div><p>Age verification (65+) failed: ${escapeHtml(ageResult.error || 'Unknown error')}</p>`);
-            return;
+          // Submit scenario bundle
+          showResult(
+            'verifySeniorResult',
+            'loading',
+            '<div class="result-title">Submitting scenario bundle...</div>',
+          );
+
+          const scenarioPayload = {
+            scenarioId: 'senior-discount',
+            response: {
+              proofs: [
+                { label: 'senior-age', claimType: 'age', proof: ageProofResponse.proof },
+              ],
+              nonce: challenge.nonce,
+              requestTimestamp: challenge.requestTimestamp,
+              credentialId: state.credentialId,
+              signedCredential: state.credential,
+            },
+          };
+
+          const verifyResponse = await fetch('/api/verify-scenario', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(scenarioPayload),
+          });
+
+          const result = await verifyResponse.json();
+          if (!verifyResponse.ok) {
+            throw new Error(result.error || 'Scenario verification failed');
           }
 
-          // Success!
-          showResult('verifySeniorResult', 'success',
-            '<div class="result-title">✓ Senior Discount Eligibility Verified</div><p>You are 65+ - eligible for senior discounts!</p>');
+          const satisfied =
+            result.satisfied === true || result.allVerified === true || result.verified === true;
+          if (satisfied) {
+            showResult(
+              'verifySeniorResult',
+              'success',
+              '<div class="result-title">✓ Senior Discount Eligibility Verified</div><p>You are 65+ - eligible for senior discounts!</p>',
+            );
+          } else {
+            const failedClaims =
+              Array.isArray(result.failedClaims) && result.failedClaims.length > 0
+                ? `Failed claims: ${result.failedClaims.join(', ')}`
+                : result.error || result.message || 'Scenario verification failed';
+            showResult(
+              'verifySeniorResult',
+              'error',
+              `<div class="result-title">✗ Senior Discount Verification Failed</div><p>${escapeHtml(
+                failedClaims,
+              )}</p>`,
+            );
+          }
         } catch (error) {
           console.error('Senior discount verification error:', error);
 

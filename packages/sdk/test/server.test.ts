@@ -7,12 +7,14 @@ import {
   InMemoryIssuerRegistry,
   InMemoryNonceStore,
   validateProofResponsePayload,
+  validateMultiClaimResponsePayload,
   validateSignedProofRequestPayload,
 } from '../src/server';
 import {
   AgeProof,
   AgeProofRevocable,
   ProofResponse,
+  MultiClaimResponse,
   SignedCredential,
   credentialSignaturePayload,
 } from '@zk-id/core';
@@ -1415,6 +1417,56 @@ describe('InMemoryIssuerRegistry - rotationGracePeriodMs', () => {
 
     const result = await server.verifyProof(proofResponse);
     expect(result).to.have.property('verified');
+  });
+});
+
+describe('ZkIdServer - multi-claim verification', () => {
+  it('validates multi-claim payloads', () => {
+    const errors = validateMultiClaimResponsePayload({} as any, true);
+    expect(errors.length).to.be.greaterThan(0);
+  });
+
+  it('checks nonce only once for shared-nonce bundles', async () => {
+    let hasCalls = 0;
+    const nonceStore = {
+      has: async () => {
+        hasCalls += 1;
+        return false;
+      },
+      add: async () => {},
+    };
+
+    const server = new ZkIdServer({
+      verificationKeys: { age: {} as any },
+      requireSignedCredentials: false,
+      validatePayloads: false,
+      nonceStore,
+      verboseErrors: true,
+    });
+
+    const requestTimestampMs = Date.now();
+    const requestTimestamp = new Date(requestTimestampMs).toISOString();
+    const response: MultiClaimResponse = {
+      proofs: [
+        {
+          label: 'age-1',
+          claimType: 'age',
+          proof: makeAgeProof('123', 18, 'shared-nonce', requestTimestampMs),
+        },
+        {
+          label: 'age-2',
+          claimType: 'age',
+          proof: makeAgeProof('123', 21, 'shared-nonce', requestTimestampMs),
+        },
+      ],
+      nonce: 'shared-nonce',
+      requestTimestamp,
+      credentialId: 'cred-1',
+    };
+
+    const result = await server.verifyMultiClaim(response);
+    expect(result.totalCount).to.equal(2);
+    expect(hasCalls).to.equal(1);
   });
 });
 

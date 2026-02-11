@@ -25,11 +25,16 @@ import {
   ZkIdProofError,
   ZkIdError,
   VerificationScenario,
+  MultiClaimResponse,
+  createScenarioRequest,
+  expandMultiClaimRequest,
 } from '@zk-id/core';
 
 export interface ZkIdClientConfig {
   /** URL of the website's proof verification endpoint */
   verificationEndpoint: string;
+  /** Optional endpoint for scenario bundle verification */
+  scenarioVerificationEndpoint?: string;
   /** Optional custom wallet connector */
   walletConnector?: WalletConnector;
   /** Optional revocation root endpoint (e.g., /api/revocation/root) */
@@ -167,14 +172,20 @@ export class ZkIdClient {
    * Creates a multi-claim request from the scenario, generates proofs for each
    * claim, submits them, and returns true only if all pass.
    *
-   * Note: Each claim is verified independently with its own nonce to avoid
-   * replay protection failures on servers that enforce nonce uniqueness.
+   * If `scenarioVerificationEndpoint` is configured, submits a bundled multi-claim
+   * response with a shared nonce. Otherwise, each claim is verified independently
+   * with its own nonce to avoid replay protection failures on servers that
+   * enforce nonce uniqueness.
    *
    * @param scenario - The verification scenario to verify
    * @returns true if all scenario claims verify successfully, false otherwise
    */
   async verifyScenario(scenario: VerificationScenario): Promise<boolean> {
     try {
+      if (this.config.scenarioVerificationEndpoint) {
+        return await this.verifyScenarioBundle(scenario);
+      }
+
       const timestamp = new Date().toISOString();
 
       // Generate and verify each proof with its own nonce
@@ -211,6 +222,69 @@ export class ZkIdClient {
     }
   }
 
+  private async verifyScenarioBundle(scenario: VerificationScenario): Promise<boolean> {
+    if (!this.config.scenarioVerificationEndpoint) {
+      throw new ZkIdConfigError('scenarioVerificationEndpoint not configured');
+    }
+
+    const request = createScenarioRequest(scenario, this.generateNonce());
+    const expanded = expandMultiClaimRequest(request);
+
+    const proofs: MultiClaimResponse['proofs'] = [];
+    let credentialId: string | undefined;
+    let signedCredential: SignedCredential | undefined;
+
+    for (const { label, proofRequest } of expanded) {
+      const proofResponse = await this.requestProof(proofRequest);
+
+      if (proofResponse.claimType !== proofRequest.claimType) {
+        throw new ZkIdProofError('Proof claim type mismatch');
+      }
+      if (proofResponse.nonce !== request.nonce) {
+        throw new ZkIdProofError('Proof nonce does not match scenario request');
+      }
+      if (proofResponse.requestTimestamp !== request.timestamp) {
+        throw new ZkIdProofError('Proof timestamp does not match scenario request');
+      }
+
+      if (!credentialId) {
+        credentialId = proofResponse.credentialId;
+      } else if (proofResponse.credentialId !== credentialId) {
+        throw new ZkIdProofError('Scenario proofs must use the same credential');
+      }
+
+      if (proofResponse.signedCredential) {
+        if (!signedCredential) {
+          signedCredential = proofResponse.signedCredential;
+        } else if (
+          proofResponse.signedCredential.credential.id !== signedCredential.credential.id
+        ) {
+          throw new ZkIdProofError('Scenario proofs must share the same signed credential');
+        }
+      }
+
+      proofs.push({
+        label,
+        claimType: proofResponse.claimType as MultiClaimResponse['proofs'][number]['claimType'],
+        proof: proofResponse.proof as MultiClaimResponse['proofs'][number]['proof'],
+      });
+    }
+
+    if (!credentialId) {
+      throw new ZkIdProofError('Scenario proofs missing credential ID');
+    }
+
+    const response: MultiClaimResponse = {
+      proofs,
+      nonce: request.nonce,
+      requestTimestamp: request.timestamp,
+      credentialId,
+      signedCredential,
+    };
+
+    return this.submitScenarioBundle(scenario.id, response);
+  }
+
   /**
    * Fetch current revocation root info from server (if configured).
    *
@@ -224,7 +298,7 @@ export class ZkIdClient {
 
     const response = await fetch(this.config.revocationRootEndpoint, {
       method: 'GET',
-      headers: this.buildHeaders(),
+      headers: this.buildHeaders(this.config.revocationRootEndpoint),
     });
 
     if (!response.ok) {
@@ -281,7 +355,7 @@ export class ZkIdClient {
    * Submit proof to backend for verification
    */
   private async submitProof(proofResponse: ProofResponse): Promise<boolean> {
-    const headers = this.buildHeaders();
+    const headers = this.buildHeaders(this.config.verificationEndpoint);
     headers['Content-Type'] = 'application/json';
 
     const response = await fetch(this.config.verificationEndpoint, {
@@ -310,6 +384,56 @@ export class ZkIdClient {
     return result.verified === true;
   }
 
+  private async submitScenarioBundle(
+    scenarioId: string,
+    responseBody: MultiClaimResponse,
+  ): Promise<boolean> {
+    const endpoint = this.config.scenarioVerificationEndpoint;
+    if (!endpoint) {
+      throw new ZkIdConfigError('scenarioVerificationEndpoint not configured');
+    }
+
+    const headers = this.buildHeaders(endpoint);
+    headers['Content-Type'] = 'application/json';
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        scenarioId,
+        response: responseBody,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new ZkIdProofError(`Scenario verification failed: ${response.statusText}`);
+    }
+
+    // Check protocol version compatibility
+    const serverProtocolVersion =
+      response.headers && typeof response.headers.get === 'function'
+        ? response.headers.get('X-ZkId-Protocol-Version')
+        : null;
+    if (serverProtocolVersion && !isProtocolCompatible(PROTOCOL_VERSION, serverProtocolVersion)) {
+      console.warn(
+        `[zk-id] Protocol version mismatch: client=${PROTOCOL_VERSION}, server=${serverProtocolVersion}. ` +
+          'This may cause compatibility issues.',
+      );
+    }
+
+    const result = await response.json();
+    if (typeof result?.satisfied === 'boolean') {
+      return result.satisfied;
+    }
+    if (typeof result?.allVerified === 'boolean') {
+      return result.allVerified;
+    }
+    if (typeof result?.verified === 'boolean') {
+      return result.verified;
+    }
+    return false;
+  }
+
   /**
    * Generate a random nonce for replay protection
    */
@@ -329,7 +453,7 @@ export class ZkIdClient {
     return this.config.walletConnector.isAvailable();
   }
 
-  private shouldSendProtocolHeader(): boolean {
+  private shouldSendProtocolHeader(endpointOverride?: string): boolean {
     const policy = this.config.protocolVersionHeader ?? 'same-origin';
     if (policy === 'always') {
       return true;
@@ -344,16 +468,19 @@ export class ZkIdClient {
     }
 
     try {
-      const endpoint = new URL(this.config.verificationEndpoint, window.location.href);
+      const endpoint = new URL(
+        endpointOverride ?? this.config.verificationEndpoint,
+        window.location.href,
+      );
       return endpoint.origin === window.location.origin;
     } catch {
       return true;
     }
   }
 
-  private buildHeaders(): Record<string, string> {
+  private buildHeaders(endpointOverride?: string): Record<string, string> {
     const headers: Record<string, string> = {};
-    if (this.shouldSendProtocolHeader()) {
+    if (this.shouldSendProtocolHeader(endpointOverride)) {
       headers['X-ZkId-Protocol-Version'] = PROTOCOL_VERSION;
     }
     return headers;
