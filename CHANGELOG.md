@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-02-11
+
+### Added
+
+- **Developer Portal & Playground** (T-011): Complete Astro-based developer portal at zk-id.io
+  - Interactive playground with browser-based ZK proof generation
+  - 4-step quick start guide (issue → prove → verify in <5 minutes)
+  - Full API reference with TypeScript, Python, and Go examples
+  - 24 documentation pages with content collections
+  - Custom domain support (zk-id.io)
+- Production API deployment on Render (https://zk-id-1.onrender.com)
+- GitHub Pages deployment with automatic builds on push
+
+### Security
+
+- **Fixed CORS misconfiguration** (HIGH): Replaced origin reflection with exact matching, preventing CORS-based attacks
+- **Fixed XSS vulnerabilities**: Replaced `innerHTML` with `DOMParser` in playground and quick-start scripts
+- **Pinned all GitHub Actions** to commit SHAs in deploy-portal.yml workflow
+- **Hardened Dockerfile**: Added non-root user, pinned base images by SHA256 digest
+- **Secured build scripts**: Added path validation to prevent traversal in copy-docs.mjs
+- Dismissed 7 binary artifact false positives (circuit WASM files)
+
+### Changed
+
+- Updated CORS allowed origins to include `https://zk-id.io`
+- Container now runs as `app` user instead of root
+- Improved error messaging in portal scripts with dedicated API error formatter
+
+### Infrastructure
+
+- Configured custom domain (zk-id.io) with GitHub Pages
+- Set up Render deployment for API server
+- Automated portal deployment on push to main
+
 ## [1.1.0] - 2026-02-09
 
 ### Added
