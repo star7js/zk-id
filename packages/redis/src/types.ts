@@ -4,8 +4,10 @@
  */
 export interface RedisClient {
   get(key: string): Promise<string | null>;
-  /** Atomically get and delete a key (Redis 6.2+). Optional; stores fall back to GET+DEL if absent. */
+  /** Atomically get and delete a key (Redis 6.2+). Optional; stores fall back to a Lua script if absent. */
   getdel?(key: string): Promise<string | null>;
+  /** Execute a Lua script (EVAL). Optional; enables atomic GET+DEL fallback on Redis < 6.2. */
+  eval?(script: string, numkeys: number, ...args: string[]): Promise<unknown>;
   set(key: string, value: string, ...args: (string | number)[]): Promise<string | null>;
   del(...keys: string[]): Promise<number>;
   sadd(key: string, ...members: string[]): Promise<number>;
