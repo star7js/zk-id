@@ -29,6 +29,7 @@ This guide covers deploying the ZK-ID portal and API server to production.
 ### C. Get Your API URL
 
 After deployment completes (~2-3 minutes):
+
 1. Click on your service
 2. Go to **Settings** → **Networking**
 3. Copy the **Public URL** (e.g., `https://zk-id-production.up.railway.app`)
@@ -53,6 +54,7 @@ After deployment completes (~2-3 minutes):
 ### C. Deploy Portal
 
 The portal will automatically deploy when you push changes. To manually trigger:
+
 1. Go to **Actions** tab
 2. Select **Deploy Portal to GitHub Pages**
 3. Click **Run workflow** → **Run workflow**
@@ -66,6 +68,7 @@ Once both deployments complete:
 3. **Playground**: https://star7js.github.io/zk-id/playground
 
 Test the interactive features:
+
 1. Issue a credential
 2. Generate a proof (should work with deployed API)
 3. Verify the proof
@@ -115,6 +118,7 @@ If your circuit files are small enough:
 ### CORS Configuration
 
 The API server is configured to accept requests from:
+
 - `http://localhost:4321` (development)
 - `https://star7js.github.io` (production)
 

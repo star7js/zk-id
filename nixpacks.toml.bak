@@ -1,0 +1,14 @@
+[phases.setup]
+nixPkgs = ['nodejs-18_x']
+
+[phases.install]
+cmds = ['npm ci']
+
+[phases.build]
+cmds = [
+  'npm run build:core',
+  'npm run build --workspace=@zk-id/example-web-app'
+]
+
+[start]
+cmd = 'cd examples/web-app && node dist/server.js'

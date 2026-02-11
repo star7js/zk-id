@@ -173,7 +173,13 @@ describe('*Auto() prover error paths', () => {
     it('should throw on invalid minAge', async () => {
       const cred = await createCredential(1995, 840);
       try {
-        await generateAgeProofSignedAuto(cred, -5, 'a'.repeat(32), Date.now(), dummySignatureInputs);
+        await generateAgeProofSignedAuto(
+          cred,
+          -5,
+          'a'.repeat(32),
+          Date.now(),
+          dummySignatureInputs,
+        );
         expect.fail('Should have thrown');
       } catch (err: any) {
         expect(err.message).to.include('minAge');
@@ -204,7 +210,13 @@ describe('*Auto() prover error paths', () => {
       const cred = await createCredential(1995, 840);
       cred.salt = 'XYZ_INVALID';
       try {
-        await generateAgeProofSignedAuto(cred, 18, 'a'.repeat(32), Date.now(), dummySignatureInputs);
+        await generateAgeProofSignedAuto(
+          cred,
+          18,
+          'a'.repeat(32),
+          Date.now(),
+          dummySignatureInputs,
+        );
         expect.fail('Should have thrown');
       } catch (err: any) {
         expect(err.message).to.include('salt');
@@ -219,7 +231,13 @@ describe('*Auto() prover error paths', () => {
     it('should throw on invalid nationality', async () => {
       const cred = await createCredential(1995, 840);
       try {
-        await generateNationalityProofSignedAuto(cred, -1, 'a'.repeat(32), Date.now(), dummySignatureInputs);
+        await generateNationalityProofSignedAuto(
+          cred,
+          -1,
+          'a'.repeat(32),
+          Date.now(),
+          dummySignatureInputs,
+        );
         expect.fail('Should have thrown');
       } catch (err: any) {
         expect(err.message).to.include('nationality');
@@ -239,7 +257,13 @@ describe('*Auto() prover error paths', () => {
     it('should throw on invalid timestamp', async () => {
       const cred = await createCredential(1995, 840);
       try {
-        await generateNationalityProofSignedAuto(cred, 840, 'a'.repeat(32), 0, dummySignatureInputs);
+        await generateNationalityProofSignedAuto(
+          cred,
+          840,
+          'a'.repeat(32),
+          0,
+          dummySignatureInputs,
+        );
         expect.fail('Should have thrown');
       } catch (err: any) {
         expect(err.message).to.include('requestTimestamp');
@@ -250,7 +274,13 @@ describe('*Auto() prover error paths', () => {
       const cred = await createCredential(1995, 840);
       cred.salt = '!!invalid!!';
       try {
-        await generateNationalityProofSignedAuto(cred, 840, 'a'.repeat(32), Date.now(), dummySignatureInputs);
+        await generateNationalityProofSignedAuto(
+          cred,
+          840,
+          'a'.repeat(32),
+          Date.now(),
+          dummySignatureInputs,
+        );
         expect.fail('Should have thrown');
       } catch (err: any) {
         expect(err.message).to.include('salt');
@@ -321,7 +351,8 @@ describe('*Auto() prover error paths', () => {
     it('should throw on out-of-field scopeHash', async () => {
       const cred = await createCredential(1995, 840);
       // BN128 field order + 2 is definitely out of range
-      const tooLarge = '21888242871839275222246405745257275088548364400416034343698204186575808495619';
+      const tooLarge =
+        '21888242871839275222246405745257275088548364400416034343698204186575808495619';
       try {
         await generateNullifierProofAuto(cred, tooLarge);
         expect.fail('Should have thrown');

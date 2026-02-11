@@ -13,7 +13,11 @@ const state = {
 // Detect network/CORS errors from API cold starts
 function formatApiError(error: any): string {
   const msg = error?.message || String(error);
-  if (msg === 'Load failed' || msg === 'Failed to fetch' || msg === 'NetworkError when attempting to fetch resource.') {
+  if (
+    msg === 'Load failed' ||
+    msg === 'Failed to fetch' ||
+    msg === 'NetworkError when attempting to fetch resource.'
+  ) {
     return 'Could not reach the API server. It may be starting up — please wait a moment and try again.';
   }
   return msg;

@@ -1806,9 +1806,7 @@ export class ZkIdServer extends EventEmitter {
     try {
       return JSON.parse(data);
     } catch {
-      throw new ZkIdConfigError(
-        `Failed to parse verification key file "${path}": invalid JSON`,
-      );
+      throw new ZkIdConfigError(`Failed to parse verification key file "${path}": invalid JSON`);
     }
   }
 

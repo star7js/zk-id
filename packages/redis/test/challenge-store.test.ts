@@ -29,13 +29,27 @@ function createMockClient(opts: {
       return count;
     },
     // Unused stubs required by RedisClient interface
-    async sadd() { return 0; },
-    async sismember() { return 0; },
-    async scard() { return 0; },
-    async zadd() { return 0; },
-    async zremrangebyscore() { return 0; },
-    async zcard() { return 0; },
-    async expire() { return 0; },
+    async sadd() {
+      return 0;
+    },
+    async sismember() {
+      return 0;
+    },
+    async scard() {
+      return 0;
+    },
+    async zadd() {
+      return 0;
+    },
+    async zremrangebyscore() {
+      return 0;
+    },
+    async zcard() {
+      return 0;
+    },
+    async expire() {
+      return 0;
+    },
   };
 
   if (opts.hasGetdel) {
