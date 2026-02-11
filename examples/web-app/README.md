@@ -10,6 +10,7 @@ Interactive web demonstration of zero-knowledge identity verification with age a
 
 - **Age Verification**: Prove age ≥ minimum without revealing exact birth year
 - **Nationality Verification**: Prove nationality without exposing age or other data
+- **Scenario Verification**: Combine multiple claims in a single check (e.g., voting eligibility = age + nationality)
 - **Revocable Proofs**: Merkle tree membership proofs for revocation support
 
 ### Security & Privacy Features
@@ -35,7 +36,7 @@ This demo simulates the complete zk-id workflow:
    + signature       (client-side)      (check sig)
 ```
 
-**Try it live:** Issue a credential → Generate a ZK proof → Verify age/nationality → Test revocation
+**Try it live:** Issue a credential → Verify age → Verify nationality → Test scenario verification (voting, senior discount) → Test revocation
 
 ## Quick Start
 
@@ -138,6 +139,19 @@ The server:
 
 **Important**: The server never sees your credential data — only the proof and public signals.
 
+### 4. Scenario Verification (Combined Claims)
+
+For real-world use cases requiring multiple claims (e.g., voting requires both age and nationality), the app uses **scenario verification**:
+
+1. The scenario defines which claims are needed (from the `SCENARIOS` registry in `@zk-id/core`)
+2. The browser generates **separate proofs** for each claim using reusable helper functions
+3. All proofs are verified independently; the scenario passes only if every proof succeeds
+
+The web app demonstrates two built-in scenarios:
+
+- **Voting Eligibility** (Step 4): Proves age >= 18 AND nationality = USA (2 proofs)
+- **Senior Discount** (Step 5): Proves age >= 65 (1 proof)
+
 ## API Endpoints
 
 ### Credential Management
@@ -150,6 +164,8 @@ The server:
 - `GET /api/challenge` - Get nonce + timestamp challenge
 - `POST /api/verify-age` - Verify client-generated age proof
 - `POST /api/verify-nationality` - Verify client-generated nationality proof
+- `POST /api/verify-voting-eligibility` - Verify voting eligibility (age + nationality)
+- `POST /api/verify-senior-discount` - Verify senior discount eligibility (age)
 
 ### System
 
@@ -178,6 +194,7 @@ The server:
 │                         │
 │  • Nonce/Challenge      │
 │  • Verify proofs        │
+│  • Scenario endpoints   │
 │  • Revocation checks    │
 └────────┬────────────────┘
          │
@@ -298,6 +315,28 @@ Expected: Passes 18+ and 21+, fails 65+
 Issue credential (birthYear = currentYear - 18)
 → Verify age ≥ 18 ✓
 Expected: Exactly 18 years old passes
+```
+
+### 8. Voting Eligibility (Combined Scenario)
+
+```
+Issue credential (1995, USA = 840)
+→ Verify voting eligibility ✓ (age 18+ AND US citizen)
+
+Issue credential (1995, Germany = 276)
+→ Verify voting eligibility ✗
+Expected: Fails (nationality is not USA)
+```
+
+### 9. Senior Discount (Age Threshold)
+
+```
+Issue credential (1955, USA)
+→ Verify senior discount ✓ (age 65+)
+
+Issue credential (1995, USA)
+→ Verify senior discount ✗
+Expected: Fails (age < 65)
 ```
 
 ## Troubleshooting

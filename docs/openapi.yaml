@@ -201,6 +201,90 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/verify-voting-eligibility:
+    post:
+      summary: Verify voting eligibility scenario (age + nationality)
+      description: |
+        Verifies the VOTING_ELIGIBILITY_US scenario: age >= 18 AND nationality = USA.
+        Accepts an array of ProofResponse objects (one for age, one for nationality).
+      parameters:
+        - $ref: '#/components/parameters/ProtocolVersionHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScenarioProofRequest'
+      responses:
+        '200':
+          description: Scenario verification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScenarioVerificationResult'
+          headers:
+            X-ZkId-Protocol-Version:
+              $ref: '#/components/headers/ProtocolVersion'
+        '400':
+          description: Bad request (including incompatible protocol version)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/verify-senior-discount:
+    post:
+      summary: Verify senior discount scenario (age >= 65)
+      description: |
+        Verifies the SENIOR_DISCOUNT scenario: age >= 65.
+        Accepts an array of ProofResponse objects (single proof for age).
+      parameters:
+        - $ref: '#/components/parameters/ProtocolVersionHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScenarioProofRequest'
+      responses:
+        '200':
+          description: Scenario verification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScenarioVerificationResult'
+          headers:
+            X-ZkId-Protocol-Version:
+              $ref: '#/components/headers/ProtocolVersion'
+        '400':
+          description: Bad request (including incompatible protocol version)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/verify-signed:
     post:
       summary: Verify a signed proof (in-circuit issuer signature)
@@ -691,6 +775,31 @@ components:
         verified:
           type: boolean
           description: Present in verification errors (always false)
+    ScenarioProofRequest:
+      type: object
+      required: [proofs]
+      properties:
+        proofs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProofResponse'
+          description: Array of proof responses, one for each claim in the scenario
+    ScenarioVerificationResult:
+      type: object
+      required: [verified, scenario, message]
+      properties:
+        verified:
+          type: boolean
+          description: Whether all scenario claims were verified successfully
+        scenario:
+          type: string
+          description: Scenario name (e.g., "US Voting Eligibility")
+        message:
+          type: string
+          description: Human-readable result message
+        error:
+          type: string
+          description: Error message if verification failed
     IssuerRecord:
       type: object
       required: [issuer]
@@ -736,7 +845,7 @@ components:
         protocolVersionPolicy:
           type: string
           enum: [strict, warn, off]
-          description: Protocol version enforcement policy (default: warn)
+          description: "Protocol version enforcement policy (default: warn)"
         validatePayloads:
           type: boolean
           description: Enable strict payload validation before cryptographic verification (default false)

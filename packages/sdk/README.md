@@ -15,7 +15,7 @@ This package provides server-side proof verification with security policies, non
 
 ### ZkIdClient
 
-- **Browser SDK** — Client-side proof generation for `verifyAge()`, `verifyNationality()`, `verifyAgeRevocable()`
+- **Browser SDK** — Client-side proof generation for `verifyAge()`, `verifyNationality()`, `verifyAgeRevocable()`, `verifyScenario()`
 - **Wallet Integration** — Connect to browser wallets via `WalletConnector` interface
 - **Revocation Root Fetching** — Automatically fetch revocation roots for revocable proofs
 
@@ -92,6 +92,86 @@ const result = await client.verifyAge(credential, 18);
 if (result.success) {
   console.log('Age verified!');
 }
+```
+
+## Scenario Verification
+
+Scenarios combine multiple claims into named real-world use cases. Instead of manually orchestrating age and nationality proofs, use built-in scenarios like voting eligibility or senior discounts.
+
+### Client-Side Usage
+
+```typescript
+import { ZkIdClient } from '@zk-id/sdk';
+import { SCENARIOS } from '@zk-id/core';
+
+const client = new ZkIdClient({
+  verificationEndpoint: '/api/verify-voting-eligibility',
+});
+
+// Verify voting eligibility (age >= 18 AND nationality = USA)
+const result = await client.verifyScenario(
+  credential,
+  SCENARIOS.VOTING_ELIGIBILITY_US
+);
+
+if (result.verified) {
+  console.log('Voter is eligible!');
+}
+```
+
+### Built-in Scenarios
+
+| Scenario Key | Name | Description | Claims |
+|--------------|------|-------------|--------|
+| `VOTING_ELIGIBILITY_US` | US Voting Eligibility | Verify user is 18+ and a US citizen | age >= 18, nationality = USA (840) |
+| `SENIOR_DISCOUNT` | Senior Discount | Verify user is 65+ for senior discounts | age >= 65 |
+| `ALCOHOL_PURCHASE_US` | US Alcohol Purchase | Verify user is 21+ for alcohol purchase | age >= 21 |
+| `TOBACCO_PURCHASE_US` | US Tobacco Purchase | Verify user is 21+ for tobacco purchase | age >= 21 |
+| `GAMBLING_US` | US Gambling | Verify user is 21+ for gambling | age >= 21 |
+| `EU_GDPR_AGE_CONSENT` | EU GDPR Age of Consent | Verify user is 16+ for GDPR data processing consent | age >= 16 |
+| `RENTAL_CAR_US` | US Rental Car | Verify user is 25+ for rental car (standard rate) | age >= 25 |
+
+### VerificationScenario Interface
+
+```typescript
+interface VerificationScenario {
+  /** Unique identifier for the scenario */
+  id: string;
+  /** Human-readable name */
+  name: string;
+  /** Description of what the scenario verifies */
+  description: string;
+  /** Claims that must be proven for this scenario */
+  claims: ClaimSpec[];
+}
+```
+
+### Custom Scenarios
+
+You can define custom scenarios by creating a `VerificationScenario` object:
+
+```typescript
+import { VerificationScenario } from '@zk-id/core';
+
+const customScenario: VerificationScenario = {
+  id: 'my-custom-scenario',
+  name: 'Custom Age Check',
+  description: 'Verify user meets custom requirements',
+  claims: [
+    {
+      label: 'minimum-age',
+      claimType: 'age',
+      minAge: 25,
+    },
+    {
+      label: 'eu-citizen',
+      claimType: 'nationality',
+      targetNationality: 276, // Germany
+    },
+  ],
+};
+
+const result = await client.verifyScenario(credential, customScenario);
 ```
 
 ## Configuration Reference

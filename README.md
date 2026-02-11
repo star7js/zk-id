@@ -48,6 +48,7 @@ Current age verification systems force users to expose sensitive information:
 - ✅ **Small**: Proofs are ~200 bytes
 - ✅ **Secure**: Built on Groth16 ZK-SNARKs with Ed25519 signatures
 - ✅ **Multi-Attribute**: Support for multiple credential attributes with selective disclosure
+- ✅ **Built-in Scenarios**: 7 predefined verification scenarios (voting, age-gated purchases, senior discount, GDPR consent)
 - ✅ **Revocation**: In-circuit Merkle proofs for credential validity with O(1) reads and O(depth) updates
 - ✅ **Telemetry**: Built-in verification event monitoring
 - ✅ **Batch Verification**: Efficient verification of multiple proofs
@@ -101,6 +102,20 @@ if (verified) {
   // User is 18+, grant access
 }
 ```
+
+**Scenario verification** (combine multiple claims):
+
+```typescript
+import { SCENARIOS } from '@zk-id/core';
+
+// Verify voting eligibility (age >= 18 AND nationality = USA)
+const result = await client.verifyScenario(
+  credential,
+  SCENARIOS.VOTING_ELIGIBILITY_US
+);
+```
+
+See the [SDK README](./packages/sdk/README.md#scenario-verification) for the full list of 7 built-in scenarios.
 
 **Protocol version header (CORS note):**
 The SDK sends `X-ZkId-Protocol-Version` by default only for same-origin endpoints in browsers to avoid CORS preflight issues. For cross-origin verification endpoints, either allow this header in CORS or set:
@@ -292,8 +307,8 @@ On-chain Groth16 proof verification for Ethereum and EVM-compatible chains.
 - **Social Media**: Compliance with age restrictions (13+, 16+)
 - **E-Commerce**: Age verification for alcohol, tobacco, cannabis
 - **Gaming**: Age-appropriate content access controls
-- **Voting**: Prove eligibility (18+) without revealing exact age
-- **Discounts**: Prove senior (65+) without ID
+- **Voting**: Prove eligibility (18+ and US citizen) via the built-in `VOTING_ELIGIBILITY_US` scenario
+- **Discounts**: Prove senior (65+) via the built-in `SENIOR_DISCOUNT` scenario
 - **Nationality Checks**: Prove a user has a specific nationality code without revealing other attributes
 - **Revocable Eligibility**: Prove membership in a valid set with Merkle inclusion (non-revocation)
 
