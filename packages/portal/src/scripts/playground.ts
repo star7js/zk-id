@@ -1,6 +1,9 @@
 // @ts-nocheck
 // Playground script for browser-based ZK proof generation
 
+// API base URL (from environment, falls back to relative URLs for dev)
+const API_BASE_URL = import.meta.env.PUBLIC_API_URL || '';
+
 // Application state
 const state = {
   credential: null,
@@ -40,7 +43,7 @@ async function issueCredential() {
   showResult('issueResult', 'loading', '<strong>⏳ Requesting credential...</strong>');
 
   try {
-    const response = await fetch('/api/issue-credential', {
+    const response = await fetch(`${API_BASE_URL}/api/issue-credential`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ birthYear, nationality, userId: 'playground-user' }),
@@ -90,7 +93,7 @@ async function verifyAge() {
 
   try {
     // Fetch challenge
-    const challengeResponse = await fetch('/api/challenge');
+    const challengeResponse = await fetch(`${API_BASE_URL}/api/challenge`);
     const challenge = await challengeResponse.json();
 
     // Prepare circuit inputs
@@ -138,7 +141,7 @@ async function verifyAge() {
       },
     };
 
-    const verifyResponse = await fetch('/api/verify-age', {
+    const verifyResponse = await fetch(`${API_BASE_URL}/api/verify-age`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -204,7 +207,7 @@ async function verifyNationality() {
 
   try {
     // Fetch challenge
-    const challengeResponse = await fetch('/api/challenge');
+    const challengeResponse = await fetch(`${API_BASE_URL}/api/challenge`);
     const challenge = await challengeResponse.json();
 
     // Prepare circuit inputs
@@ -249,7 +252,7 @@ async function verifyNationality() {
       },
     };
 
-    const verifyResponse = await fetch('/api/verify-nationality', {
+    const verifyResponse = await fetch(`${API_BASE_URL}/api/verify-nationality`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

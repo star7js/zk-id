@@ -1,6 +1,9 @@
 // @ts-nocheck
 // Quick start guided flow
 
+// API base URL (from environment, falls back to relative URLs for dev)
+const API_BASE_URL = import.meta.env.PUBLIC_API_URL || '';
+
 const state = {
   credential: null,
   credentialId: null,
@@ -47,7 +50,7 @@ async function issueCredential() {
   showResult('issueResult', 'loading', '<strong>⏳ Issuing credential...</strong>');
 
   try {
-    const response = await fetch('/api/issue-credential', {
+    const response = await fetch(`${API_BASE_URL}/api/issue-credential`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ birthYear, nationality, userId: 'quickstart-user' }),
@@ -85,7 +88,7 @@ async function generateProof() {
 
   try {
     // Fetch challenge
-    const challengeResponse = await fetch('/api/challenge');
+    const challengeResponse = await fetch(`${API_BASE_URL}/api/challenge`);
     const challenge = await challengeResponse.json();
 
     // Prepare inputs
@@ -167,7 +170,7 @@ async function verifyProof() {
   }
 
   try {
-    const verifyResponse = await fetch('/api/verify-age', {
+    const verifyResponse = await fetch(`${API_BASE_URL}/api/verify-age`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
