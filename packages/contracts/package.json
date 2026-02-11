@@ -1,6 +1,6 @@
 {
   "name": "@zk-id/contracts",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Solidity smart contracts for on-chain zk-id proof verification",
   "license": "Apache-2.0",
   "repository": {
