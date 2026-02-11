@@ -9,6 +9,12 @@ export class InMemoryRevocationStore implements RevocationStore {
 
   constructor() {
     this.revoked = new Set();
+    if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production') {
+      console.warn(
+        '[zk-id] InMemoryRevocationStore is not suitable for production. ' +
+          'Revocation state will be lost on restart. Use a persistent store (Redis, PostgreSQL).',
+      );
+    }
   }
 
   /**

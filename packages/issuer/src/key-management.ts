@@ -21,6 +21,12 @@ export class InMemoryIssuerKeyManager implements IssuerKeyManager {
     this.issuerName = issuerName;
     this.privateKey = privateKey;
     this.publicKey = publicKey;
+    if (process.env.NODE_ENV === 'production') {
+      console.warn(
+        '[zk-id] InMemoryIssuerKeyManager is not suitable for production. ' +
+          'Private keys are held in process memory. Use a KMS/HSM-backed key manager.',
+      );
+    }
   }
 
   getIssuerName(): string {

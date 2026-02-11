@@ -34,6 +34,15 @@ import { ZkIdValidationError } from './errors';
 export class InMemoryIssuedCredentialIndex implements IssuedCredentialIndex {
   private readonly issued = new Set<string>();
 
+  constructor() {
+    if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production') {
+      console.warn(
+        '[zk-id] InMemoryIssuedCredentialIndex is not suitable for production. ' +
+          'Issued credential records will be lost on restart. Use a persistent store (Redis, PostgreSQL).',
+      );
+    }
+  }
+
   private normalizeCommitment(commitment: string): string {
     try {
       return BigInt(commitment).toString();
