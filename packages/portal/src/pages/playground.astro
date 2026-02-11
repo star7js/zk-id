@@ -20,6 +20,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       </p>
     </header>
 
+    <div id="api-status-banner" class="api-status-banner" hidden></div>
+
     <div class="privacy-notice">
       <div class="privacy-icon">🔒</div>
       <div>
@@ -127,6 +129,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     </section>
   </div>
 
+  <script src="../scripts/api-status.ts"></script>
   <script src="../scripts/playground.ts"></script>
 
   <style>
@@ -346,6 +349,83 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       50% {
         opacity: 0.5;
       }
+    }
+
+    /* API status banner */
+    .api-status-banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      margin-bottom: 24px;
+      border: 1px solid;
+    }
+
+    .api-status-banner[hidden] {
+      display: none;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-dot.pulsing {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .status-checking {
+      background: rgba(6, 182, 212, 0.1);
+      border-color: rgba(6, 182, 212, 0.3);
+      color: var(--text-secondary);
+    }
+
+    .status-checking .status-dot {
+      background: rgb(6, 182, 212);
+    }
+
+    .status-online {
+      background: rgba(16, 185, 129, 0.1);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: var(--success);
+    }
+
+    .status-online .status-dot {
+      background: var(--success);
+    }
+
+    .status-waking {
+      background: rgba(245, 158, 11, 0.1);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: var(--warning);
+    }
+
+    .status-waking .status-dot {
+      background: var(--warning);
+    }
+
+    .status-offline {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: var(--error);
+    }
+
+    .status-offline .status-dot {
+      background: var(--error);
+    }
+
+    .retry-link {
+      background: none;
+      border: none;
+      color: inherit;
+      text-decoration: underline;
+      cursor: pointer;
+      font-size: inherit;
+      padding: 0;
     }
 
     @media (max-width: 768px) {
