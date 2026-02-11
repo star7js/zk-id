@@ -13,6 +13,24 @@ import {
 import { constantTimeEqual, constantTimeArrayEqual } from './timing-safe';
 import { ZkIdProofError, ZkIdConfigError } from './errors';
 
+/** Default staleness window for request timestamps (5 minutes). */
+const STALE_TIMESTAMP_MS = 5 * 60 * 1000;
+
+/**
+ * Check whether a request timestamp is stale.
+ * Pushes an error string into `errors` when the timestamp exceeds the
+ * staleness window.
+ */
+function checkTimestampStaleness(
+  requestTimestamp: number,
+  errors: string[],
+  windowMs: number = STALE_TIMESTAMP_MS,
+): void {
+  if (requestTimestamp > 0 && Date.now() - requestTimestamp > windowMs) {
+    errors.push('Request timestamp is stale (> 5 minutes old)');
+  }
+}
+
 /** Returns true if value is a non-empty string parseable as a BigInt. */
 function isValidBigIntString(value: string): boolean {
   if (!value || value.length === 0) return false;
@@ -97,13 +115,7 @@ export function validateProofConstraints(proof: AgeProof): {
     errors.push('Invalid request timestamp');
   }
   // Check timestamp staleness (5 minutes)
-  const nowMs = Date.now();
-  if (
-    proof.publicSignals.requestTimestamp > 0 &&
-    nowMs - proof.publicSignals.requestTimestamp > 5 * 60 * 1000
-  ) {
-    errors.push('Request timestamp is stale (> 5 minutes old)');
-  }
+  checkTimestampStaleness(proof.publicSignals.requestTimestamp, errors);
 
   return {
     valid: errors.length === 0,
@@ -279,13 +291,7 @@ export function validateNationalityProofConstraints(proof: NationalityProof): {
   if (!proof.publicSignals.requestTimestamp || proof.publicSignals.requestTimestamp <= 0) {
     errors.push('Invalid request timestamp');
   }
-  const nowMs2 = Date.now();
-  if (
-    proof.publicSignals.requestTimestamp > 0 &&
-    nowMs2 - proof.publicSignals.requestTimestamp > 5 * 60 * 1000
-  ) {
-    errors.push('Request timestamp is stale (> 5 minutes old)');
-  }
+  checkTimestampStaleness(proof.publicSignals.requestTimestamp, errors);
 
   return {
     valid: errors.length === 0,
@@ -388,13 +394,7 @@ export function validateAgeProofRevocableConstraints(proof: AgeProofRevocable): 
   if (!proof.publicSignals.requestTimestamp || proof.publicSignals.requestTimestamp <= 0) {
     errors.push('Invalid request timestamp');
   }
-  const nowMs3 = Date.now();
-  if (
-    proof.publicSignals.requestTimestamp > 0 &&
-    nowMs3 - proof.publicSignals.requestTimestamp > 5 * 60 * 1000
-  ) {
-    errors.push('Request timestamp is stale (> 5 minutes old)');
-  }
+  checkTimestampStaleness(proof.publicSignals.requestTimestamp, errors);
 
   return {
     valid: errors.length === 0,

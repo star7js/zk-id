@@ -1794,8 +1794,22 @@ export class ZkIdServer extends EventEmitter {
    * Load verification key from file
    */
   private loadVerificationKey(path: string): VerificationKey {
-    const data = readFileSync(path, 'utf8');
-    return JSON.parse(data);
+    let data: string;
+    try {
+      data = readFileSync(path, 'utf8');
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      throw new ZkIdConfigError(
+        `Failed to read verification key file "${path}": ${code === 'ENOENT' ? 'file not found' : code === 'EACCES' ? 'permission denied' : String(err)}`,
+      );
+    }
+    try {
+      return JSON.parse(data);
+    } catch {
+      throw new ZkIdConfigError(
+        `Failed to parse verification key file "${path}": invalid JSON`,
+      );
+    }
   }
 
   /**
@@ -2246,10 +2260,28 @@ export class InMemoryNonceStore implements NonceStore {
 /**
  * Simple in-memory challenge store (for demo)
  */
+export interface InMemoryChallengeStoreOptions {
+  /** Prune interval in ms. Set to 0 to disable background pruning (default: 60 000). */
+  pruneIntervalMs?: number;
+}
+
 export class InMemoryChallengeStore implements ChallengeStore {
   private challenges: Map<string, { requestTimestampMs: number; expiresAtMs: number }> = new Map();
+  private pruneIntervalMs: number;
+  private pruneTimer?: NodeJS.Timeout;
 
-  constructor() {
+  constructor(options: InMemoryChallengeStoreOptions = {}) {
+    if (
+      options.pruneIntervalMs !== undefined &&
+      (!Number.isInteger(options.pruneIntervalMs) || options.pruneIntervalMs < 0)
+    ) {
+      throw new ZkIdConfigError('pruneIntervalMs must be a non-negative integer');
+    }
+    this.pruneIntervalMs = options.pruneIntervalMs ?? 60 * 1000;
+    if (this.pruneIntervalMs > 0) {
+      this.pruneTimer = setInterval(() => this.prune(), this.pruneIntervalMs);
+      this.pruneTimer.unref?.();
+    }
     if (process.env.NODE_ENV === 'production') {
       console.warn(
         '[zk-id] InMemoryChallengeStore is not suitable for production. ' +
@@ -2294,6 +2326,28 @@ export class InMemoryChallengeStore implements ChallengeStore {
 
     this.challenges.delete(nonce);
     return entry.requestTimestampMs;
+  }
+
+  /**
+   * Remove expired challenges to prevent unbounded memory growth.
+   */
+  prune(): void {
+    const now = Date.now();
+    for (const [nonce, entry] of this.challenges.entries()) {
+      if (now > entry.expiresAtMs) {
+        this.challenges.delete(nonce);
+      }
+    }
+  }
+
+  /**
+   * Stop background pruning (if enabled).
+   */
+  stop(): void {
+    if (this.pruneTimer) {
+      clearInterval(this.pruneTimer);
+      this.pruneTimer = undefined;
+    }
   }
 }
 
