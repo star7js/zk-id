@@ -335,7 +335,7 @@ async function main() {
       claimType?: string;
       proof?: {
         proofType?: string;
-        publicSignals?: { minAge?: number; targetNationality?: number };
+        publicSignals?: Record<string, unknown>;
       };
     }>,
     requireLabels: boolean,

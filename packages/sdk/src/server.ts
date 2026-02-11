@@ -1327,24 +1327,27 @@ export class ZkIdServer extends EventEmitter {
 
     const results: ClaimVerificationResult[] = [];
     for (const claim of safeProofs) {
-      const label = claim.label;
+      const label = typeof claim.label === 'string' ? claim.label : 'unknown';
+      const claimType = typeof claim.claimType === 'string' ? claim.claimType : 'unknown';
       let internalError: string | undefined;
       let result: VerificationResult | undefined;
 
       const proofResponse: ProofResponse = {
         credentialId: response.credentialId,
-        claimType: claim.claimType,
-        proof: claim.proof,
+        claimType,
+        proof: claim.proof as AgeProof | NationalityProof | AgeProofRevocable,
         signedCredential: response.signedCredential,
         nonce: response.nonce,
         requestTimestamp: response.requestTimestamp,
       };
 
-      if (!['age', 'nationality', 'age-revocable'].includes(claim.claimType)) {
+      if (!['age', 'nationality', 'age-revocable'].includes(claimType)) {
         internalError = 'Unknown claim type';
+      } else if (!claim.proof || typeof claim.proof !== 'object') {
+        internalError = 'Invalid proof payload';
       } else {
         const proofType = (claim.proof as { proofType?: string } | undefined)?.proofType;
-        if (proofType && proofType !== claim.claimType) {
+        if (proofType && proofType !== claimType) {
           internalError = 'Proof type does not match claim type';
         }
       }
@@ -1352,7 +1355,7 @@ export class ZkIdServer extends EventEmitter {
       // Policy enforcement
       if (!internalError) {
         const requiredPolicy = this.config.requiredPolicy;
-        if (claim.claimType === 'age') {
+        if (claimType === 'age') {
           const requiredMinAge = requiredPolicy?.minAge ?? this.config.requiredMinAge;
           if (requiredMinAge !== undefined) {
             const proof = claim.proof as AgeProof;
@@ -1361,7 +1364,7 @@ export class ZkIdServer extends EventEmitter {
             }
           }
         }
-        if (claim.claimType === 'age-revocable') {
+        if (claimType === 'age-revocable') {
           const requiredMinAge = requiredPolicy?.minAge ?? this.config.requiredMinAge;
           if (requiredMinAge !== undefined) {
             const proof = claim.proof as AgeProofRevocable;
@@ -1370,7 +1373,7 @@ export class ZkIdServer extends EventEmitter {
             }
           }
         }
-        if (claim.claimType === 'nationality') {
+        if (claimType === 'nationality') {
           const requiredNationality =
             requiredPolicy?.nationality ?? this.config.requiredNationality;
           if (requiredNationality !== undefined) {
@@ -1424,17 +1427,17 @@ export class ZkIdServer extends EventEmitter {
           verified: false,
           error: this.sanitizeError(internalError),
         };
-      } else if (claim.claimType === 'age') {
+      } else if (claimType === 'age') {
         const verification = await this.verifyAgeProofInternal(proofResponse, { markNonce: false });
         result = verification.result;
         internalError = verification.internalError;
-      } else if (claim.claimType === 'nationality') {
+      } else if (claimType === 'nationality') {
         const verification = await this.verifyNationalityProofInternal(proofResponse, {
           markNonce: false,
         });
         result = verification.result;
         internalError = verification.internalError;
-      } else if (claim.claimType === 'age-revocable') {
+      } else if (claimType === 'age-revocable') {
         const verification = await this.verifyAgeProofRevocableInternal(proofResponse, {
           markNonce: false,
         });
@@ -1449,7 +1452,7 @@ export class ZkIdServer extends EventEmitter {
       }
 
       this.emitVerificationEvent(
-        claim.claimType,
+        claimType,
         result,
         startTime,
         clientIdentifier,
