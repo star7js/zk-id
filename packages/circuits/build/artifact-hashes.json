@@ -1,0 +1,43 @@
+{
+  "algorithm": "SHA-256",
+  "circomVersion": "0.5.46",
+  "snarkjsVersion": "0.7.6",
+  "generatedAt": "2026-02-10T01:58:01Z",
+  "circuits": {
+    "age-verify": {
+      "wasm": "d51c7781986f6237b9b7611723e9de03d6a742b223ba8d8cb9051aa2d02fad33",
+      "zkey": "2a8bc996b3567c69edfc9b45186ca0292eb0f424aa1aace463d1890439053632",
+      "verificationKey": "3ac2659f2ffa77b459f261c9242698855809857e32c577f174e0fbb40bc81a0b"
+    },
+    "credential-hash": {
+      "wasm": "f003d83fc887b07144cc697096a9de5cad6c47ba60e26662424aac918bbc6a03",
+      "zkey": "152f22944e2ebe11c9d607ae64f9c32da366a994a68a4fe931b75c39650c05fb",
+      "verificationKey": "6ba8171dffa42b8840ff7c8f47eca6f726d241c4c4054e5aeeec477473746d2b"
+    },
+    "nationality-verify": {
+      "wasm": "e9f60d0f5eca4ee86bb682490830235358cdcfddfee852951d5a697d81398016",
+      "zkey": "ef7e54ddf62bb8fa13fccad34418509fc63be7cdc671ae7f98dbc2ea5c91f712",
+      "verificationKey": "8dfb1965ddd0123b936cf5bcc1881eb217d0989c19451b3ea171aad3fc9e37b2"
+    },
+    "age-verify-signed": {
+      "wasm": "9b669e55f9d6b7649d060a8d75d7067e6ad41b567ba96e279adb0c623c903fca",
+      "zkey": "ce13be63b873263aacdac6a3f09007544ebef186da63f6132c67124b50f25a1a",
+      "verificationKey": "ce270d96ee14cf02268682d7e364492a9d4c902386a03c540d880671097399d7"
+    },
+    "nationality-verify-signed": {
+      "wasm": "b8d520adcf1b92de3c9badf20ea5904e63d669ba630a310b729aada546bc84d8",
+      "zkey": "d1c505529af9d0ef5d236395856ee1db6520906c3f91a8652e2f61f634353c4b",
+      "verificationKey": "97a957ad4538977db5bee45bcee8d919e1071d3ce0f427250c1bf738ea95e68f"
+    },
+    "age-verify-revocable": {
+      "wasm": "5422ede636e1d4ef8889be058fead5c192d267521b82e62627706faedfea4d98",
+      "zkey": "39204d41870c0f5ef0abd7495a7dd5d6a9d8f3759c09ee0c78c5f8e3908afcee",
+      "verificationKey": "b1f5c5f355a3eb104de89e63ba2a83af851b6dbf87ef06c8febbad241e49f8b7"
+    },
+    "nullifier": {
+      "wasm": "67b5e5a5374e51fc35efba042205fa49be1279c9b60dcf4a9c494170a0d225ac",
+      "zkey": "b3361efc978be6da6898e471414889923d1d63a3bcd21ab7b301cec81faf9189",
+      "verificationKey": "d5b663c06e59b79a18e31ba25ac1ad8f07b8b50c66da08cee229bfd0494ee1ea"
+    }
+  }
+}
