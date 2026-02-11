@@ -38,6 +38,7 @@ jobs:
         run: npm run portal:build
         env:
           NODE_ENV: production
+          PUBLIC_API_URL: ${{ secrets.API_URL || 'https://your-api-url.railway.app' }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
