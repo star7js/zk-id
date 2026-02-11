@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 
+# Force cache invalidation for parseInt radix fixes
 echo "Compiling Circom circuits..."
 
 CIRCUITS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
