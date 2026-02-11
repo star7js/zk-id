@@ -18,6 +18,12 @@ Object.keys(docsByCategory).forEach(category => {
 
 const categories = ['Getting Started', 'Architecture', 'Security', 'Operations', 'Development', 'Reference'];
 const base = import.meta.env.BASE_URL;
+
+// Helper to construct proper URLs (avoids double slashes when base is '/')
+const makeUrl = (path: string) => {
+  if (base === '/') return path;
+  return `${base}${path}`;
+};
 ---
 
 <DocsLayout title="Documentation" description="Complete documentation for ZK-ID">
@@ -35,7 +41,7 @@ const base = import.meta.env.BASE_URL;
         <h2>{category}</h2>
         <div class="doc-grid">
           {docs.map(doc => (
-            <a href={`${base}/docs/${doc.slug}`} class="doc-card">
+            <a href={makeUrl(`/docs/${doc.slug}`)} class="doc-card">
               <h3>{doc.data.title}</h3>
               <p>{doc.data.description}</p>
             </a>
