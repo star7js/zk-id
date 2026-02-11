@@ -27,6 +27,12 @@ export class RedisRateLimiter implements RateLimiter {
     this.limit = options.limit ?? 10;
     this.windowMs = options.windowMs ?? 60000;
 
+    if (typeof this.keyPrefix !== 'string' || this.keyPrefix.length === 0) {
+      throw new ZkIdConfigError('keyPrefix must be a non-empty string');
+    }
+    if (this.keyPrefix.length > 128) {
+      throw new ZkIdConfigError('keyPrefix must be at most 128 characters');
+    }
     if (!Number.isInteger(this.limit) || this.limit <= 0) {
       throw new ZkIdConfigError('limit must be a positive integer');
     }

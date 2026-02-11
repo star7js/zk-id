@@ -23,6 +23,12 @@ export class RedisNonceStore implements NonceStore {
     this.keyPrefix = options.keyPrefix ?? 'zkid:nonce:';
     this.ttlSeconds = options.ttlSeconds ?? 300;
 
+    if (typeof this.keyPrefix !== 'string' || this.keyPrefix.length === 0) {
+      throw new ZkIdValidationError('keyPrefix must be a non-empty string', 'keyPrefix');
+    }
+    if (this.keyPrefix.length > 128) {
+      throw new ZkIdValidationError('keyPrefix must be at most 128 characters', 'keyPrefix');
+    }
     if (!Number.isInteger(this.ttlSeconds) || this.ttlSeconds <= 0) {
       throw new ZkIdValidationError('ttlSeconds must be a positive integer', 'ttlSeconds');
     }

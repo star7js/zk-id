@@ -72,6 +72,40 @@ describe('Revocable Verifier Tests', () => {
       expect(result.errors).to.include('Missing or invalid merkle root');
     });
 
+    it('should reject proof with non-numeric merkleRoot', () => {
+      const proof = createMockProof({
+        publicSignals: {
+          currentYear: new Date().getFullYear(),
+          minAge: 18,
+          credentialHash: '12345',
+          merkleRoot: 'not-a-bigint',
+          nonce: 'nonce-1',
+          requestTimestamp: Date.now(),
+        },
+      });
+
+      const result = validateAgeProofRevocableConstraints(proof);
+      expect(result.valid).to.be.false;
+      expect(result.errors).to.include('Missing or invalid merkle root');
+    });
+
+    it('should reject proof with non-numeric credentialHash', () => {
+      const proof = createMockProof({
+        publicSignals: {
+          currentYear: new Date().getFullYear(),
+          minAge: 18,
+          credentialHash: 'abc-not-valid',
+          merkleRoot: '98765',
+          nonce: 'nonce-1',
+          requestTimestamp: Date.now(),
+        },
+      });
+
+      const result = validateAgeProofRevocableConstraints(proof);
+      expect(result.valid).to.be.false;
+      expect(result.errors).to.include('Missing or invalid credential hash');
+    });
+
     it('should reject proof with invalid currentYear', () => {
       const proof = createMockProof({
         publicSignals: {

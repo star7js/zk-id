@@ -134,6 +134,22 @@ describe('Verifier Tests', () => {
       expect(result.errors).to.include('Missing or invalid credential hash');
     });
 
+    it('should reject proof with non-numeric credential hash', () => {
+      const proof = createMockProof({
+        publicSignals: {
+          currentYear: new Date().getFullYear(),
+          minAge: 18,
+          credentialHash: 'not-a-number',
+          nonce: 'nonce-1',
+          requestTimestamp: Date.now(),
+        },
+      });
+
+      const result = validateProofConstraints(proof);
+      expect(result.valid).to.be.false;
+      expect(result.errors).to.include('Missing or invalid credential hash');
+    });
+
     it('should validate proof with various valid minAge values', () => {
       const validAges = [13, 16, 18, 21, 65, 100];
 
@@ -262,6 +278,21 @@ describe('Verifier Tests', () => {
         publicSignals: {
           targetNationality: 840,
           credentialHash: '0',
+          nonce: 'nonce-1',
+          requestTimestamp: Date.now(),
+        },
+      });
+
+      const result = validateNationalityProofConstraints(proof);
+      expect(result.valid).to.be.false;
+      expect(result.errors).to.include('Missing or invalid credential hash');
+    });
+
+    it('should reject proof with non-numeric credential hash', () => {
+      const proof = createMockNationalityProof({
+        publicSignals: {
+          targetNationality: 840,
+          credentialHash: 'xyz-not-a-number',
           nonce: 'nonce-1',
           requestTimestamp: Date.now(),
         },
