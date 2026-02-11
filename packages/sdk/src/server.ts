@@ -226,18 +226,23 @@ export class InMemoryIssuerRegistry implements IssuerRegistry {
       const expiryAge = now - validToMs;
       const withinGrace = expiryAge <= r.rotationGracePeriodMs;
       if (withinGrace && this.auditLogger) {
-        this.auditLogger.log({
-          timestamp: new Date().toISOString(),
-          action: 'grace_period_accept',
-          actor: 'registry',
-          target: issuer,
-          success: true,
-          metadata: {
-            validTo: r.validTo,
-            expiryAgeMs: expiryAge,
-            gracePeriodMs: r.rotationGracePeriodMs,
-          },
-        });
+        try {
+          this.auditLogger.log({
+            timestamp: new Date().toISOString(),
+            action: 'grace_period_accept',
+            actor: 'registry',
+            target: issuer,
+            success: true,
+            metadata: {
+              validTo: r.validTo,
+              expiryAgeMs: expiryAge,
+              gracePeriodMs: r.rotationGracePeriodMs,
+            },
+          });
+        } catch (err) {
+          // Audit logging should never fail verification
+          console.error('[InMemoryIssuerRegistry] Audit logger threw:', err);
+        }
       }
       return withinGrace;
     });
