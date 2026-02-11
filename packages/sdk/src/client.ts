@@ -28,6 +28,9 @@ import {
   MultiClaimResponse,
   createScenarioRequest,
   expandMultiClaimRequest,
+  validateMinAge,
+  validateNationality,
+  validatePositiveInt,
 } from '@zk-id/core';
 
 export interface ZkIdClientConfig {
@@ -64,6 +67,12 @@ export class ZkIdClient {
   private config: ZkIdClientConfig;
 
   constructor(config: ZkIdClientConfig) {
+    if (!config.verificationEndpoint || typeof config.verificationEndpoint !== 'string') {
+      throw new ZkIdConfigError('verificationEndpoint is required and must be a non-empty string');
+    }
+    if (config.maxRevocationRootAgeMs !== undefined) {
+      validatePositiveInt(config.maxRevocationRootAgeMs, 'maxRevocationRootAgeMs');
+    }
     this.config = config;
   }
 
@@ -74,6 +83,7 @@ export class ZkIdClient {
    * @returns true if verification succeeds, false otherwise
    */
   async verifyAge(minAge: number): Promise<boolean> {
+    validateMinAge(minAge);
     try {
       // Create proof request
       const request: ProofRequest = {
@@ -106,6 +116,7 @@ export class ZkIdClient {
    * @returns true if verification succeeds, false otherwise
    */
   async verifyNationality(targetNationality: number): Promise<boolean> {
+    validateNationality(targetNationality);
     try {
       // Create proof request
       const request: ProofRequest = {
@@ -138,6 +149,7 @@ export class ZkIdClient {
    * @returns true if verification succeeds, false otherwise
    */
   async verifyAgeRevocable(minAge: number): Promise<boolean> {
+    validateMinAge(minAge);
     try {
       // Create proof request
       const request: ProofRequest = {
