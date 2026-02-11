@@ -26,6 +26,7 @@ Object.keys(docsByCategory).forEach(category => {
 });
 
 const categories = ['Getting Started', 'Architecture', 'Security', 'Operations', 'Development', 'Reference'];
+const base = import.meta.env.BASE_URL;
 ---
 
 <BaseLayout title={title} description={description}>
@@ -42,7 +43,7 @@ const categories = ['Getting Started', 'Architecture', 'Security', 'Operations',
               <ul class="sidebar-links">
                 {docs.map(doc => (
                   <li>
-                    <a href={`/docs/${doc.slug}`} class={Astro.url.pathname.includes(doc.slug) ? 'active' : ''}>
+                    <a href={`${base}/docs/${doc.slug}`} class={Astro.url.pathname.includes(doc.slug) ? 'active' : ''}>
                       {doc.data.title}
                     </a>
                   </li>

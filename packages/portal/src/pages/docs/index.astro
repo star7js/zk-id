@@ -17,6 +17,7 @@ Object.keys(docsByCategory).forEach(category => {
 });
 
 const categories = ['Getting Started', 'Architecture', 'Security', 'Operations', 'Development', 'Reference'];
+const base = import.meta.env.BASE_URL;
 ---
 
 <DocsLayout title="Documentation" description="Complete documentation for ZK-ID">
@@ -34,7 +35,7 @@ const categories = ['Getting Started', 'Architecture', 'Security', 'Operations',
         <h2>{category}</h2>
         <div class="doc-grid">
           {docs.map(doc => (
-            <a href={`/docs/${doc.slug}`} class="doc-card">
+            <a href={`${base}/docs/${doc.slug}`} class="doc-card">
               <h3>{doc.data.title}</h3>
               <p>{doc.data.description}</p>
             </a>
