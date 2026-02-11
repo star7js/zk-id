@@ -8,6 +8,7 @@
  * - W3C VC Data Model v2.0: https://www.w3.org/TR/vc-data-model-2.0/
  * - W3C DID Core: https://www.w3.org/TR/did-core/
  */
+import { ZkIdValidationError } from './errors';
 
 import { Credential, SignedCredential } from './types.js';
 
@@ -146,15 +147,18 @@ export function toW3CVerifiableCredential(
 export function fromW3CVerifiableCredential(vc: W3CVerifiableCredential): SignedCredential {
   // Validate that this is a ZkIdCredential
   if (!vc.type.includes('ZkIdCredential')) {
-    throw new Error('Not a ZkIdCredential');
+    throw new ZkIdValidationError('Not a ZkIdCredential', 'type');
   }
 
   if (!vc.credentialSubject.zkCredential) {
-    throw new Error('Missing zkCredential in credentialSubject');
+    throw new ZkIdValidationError(
+      'Missing zkCredential in credentialSubject',
+      'credentialSubject.zkCredential',
+    );
   }
 
   if (!vc.proof || !vc.proof.proofValue) {
-    throw new Error('Missing proof or proofValue');
+    throw new ZkIdValidationError('Missing proof or proofValue', 'proof');
   }
 
   // Extract credential ID from URN
@@ -193,7 +197,7 @@ export function fromW3CVerifiableCredential(vc: W3CVerifiableCredential): Signed
  */
 export function ed25519PublicKeyToDIDKey(publicKeyBytes: Uint8Array): string {
   if (publicKeyBytes.length !== 32) {
-    throw new Error('Ed25519 public key must be 32 bytes');
+    throw new ZkIdValidationError('Ed25519 public key must be 32 bytes', 'publicKeyBytes');
   }
 
   // Multicodec prefix for Ed25519 public key: 0xed 0x01

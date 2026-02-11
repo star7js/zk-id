@@ -1451,13 +1451,7 @@ export class ZkIdServer extends EventEmitter {
         };
       }
 
-      this.emitVerificationEvent(
-        claimType,
-        result,
-        startTime,
-        clientIdentifier,
-        internalError,
-      );
+      this.emitVerificationEvent(claimType, result, startTime, clientIdentifier, internalError);
 
       results.push({
         label,
