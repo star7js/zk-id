@@ -29,15 +29,15 @@ async function main() {
   const CIRCUITS_BASE = join(__dirname, '../../../packages/circuits/build');
 
   // CORS configuration for production
-  const allowedOrigins = ['http://localhost:4321', 'https://star7js.github.io'];
+  const allowedOrigins = ['http://localhost:4321', 'https://star7js.github.io', 'https://zk-id.io'];
 
   app.use((req, res, next) => {
     const origin = req.headers.origin;
-    if (origin && allowedOrigins.some((allowed) => origin.startsWith(allowed))) {
+    // Use exact matching to prevent origin reflection vulnerabilities
+    if (origin && allowedOrigins.includes(origin)) {
       res.header('Access-Control-Allow-Origin', origin);
       res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
       res.header('Access-Control-Allow-Headers', 'Content-Type, X-ZkId-Protocol-Version');
-      res.header('Access-Control-Allow-Credentials', 'true');
     }
     if (req.method === 'OPTIONS') {
       return res.sendStatus(200);

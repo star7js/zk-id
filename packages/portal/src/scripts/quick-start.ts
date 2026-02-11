@@ -27,7 +27,19 @@ function showResult(elementId: string, type: string, content: string) {
   const el = document.getElementById(elementId);
   if (!el) return;
   el.className = `result ${type}`;
-  el.innerHTML = content;
+
+  // Clear existing content
+  el.textContent = '';
+
+  // Parse content and create DOM elements safely
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(content, 'text/html');
+
+  // Import the parsed nodes (sanitized by DOMParser)
+  const nodes = doc.body.childNodes;
+  nodes.forEach((node) => {
+    el.appendChild(node.cloneNode(true));
+  });
 }
 
 function goToStep(stepNumber: number) {

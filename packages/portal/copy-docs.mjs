@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync } from 'fs';
-import { join } from 'path';
+import { join, resolve } from 'path';
 
 const docs = [
   // Getting Started
@@ -183,11 +183,21 @@ const docs = [
   },
 ];
 
-const basePath = new URL('.', import.meta.url).pathname;
+const basePath = resolve(new URL('.', import.meta.url).pathname);
+const contentDir = resolve(basePath, 'src/content/docs');
 
 docs.forEach(({ src, dest, title, category, order }) => {
   try {
-    const content = readFileSync(join(basePath, src), 'utf-8');
+    // Resolve and validate paths to prevent traversal
+    const srcPath = resolve(basePath, src);
+    const destPath = resolve(contentDir, dest);
+
+    // Ensure paths stay within expected directories
+    if (!destPath.startsWith(contentDir)) {
+      throw new Error('Invalid destination path');
+    }
+
+    const content = readFileSync(srcPath, 'utf-8');
 
     // Extract description from first paragraph (skip heading)
     const lines = content.split('\n');
@@ -209,10 +219,10 @@ order: ${order}
 
 `;
 
-    writeFileSync(join(basePath, 'src/content/docs', dest), frontmatter + content);
+    writeFileSync(destPath, frontmatter + content);
     console.log(`✓ Copied ${dest}`);
   } catch (error) {
-    console.error(`✗ Failed to copy ${src}:`, error.message);
+    console.error(`✗ Failed to copy ${src}: ${error.message}`);
   }
 });
 

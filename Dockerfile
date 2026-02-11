@@ -2,7 +2,7 @@
 # Suitable for running the demo server with all dependencies
 
 # --- Stage 1: Install and build ---
-FROM node:20-slim AS builder
+FROM node:20-slim@sha256:c6585df72c34172bebd8d36abed961e231d7d3b5cee2e01294c4495e8a03f687 AS builder
 
 WORKDIR /app
 
@@ -37,7 +37,10 @@ RUN npm run build --workspace=@zk-id/core && \
     npm run build --workspace=@zk-id/example-web-app
 
 # --- Stage 2: Production runtime ---
-FROM node:20-slim AS runtime
+FROM node:20-slim@sha256:c6585df72c34172bebd8d36abed961e231d7d3b5cee2e01294c4495e8a03f687 AS runtime
+
+# Create non-root user
+RUN groupadd --system app && useradd --system --gid app app
 
 WORKDIR /app
 
@@ -74,10 +77,16 @@ COPY examples/web-app/ examples/web-app/
 # Copy circuit build artifacts (verification keys, WASM)
 COPY packages/circuits/build/ packages/circuits/build/
 
+# Set ownership to app user
+RUN chown -R app:app /app
+
 ENV NODE_ENV=production
 ENV PORT=3000
 
 EXPOSE 3000
+
+# Switch to non-root user
+USER app
 
 # Run the demo web app
 CMD ["npm", "start", "--workspace=@zk-id/example-web-app"]
