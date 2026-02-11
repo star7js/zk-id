@@ -9,8 +9,8 @@ build/
 packages/*/test/**/*.d.ts
 packages/portal/dist/
 
-# Circuit build artifacts - built in CI
-packages/circuits/build/
+# Circuit build artifacts - included for deployment
+# packages/circuits/build/
 
 # Circom artifacts
 packages/circuits/*.zkey

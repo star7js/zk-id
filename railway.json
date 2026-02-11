@@ -2,7 +2,7 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "npm ci --omit=dev && npm run build:core"
+    "buildCommand": "npm ci && npm run build:core && npm run build --workspace=@zk-id/example-web-app"
   },
   "deploy": {
     "startCommand": "npm start --workspace=@zk-id/example-web-app",
