@@ -2,11 +2,13 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "npm ci && npm run build:core"
+    "buildCommand": "npm ci --omit=dev && npm run build:core"
   },
   "deploy": {
-    "startCommand": "npm start --workspace=@zk-id/example-web-app",
+    "startCommand": "cd examples/web-app && npm start",
     "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 10
+    "restartPolicyMaxRetries": 10,
+    "healthcheckPath": "/api/health",
+    "healthcheckTimeout": 100
   }
 }

@@ -1,0 +1,11 @@
+# Don't upload these to Railway (save build time and space)
+.git
+.github
+node_modules
+*.log
+.DS_Store
+coverage
+.nyc_output
+
+# Keep circuit build artifacts (needed for runtime)
+# !packages/circuits/build/
