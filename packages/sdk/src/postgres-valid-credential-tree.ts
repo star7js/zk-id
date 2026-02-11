@@ -119,7 +119,7 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
     );
     const storedDepth = rows[0]?.depth;
     if (storedDepth !== undefined && storedDepth !== this.depth) {
-      throw new Error(`Merkle depth mismatch: configured=${this.depth}, stored=${storedDepth}`);
+      throw new ZkIdConfigError(`Merkle depth mismatch: configured=${this.depth}, stored=${storedDepth}`);
     }
   }
 
@@ -245,7 +245,7 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
     await this.ensureInit();
     await this.ensureCache();
     if (!this.layers) {
-      throw new Error('Cache not initialized');
+      throw new ZkIdConfigError('Cache not initialized');
     }
     return this.layers[this.depth][0].toString();
   }
@@ -254,7 +254,7 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
     await this.ensureInit();
     await this.ensureCache();
     if (!this.layers) {
-      throw new Error('Cache not initialized');
+      throw new ZkIdConfigError('Cache not initialized');
     }
     const root = this.layers[this.depth][0].toString();
     const { rows } = await this.client.query<{ version: string; updated_at: string }>(
@@ -271,7 +271,7 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
     await this.ensureInit();
     await this.ensureCache();
     if (!this.layers) {
-      throw new Error('Cache not initialized');
+      throw new ZkIdConfigError('Cache not initialized');
     }
 
     const normalized = this.normalizeCommitment(commitment);

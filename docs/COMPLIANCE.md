@@ -10,16 +10,16 @@ The [Online Safety Act 2023](https://www.legislation.gov.uk/ukpga/2023/50) requi
 
 ### Requirement Mapping
 
-| Requirement | OSA Reference | zk-id Capability | Status |
-|---|---|---|---|
-| Age estimation or verification | Part 5, s.11 | ZK age proofs prove `age >= threshold` without revealing birth date | Supported |
-| Proportionality | Ofcom CoP 2024 | Only reveals over/under threshold — no personal data transmitted | Supported |
-| Privacy by design | s.11(5), ICO guidance | Zero-knowledge proofs are privacy-preserving by construction | Supported |
-| Interoperability | Ofcom CoP | Standard JSON proof format; OpenAPI schema available | Supported |
-| Auditability | Ofcom CoP | `AuditLogger` interface logs verification events without PII | Supported |
-| Credential issuer trust | Ofcom CoP | Signed credentials with issuer registry and key rotation | Supported |
-| Replay prevention | Ofcom CoP | Server-issued nonce + timestamp challenges with TTL | Supported |
-| Revocation | Ofcom CoP | Merkle-tree revocation with in-circuit validity proofs | Supported |
+| Requirement                    | OSA Reference         | zk-id Capability                                                    | Status    |
+| ------------------------------ | --------------------- | ------------------------------------------------------------------- | --------- |
+| Age estimation or verification | Part 5, s.11          | ZK age proofs prove `age >= threshold` without revealing birth date | Supported |
+| Proportionality                | Ofcom CoP 2024        | Only reveals over/under threshold — no personal data transmitted    | Supported |
+| Privacy by design              | s.11(5), ICO guidance | Zero-knowledge proofs are privacy-preserving by construction        | Supported |
+| Interoperability               | Ofcom CoP             | Standard JSON proof format; OpenAPI schema available                | Supported |
+| Auditability                   | Ofcom CoP             | `AuditLogger` interface logs verification events without PII        | Supported |
+| Credential issuer trust        | Ofcom CoP             | Signed credentials with issuer registry and key rotation            | Supported |
+| Replay prevention              | Ofcom CoP             | Server-issued nonce + timestamp challenges with TTL                 | Supported |
+| Revocation                     | Ofcom CoP             | Merkle-tree revocation with in-circuit validity proofs              | Supported |
 
 ### Integration Notes
 
@@ -36,15 +36,15 @@ The [Digital Services Act (Regulation (EU) 2022/2065)](https://eur-lex.europa.eu
 
 ### Requirement Mapping
 
-| Requirement | DSA Reference | zk-id Capability | Status |
-|---|---|---|---|
-| Risk mitigation for minors | Art. 34, 35 | Age verification proofs with configurable thresholds | Supported |
-| Data minimisation (GDPR Art. 5(1)(c)) | Art. 14(2) DSA + GDPR | ZK proofs reveal only the threshold comparison result | Supported |
-| Purpose limitation | GDPR Art. 5(1)(b) | Proof contains no reusable personal data | Supported |
-| No profiling from age checks | Art. 26a (proposed) | Nullifiers are scope-bound; no cross-service linkability | Supported |
-| Storage limitation | GDPR Art. 5(1)(e) | Server stores only verification result, not identity data | Supported |
-| Transparency | Art. 14 DSA | Proof format is open-source and auditable | Supported |
-| Cross-border recognition | eIDAS 2.0 alignment | ISO 3166-1 nationality codes; standards-mapped credentials | Partial |
+| Requirement                           | DSA Reference         | zk-id Capability                                           | Status    |
+| ------------------------------------- | --------------------- | ---------------------------------------------------------- | --------- |
+| Risk mitigation for minors            | Art. 34, 35           | Age verification proofs with configurable thresholds       | Supported |
+| Data minimisation (GDPR Art. 5(1)(c)) | Art. 14(2) DSA + GDPR | ZK proofs reveal only the threshold comparison result      | Supported |
+| Purpose limitation                    | GDPR Art. 5(1)(b)     | Proof contains no reusable personal data                   | Supported |
+| No profiling from age checks          | Art. 26a (proposed)   | Nullifiers are scope-bound; no cross-service linkability   | Supported |
+| Storage limitation                    | GDPR Art. 5(1)(e)     | Server stores only verification result, not identity data  | Supported |
+| Transparency                          | Art. 14 DSA           | Proof format is open-source and auditable                  | Supported |
+| Cross-border recognition              | eIDAS 2.0 alignment   | ISO 3166-1 nationality codes; standards-mapped credentials | Partial   |
 
 ### Integration Notes
 
@@ -61,15 +61,15 @@ The [Digital Services Act (Regulation (EU) 2022/2065)](https://eur-lex.europa.eu
 
 ### Alignment Matrix
 
-| eIDAS 2.0 Concept | zk-id Equivalent | Gap Analysis |
-|---|---|---|
-| Person Identification Data (PID) | `birthYear`, `nationality` in credential | zk-id has minimal PID; full eIDAS PID requires name, DoB, etc. |
+| eIDAS 2.0 Concept                                     | zk-id Equivalent                         | Gap Analysis                                                                                 |
+| ----------------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Person Identification Data (PID)                      | `birthYear`, `nationality` in credential | zk-id has minimal PID; full eIDAS PID requires name, DoB, etc.                               |
 | Qualified Electronic Attestation of Attributes (QEAA) | `SignedCredential` with issuer signature | zk-id credentials are not QEAA; would need qualified trust service provider (QTSP) as issuer |
-| Selective disclosure | ZK proofs (Groth16) | Supported — proofs reveal only the verified claim |
-| Unlinkability | Scope-bound nullifiers | Supported — different nullifiers per relying party |
-| Wallet attestation | `BrowserWallet` / `CredentialStore` | Partial — no device binding or Level of Assurance attestation |
-| Relying party registration | `IssuerRegistry` / `requiredPolicy` | Partial — registry exists but no RP registration protocol |
-| Trust framework | Issuer registry with key rotation | Partial — no connection to EU Trust Lists |
+| Selective disclosure                                  | ZK proofs (Groth16)                      | Supported — proofs reveal only the verified claim                                            |
+| Unlinkability                                         | Scope-bound nullifiers                   | Supported — different nullifiers per relying party                                           |
+| Wallet attestation                                    | `BrowserWallet` / `CredentialStore`      | Partial — no device binding or Level of Assurance attestation                                |
+| Relying party registration                            | `IssuerRegistry` / `requiredPolicy`      | Partial — registry exists but no RP registration protocol                                    |
+| Trust framework                                       | Issuer registry with key rotation        | Partial — no connection to EU Trust Lists                                                    |
 
 ### Path to eIDAS 2.0 Compatibility
 
@@ -86,12 +86,12 @@ Several US states have enacted age verification requirements (e.g., Louisiana Ac
 
 ### Common Requirements
 
-| Requirement | Typical Statute | zk-id Capability | Status |
-|---|---|---|---|
-| Verify user is 18+ | All state laws | `requiredMinAge: 18` | Supported |
-| No retention of personal data | LA Act 440, UT SB 152 | ZK proofs contain no PII; server stores only pass/fail | Supported |
-| Reasonable age verification method | TX HB 1181 | Cryptographic proof from credential issuer | Supported |
-| Third-party verification | Most statutes | Issuer-verifier separation via signed credentials | Supported |
+| Requirement                        | Typical Statute       | zk-id Capability                                       | Status    |
+| ---------------------------------- | --------------------- | ------------------------------------------------------ | --------- |
+| Verify user is 18+                 | All state laws        | `requiredMinAge: 18`                                   | Supported |
+| No retention of personal data      | LA Act 440, UT SB 152 | ZK proofs contain no PII; server stores only pass/fail | Supported |
+| Reasonable age verification method | TX HB 1181            | Cryptographic proof from credential issuer             | Supported |
+| Third-party verification           | Most statutes         | Issuer-verifier separation via signed credentials      | Supported |
 
 ---
 

@@ -41,6 +41,9 @@ import {
   ZkIdConfigError,
   ZkIdValidationError,
   MAX_NONCE_LENGTH,
+  validateMinAge,
+  validateNationality,
+  validatePositiveInt,
 } from '@zk-id/core';
 import { readFileSync } from 'fs';
 import { EventEmitter } from 'events';
@@ -480,6 +483,35 @@ export class ZkIdServer extends EventEmitter {
           'This exposes internal error details (circuit structure, validation logic) to clients. ' +
           'Set verboseErrors: false for production deployments.',
       );
+    }
+
+    // Validate numeric config values at construction time
+    if (config.requiredMinAge !== undefined) {
+      validateMinAge(config.requiredMinAge);
+    }
+    if (config.requiredNationality !== undefined) {
+      validateNationality(config.requiredNationality);
+    }
+    if (config.requiredPolicy?.minAge !== undefined) {
+      validateMinAge(config.requiredPolicy.minAge);
+    }
+    if (config.requiredPolicy?.nationality !== undefined) {
+      validateNationality(config.requiredPolicy.nationality);
+    }
+    if (config.maxRequestAgeMs !== undefined) {
+      validatePositiveInt(config.maxRequestAgeMs, 'maxRequestAgeMs');
+    }
+    if (config.maxFutureSkewMs !== undefined) {
+      validatePositiveInt(config.maxFutureSkewMs, 'maxFutureSkewMs');
+    }
+    if (config.challengeTtlMs !== undefined) {
+      validatePositiveInt(config.challengeTtlMs, 'challengeTtlMs');
+    }
+    if (config.revocationRootTtlSeconds !== undefined) {
+      validatePositiveInt(config.revocationRootTtlSeconds, 'revocationRootTtlSeconds');
+    }
+    if (config.maxRevocationRootAgeMs !== undefined) {
+      validatePositiveInt(config.maxRevocationRootAgeMs, 'maxRevocationRootAgeMs');
     }
   }
 
@@ -2004,7 +2036,7 @@ export class ZkIdServer extends EventEmitter {
    */
   async getRevocationRootInfo(): Promise<RevocationRootInfo> {
     if (!this.config.validCredentialTree) {
-      throw new Error('Valid credential tree not configured');
+      throw new ZkIdConfigError('Valid credential tree not configured');
     }
 
     let info: RevocationRootInfo;
@@ -2053,10 +2085,14 @@ export class ZkIdServer extends EventEmitter {
         }
         return result;
       }
-      console.warn(
-        `[zk-id] Protocol version header missing for claimType=${claimType}. ` +
-          `Server=${PROTOCOL_VERSION}`,
-      );
+      this.auditLogger.log({
+        timestamp: new Date().toISOString(),
+        action: 'verify',
+        actor: 'server',
+        target: claimType,
+        success: true,
+        metadata: { warning: 'protocol_version_missing', serverVersion: PROTOCOL_VERSION },
+      });
       return null;
     }
 
@@ -2072,10 +2108,18 @@ export class ZkIdServer extends EventEmitter {
         }
         return result;
       }
-      console.warn(
-        `[zk-id] Protocol version mismatch for claimType=${claimType}. ` +
-          `Client=${clientProtocolVersion}, Server=${PROTOCOL_VERSION}`,
-      );
+      this.auditLogger.log({
+        timestamp: new Date().toISOString(),
+        action: 'verify',
+        actor: 'server',
+        target: claimType,
+        success: true,
+        metadata: {
+          warning: 'protocol_version_mismatch',
+          clientVersion: clientProtocolVersion,
+          serverVersion: PROTOCOL_VERSION,
+        },
+      });
     }
 
     return null;
@@ -2298,6 +2342,8 @@ export class SimpleRateLimiter implements RateLimiter {
   private pruneTimer?: NodeJS.Timeout;
 
   constructor(limit: number = 10, windowMs: number = 60000) {
+    validatePositiveInt(limit, 'limit');
+    validatePositiveInt(windowMs, 'windowMs');
     this.limit = limit;
     this.windowMs = windowMs;
 
@@ -2315,6 +2361,9 @@ export class SimpleRateLimiter implements RateLimiter {
   }
 
   async allowRequest(identifier: string): Promise<boolean> {
+    if (typeof identifier !== 'string' || identifier.length === 0 || identifier.length > 512) {
+      return false;
+    }
     const now = Date.now();
     const requests = this.requests.get(identifier) || [];
 

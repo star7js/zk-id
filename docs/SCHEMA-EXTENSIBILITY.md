@@ -12,11 +12,11 @@ Every zk-id credential commits to exactly **3 fields** via a Poseidon hash:
 commitment = Poseidon(birthYear, nationality, salt)
 ```
 
-| Field         | Type     | Range                         | Size     |
-|---------------|----------|-------------------------------|----------|
-| `birthYear`   | number   | 1900–4095                     | 12 bits  |
-| `nationality` | number   | 1–999 (ISO 3166-1 numeric)    | 10 bits  |
-| `salt`        | hex      | 256-bit random                | 256 bits |
+| Field         | Type   | Range                      | Size     |
+| ------------- | ------ | -------------------------- | -------- |
+| `birthYear`   | number | 1900–4095                  | 12 bits  |
+| `nationality` | number | 1–999 (ISO 3166-1 numeric) | 10 bits  |
+| `salt`        | hex    | 256-bit random             | 256 bits |
 
 This structure is **hardcoded** in every circuit:
 
@@ -53,6 +53,7 @@ commitment_v2 = Poseidon(birthYear, nationality, dateOfBirth, residenceCountry, 
 ```
 
 Constraints:
+
 - Each input must fit in the BN128 scalar field (~254 bits)
 - Poseidon arity affects circuit size (more inputs = more constraints)
 - All circuits that check the commitment must agree on the input order
@@ -100,8 +101,8 @@ snarkjs zkey export verificationkey age-verify-v2.zkey age-verify-v2_vkey.json
 ```typescript
 // Extended credential interface
 interface CredentialV2 extends Credential {
-  dateOfBirth: string;        // ISO 8601 date
-  residenceCountry: number;   // ISO 3166-1 numeric
+  dateOfBirth: string; // ISO 8601 date
+  residenceCountry: number; // ISO 3166-1 numeric
 }
 ```
 
@@ -127,10 +128,10 @@ Existing credentials **cannot** be used with new circuits. Options:
 Adding fields increases circuit size and proof generation time:
 
 | Poseidon Arity | Constraints (approx.) | Proof Time Impact |
-|----------------|----------------------|-------------------|
-| 3 (current)    | ~700                 | Baseline          |
-| 5              | ~1,100               | ~1.6x             |
-| 8              | ~1,700               | ~2.4x             |
+| -------------- | --------------------- | ----------------- |
+| 3 (current)    | ~700                  | Baseline          |
+| 5              | ~1,100                | ~1.6x             |
+| 8              | ~1,700                | ~2.4x             |
 
 The constraint count is dominated by the Poseidon hash. Other circuit logic (age comparison, Merkle inclusion) is unaffected.
 
@@ -156,10 +157,10 @@ Use recursive SNARKs to aggregate multiple single-attribute proofs (e.g., prove 
 
 ## Summary
 
-| Question | Answer |
-|----------|--------|
-| Can I add a field without new circuits? | No |
-| Can old credentials work with new circuits? | No — must reissue |
-| Can I run old and new circuits in parallel? | Yes — use protocol versioning |
-| Does adding fields affect performance? | Yes — ~1.5-2.5x per additional field |
+| Question                                       | Answer                                                 |
+| ---------------------------------------------- | ------------------------------------------------------ |
+| Can I add a field without new circuits?        | No                                                     |
+| Can old credentials work with new circuits?    | No — must reissue                                      |
+| Can I run old and new circuits in parallel?    | Yes — use protocol versioning                          |
+| Does adding fields affect performance?         | Yes — ~1.5-2.5x per additional field                   |
 | Is there an alternative to Poseidon extension? | BBS+ for disclosure, BBS+SNARK for predicates (future) |
