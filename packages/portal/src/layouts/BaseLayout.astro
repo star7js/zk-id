@@ -10,6 +10,8 @@ const {
   title = 'ZK-ID · Privacy-Preserving Identity Verification',
   description = 'Zero-knowledge proof-based identity verification for privacy-preserving age and nationality verification'
 } = Astro.props;
+
+const base = import.meta.env.BASE_URL;
 ---
 
 <!doctype html>
@@ -31,15 +33,15 @@ const {
   <body>
     <nav class="navbar">
       <div class="navbar-container">
-        <a href="/" class="navbar-logo">
+        <a href={base} class="navbar-logo">
           <span class="logo-icon">🔐</span>
           <span class="logo-text">ZK-ID</span>
         </a>
         <div class="navbar-links">
-          <a href="/quick-start">Quick Start</a>
-          <a href="/playground">Playground</a>
-          <a href="/api-reference">API Reference</a>
-          <a href="/docs">Documentation</a>
+          <a href={`${base}quick-start`}>Quick Start</a>
+          <a href={`${base}playground`}>Playground</a>
+          <a href={`${base}api-reference`}>API Reference</a>
+          <a href={`${base}docs`}>Documentation</a>
           <a href="https://github.com/star7js/zk-id" target="_blank" rel="noopener" class="btn-secondary">
             GitHub
           </a>
@@ -59,7 +61,7 @@ const {
         <div class="footer-links">
           <a href="https://github.com/star7js/zk-id" target="_blank" rel="noopener">GitHub</a>
           <a href="https://github.com/star7js/zk-id/issues" target="_blank" rel="noopener">Issues</a>
-          <a href="/docs/contributing">Contributing</a>
+          <a href={`${base}docs/contributing`}>Contributing</a>
         </div>
       </div>
     </footer>

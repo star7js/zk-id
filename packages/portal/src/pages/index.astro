@@ -1,5 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+
+const base = import.meta.env.BASE_URL;
 ---
 
 <BaseLayout>
@@ -11,8 +13,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         Privacy-Preserving Identity Verification with Zero-Knowledge Proofs
       </p>
       <div class="hero-actions">
-        <a href="/quick-start" class="btn btn-primary">Get Started</a>
-        <a href="/playground" class="btn btn-secondary">Try Playground</a>
+        <a href={`${base}quick-start`} class="btn btn-primary">Get Started</a>
+        <a href={`${base}playground`} class="btn btn-secondary">Try Playground</a>
       </div>
     </header>
 
@@ -57,19 +59,19 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     <section class="quick-links">
       <h2>Quick Links</h2>
       <div class="link-grid">
-        <a href="/quick-start" class="link-card">
+        <a href={`${base}quick-start`} class="link-card">
           <h3>🚀 Quick Start</h3>
           <p>Interactive 4-step guide to issue credentials and generate proofs in under 5 minutes</p>
         </a>
-        <a href="/playground" class="link-card">
+        <a href={`${base}playground`} class="link-card">
           <h3>🎮 Playground</h3>
           <p>Live sandbox for generating ZK proofs in your browser</p>
         </a>
-        <a href="/api-reference" class="link-card">
+        <a href={`${base}api-reference`} class="link-card">
           <h3>📖 API Reference</h3>
           <p>Complete API documentation with TypeScript, Python, and Go examples</p>
         </a>
-        <a href="/docs" class="link-card">
+        <a href={`${base}docs`} class="link-card">
           <h3>📚 Documentation</h3>
           <p>Architecture, protocol details, compliance, and deployment guides</p>
         </a>
