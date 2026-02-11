@@ -119,7 +119,9 @@ export class PostgresValidCredentialTree implements ValidCredentialTree {
     );
     const storedDepth = rows[0]?.depth;
     if (storedDepth !== undefined && storedDepth !== this.depth) {
-      throw new ZkIdConfigError(`Merkle depth mismatch: configured=${this.depth}, stored=${storedDepth}`);
+      throw new ZkIdConfigError(
+        `Merkle depth mismatch: configured=${this.depth}, stored=${storedDepth}`,
+      );
     }
   }
 

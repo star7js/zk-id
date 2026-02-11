@@ -348,11 +348,11 @@ export class InMemoryIssuerRegistry implements IssuerRegistry {
     if (record.issuer.length > 256) {
       throw new ZkIdValidationError('issuer must be at most 256 characters', 'issuer');
     }
-    if (record.status !== undefined && !['active', 'revoked', 'suspended'].includes(record.status)) {
-      throw new ZkIdValidationError(
-        "status must be 'active', 'revoked', or 'suspended'",
-        'status',
-      );
+    if (
+      record.status !== undefined &&
+      !['active', 'revoked', 'suspended'].includes(record.status)
+    ) {
+      throw new ZkIdValidationError("status must be 'active', 'revoked', or 'suspended'", 'status');
     }
     if (record.validFrom !== undefined && isNaN(Date.parse(record.validFrom))) {
       throw new ZkIdValidationError('validFrom must be a valid ISO 8601 date string', 'validFrom');
