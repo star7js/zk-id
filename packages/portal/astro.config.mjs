@@ -5,8 +5,8 @@ const API_URL = process.env.PUBLIC_API_URL || 'http://localhost:3000';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://star7js.github.io',
-  base: process.env.NODE_ENV === 'production' ? '/zk-id' : '/',
+  site: process.env.CUSTOM_DOMAIN ? 'https://zk-id.io' : 'https://star7js.github.io',
+  base: process.env.CUSTOM_DOMAIN ? '/' : (process.env.NODE_ENV === 'production' ? '/zk-id' : '/'),
   vite: {
     server: {
       proxy: {

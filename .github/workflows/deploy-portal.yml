@@ -39,6 +39,7 @@ jobs:
         env:
           NODE_ENV: production
           PUBLIC_API_URL: ${{ secrets.API_URL }}
+          CUSTOM_DOMAIN: true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
