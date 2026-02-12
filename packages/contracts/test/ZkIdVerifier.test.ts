@@ -58,6 +58,10 @@ describe('ZkIdVerifier', function () {
     const ageVerifierRevocable = await AgeVerifierRevocableFactory.deploy();
     await ageVerifierRevocable.waitForDeployment();
 
+    const PredicateVerifierFactory = await ethers.getContractFactory('PredicateVerifier');
+    const predicateVerifier = await PredicateVerifierFactory.deploy();
+    await predicateVerifier.waitForDeployment();
+
     // Deploy the wrapper contract
     const ZkIdVerifierFactory = await ethers.getContractFactory('ZkIdVerifier');
     zkIdVerifier = await ZkIdVerifierFactory.deploy(
@@ -66,6 +70,7 @@ describe('ZkIdVerifier', function () {
       await ageVerifierSigned.getAddress(),
       await nationalityVerifierSigned.getAddress(),
       await ageVerifierRevocable.getAddress(),
+      await predicateVerifier.getAddress(),
     );
     await zkIdVerifier.waitForDeployment();
   });
@@ -607,6 +612,144 @@ describe('ZkIdVerifier', function () {
       );
 
       // Verify returns false (no events emitted)
+      expect(verified).to.be.false;
+    });
+  });
+
+  describe('Predicate Proof', function () {
+    it('should reject zero predicate proof', async function () {
+      const pA: [bigint, bigint] = [0n, 0n];
+      const pB: [[bigint, bigint], [bigint, bigint]] = [
+        [0n, 0n],
+        [0n, 0n],
+      ];
+      const pC: [bigint, bigint] = [0n, 0n];
+
+      const credentialCommitment = 123456789n;
+      const predicateType = 0; // EQ
+      const targetValue = 18;
+      const rangeMax = 0;
+      const fieldSelector = 0;
+      const nonce = 1n;
+      const timestamp = Math.floor(Date.now() / 1000);
+      const satisfied = 1;
+
+      const verified = await zkIdVerifier.verifyPredicateProof(
+        pA,
+        pB,
+        pC,
+        credentialCommitment,
+        predicateType,
+        targetValue,
+        rangeMax,
+        fieldSelector,
+        nonce,
+        timestamp,
+        satisfied,
+      );
+
+      expect(verified).to.be.false;
+    });
+
+    it('should reject predicate proof with satisfied=0', async function () {
+      const pA: [bigint, bigint] = [0n, 0n];
+      const pB: [[bigint, bigint], [bigint, bigint]] = [
+        [0n, 0n],
+        [0n, 0n],
+      ];
+      const pC: [bigint, bigint] = [0n, 0n];
+
+      const credentialCommitment = 123456789n;
+      const predicateType = 1; // GT
+      const targetValue = 21;
+      const rangeMax = 0;
+      const fieldSelector = 0;
+      const nonce = 1n;
+      const timestamp = Math.floor(Date.now() / 1000);
+      const satisfied = 0; // Not satisfied
+
+      await expect(
+        zkIdVerifier.verifyPredicateProof(
+          pA,
+          pB,
+          pC,
+          credentialCommitment,
+          predicateType,
+          targetValue,
+          rangeMax,
+          fieldSelector,
+          nonce,
+          timestamp,
+          satisfied,
+        ),
+      ).to.be.revertedWith('Predicate not satisfied');
+    });
+
+    it('should reject predicate proof with tampered pC', async function () {
+      const pA: [bigint, bigint] = [12345678901234567890n, 98765432109876543210n];
+      const pB: [[bigint, bigint], [bigint, bigint]] = [
+        [11111111111111111111n, 22222222222222222222n],
+        [33333333333333333333n, 44444444444444444444n],
+      ];
+      const pC: [bigint, bigint] = [55555555555555555555n, 66666666666666666666n];
+
+      const credentialCommitment = 987654321n;
+      const predicateType = 2; // LT
+      const targetValue = 100;
+      const rangeMax = 0;
+      const fieldSelector = 1;
+      const nonce = 12345n;
+      const timestamp = Math.floor(Date.now() / 1000);
+      const satisfied = 1;
+
+      const verified = await zkIdVerifier.verifyPredicateProof(
+        pA,
+        pB,
+        pC,
+        credentialCommitment,
+        predicateType,
+        targetValue,
+        rangeMax,
+        fieldSelector,
+        nonce,
+        timestamp,
+        satisfied,
+      );
+
+      expect(verified).to.be.false;
+    });
+
+    it('should reject range proof with invalid parameters', async function () {
+      const pA: [bigint, bigint] = [11111111111111111111n, 22222222222222222222n];
+      const pB: [[bigint, bigint], [bigint, bigint]] = [
+        [33333333333333333333n, 44444444444444444444n],
+        [55555555555555555555n, 66666666666666666666n],
+      ];
+      const pC: [bigint, bigint] = [77777777777777777777n, 88888888888888888888n];
+
+      const credentialCommitment = 111222333n;
+      const predicateType = 3; // RANGE
+      const targetValue = 18; // Min value
+      const rangeMax = 65; // Max value
+      const fieldSelector = 0; // Age field
+      const nonce = 99999n;
+      const timestamp = Math.floor(Date.now() / 1000);
+      const satisfied = 1;
+
+      const verified = await zkIdVerifier.verifyPredicateProof(
+        pA,
+        pB,
+        pC,
+        credentialCommitment,
+        predicateType,
+        targetValue,
+        rangeMax,
+        fieldSelector,
+        nonce,
+        timestamp,
+        satisfied,
+      );
+
       expect(verified).to.be.false;
     });
   });

@@ -327,11 +327,17 @@ zk-id agent credentials are compatible with:
 - [x] Implement schema-aware BBS+ issuance (`BBSCredentialIssuer.issueSchemaCredential`)
 - [x] Add BBS issuer endpoint (`POST /issue/bbs`) to issuer server
 
-### 8.2 Phase 2: Verification Integration
+### 8.2 Phase 2: Verification Integration (✓ Complete)
 
-- [ ] Add agent-specific verification policies to `ZkIdServer`
-- [ ] Implement capability matching logic (scope-based authorization)
-- [ ] Create OpenID4VP flows for agent presentation requests
+- [x] Add agent-specific verification policies to `ZkIdServer`
+- [x] Implement capability matching logic (scope-based authorization)
+- [x] Create OpenID4VP flows for agent presentation requests
+
+**Implemented:**
+
+- `verifyCapabilityChain()` in `bbs-schema.ts` - validates delegation chains
+- `matchCapability()` in `bbs-schema.ts` - checks capability grants with wildcard support
+- `createAgentVerificationRequest()` in OpenID4VPVerifier - creates presentation requests for agent credentials
 
 ### 8.3 Phase 3: Delegation Support
 
@@ -348,9 +354,143 @@ zk-id agent credentials are compatible with:
 
 ---
 
-## 9. Security Considerations
+## 9. End-to-End Usage Example
 
-### 9.1 Threats
+### 9.1 Issuance: Organization Issues Agent Credential
+
+```typescript
+import { BBSCredentialIssuer } from '@zk-id/core';
+
+// Organization issues agent-identity credential
+const issuer = new BBSCredentialIssuer();
+await issuer.initialize();
+
+const agentCredential = await issuer.issueSchemaCredential('agent-identity', {
+  id: 'cred-001',
+  agentId: 'agent-gpt4-prod-001',
+  organizationId: 'org-acme-corp',
+  capabilities: JSON.stringify(['api:read', 'api:write', 'database:read']),
+  modelVersion: 'gpt-4-turbo-2024-04-09',
+  salt: crypto.randomBytes(32).toString('hex'),
+});
+
+// Issuer endpoint: POST /issue/bbs
+// Body: { schemaId: 'agent-identity', fields: {...} }
+```
+
+### 9.2 Delegation: Agent A Delegates to Agent B
+
+```typescript
+// Agent A delegates 'api:read' capability to Agent B
+const delegationCredential = await issuer.issueSchemaCredential('capability', {
+  id: 'cap-delegation-001',
+  capability: 'api:read',
+  scope: 'api:documents/*',
+  delegator: 'agent-gpt4-prod-001', // Agent A
+  delegatee: 'agent-claude-assistant-002', // Agent B
+  issuedAt: new Date().toISOString(),
+  expiresAt: new Date(Date.now() + 3600000).toISOString(), // 1 hour
+  salt: crypto.randomBytes(32).toString('hex'),
+});
+```
+
+### 9.3 Selective Disclosure: Agent Reveals Only Necessary Fields
+
+```typescript
+import { createBBSDisclosureProof } from '@zk-id/core';
+
+// Agent B creates a disclosure proof revealing only agentId and organizationId
+const disclosureProof = await createBBSDisclosureProof(
+  agentCredential,
+  ['agentId', 'organizationId'], // Only reveal these fields
+  issuer.getPublicKey(),
+  'nonce-12345',
+);
+
+// Result: Cryptographic proof + revealed fields
+// Hidden: capabilities, modelVersion, salt
+```
+
+### 9.4 Verification: Service Verifies Agent Credential
+
+```typescript
+import { OpenID4VPVerifier, verifyCapabilityChain, matchCapability } from '@zk-id/sdk';
+
+// Create verification request for agent credentials
+const verifier = new OpenID4VPVerifier({
+  verifierId: 'document-service',
+  verifierUrl: 'https://docs.example.com',
+});
+
+// Request agent-identity credential
+const authRequest = verifier.createAgentVerificationRequest(
+  'agent-identity',
+  undefined,
+  undefined,
+  'state-xyz',
+);
+
+// Or request specific capability
+const capabilityRequest = verifier.createAgentVerificationRequest(
+  'capability',
+  'api:read',
+  'api:documents',
+  'state-abc',
+);
+
+// Verify capability chain (multi-hop delegation)
+const credentials = [rootCredential, delegationCredential]; // Agent B's chain
+const result = verifyCapabilityChain(credentials, 'api:read', 'api:documents/report-2024');
+
+if (result.valid) {
+  console.log('✓ Agent authorized to access api:documents/report-2024');
+} else {
+  console.error('✗ Authorization failed:', result.errors);
+}
+
+// Single credential capability check
+if (matchCapability(delegationCredential, 'api:read', 'api:documents/report-2024')) {
+  console.log('✓ Capability granted');
+}
+```
+
+### 9.5 Complete Flow: Agent-to-Service Authentication
+
+```typescript
+// 1. Service creates verification request
+const { authRequest, deepLink } = verifier.createAgentVerificationRequest(
+  'capability',
+  'api:write',
+  'api:documents',
+);
+
+// 2. Agent receives request and creates disclosure proof
+const proof = await createBBSDisclosureProof(
+  agentCredential,
+  ['capability', 'scope', 'delegatee'], // Reveal required fields
+  issuerPublicKey,
+  authRequest.nonce,
+);
+
+// 3. Agent submits proof to service
+const response = await fetch(authRequest.response_uri, {
+  method: 'POST',
+  body: JSON.stringify({ proof, state: authRequest.state }),
+});
+
+// 4. Service validates proof and grants access
+const verified = await verifier.verifyPresentation(response);
+if (verified.valid && matchCapability(verified.credential, 'api:write', 'api:documents')) {
+  // Grant API access
+  return { authorized: true, agentId: verified.credential.fields.delegatee };
+}
+```
+
+---
+
+## 10. Security Considerations
+
+### 10.1 Threats
 
 | Threat                  | Mitigation                                                                            |
 | ----------------------- | ------------------------------------------------------------------------------------- |
@@ -359,7 +499,7 @@ zk-id agent credentials are compatible with:
 | **Delegation Abuse**    | Capability scoping, delegation depth limits, audit logging                            |
 | **Model Impersonation** | Bind credentials to specific model version, verify signatures                         |
 
-### 9.2 Best Practices
+### 10.2 Best Practices
 
 1. **Short Expiry**: Agent credentials should expire within hours, not days
 2. **Minimal Disclosure**: Only reveal fields necessary for the specific verification
@@ -369,9 +509,9 @@ zk-id agent credentials are compatible with:
 
 ---
 
-## 10. Future Research Directions
+## 11. Future Research Directions
 
-### 10.1 On-Chain Agent Registries
+### 11.1 On-Chain Agent Registries
 
 Explore Ethereum smart contracts or Hyperledger for:
 
@@ -379,14 +519,14 @@ Explore Ethereum smart contracts or Hyperledger for:
 - Public revocation lists
 - Delegation chain transparency
 
-### 10.2 Multi-Agent Coordination Protocols
+### 11.2 Multi-Agent Coordination Protocols
 
 How do multiple agents with BBS+ credentials coordinate?
 
 - Secure multi-party computation with credential-based ACLs
 - Agent swarms with shared capability pools
 
-### 10.3 Human-in-the-Loop Attestation
+### 11.3 Human-in-the-Loop Attestation
 
 Combine agent credentials with human approval:
 
@@ -395,7 +535,7 @@ Combine agent credentials with human approval:
 
 ---
 
-## 11. Conclusion
+## 12. Conclusion
 
 BBS+ credentials with schema flexibility provide a privacy-preserving, cryptographically-secure foundation for AI agent identity. By combining agent-specific metadata (model version, capabilities) with selective disclosure, organizations can:
 

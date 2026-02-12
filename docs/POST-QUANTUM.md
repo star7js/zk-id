@@ -120,6 +120,73 @@ zk-id is designed with cryptographic agility through the `ProvingSystem` abstrac
 - Benchmarks showing competitive proof sizes (<5KB)
 - Browser WASM support for PQ proof generation
 
+## Poseidon Security Tracking
+
+### Poseidon Prize
+
+The **Poseidon Prize** is an Ethereum Foundation-backed security bounty program incentivizing researchers to find vulnerabilities in the Poseidon hash function, which is widely used in ZK circuits including zk-id's commitment scheme.
+
+**Current Status (2026)**:
+
+- Active bounty program with significant rewards for practical attacks
+- No successful attacks published despite years of scrutiny
+- Poseidon remains the de facto standard for ZK-friendly hashing
+
+**Relevance to zk-id**:
+
+We use Poseidon for:
+
+- Credential commitments (`credentialHash` in proofs)
+- Merkle tree construction (revocation lists)
+- Field element hashing in circuits
+
+**Impact of Successful Attack**:
+
+If a practical collision or preimage attack on Poseidon were discovered:
+
+1. **Immediate Impact**: Credential commitments could be forged
+2. **Migration Required**: New circuits with alternative hash function (e.g., Rescue, Reinforced Concrete)
+3. **Timeline**: 1-2 months emergency migration if tooling exists
+4. **Credential Re-issuance**: All credentials must be re-issued with new commitments
+
+**Monitoring**:
+
+- Ethereum Foundation security updates
+- IACR ePrint publications on Poseidon cryptanalysis
+- Circom community discussions on alternative ZK-friendly hashes
+
+### Ethereum Post-Quantum Team
+
+The **Ethereum Foundation Cryptography Research Team** is leading Ethereum's post-quantum transition, which directly affects zk-id's roadmap:
+
+**Key Milestones (Updated 2026)**:
+
+1. **Account Abstraction PQ** (2026-2027): Post-quantum signature support via ERC-4337
+2. **Consensus Layer PQ** (2027-2028): BLS signature replacement in beacon chain
+3. **Execution Layer PQ** (2028-2029): ECDSA → PQ signature migration for EOAs
+4. **ZK Ecosystem PQ** (2029-2030): L2 rollups and ZK applications migrate to PQ proving systems
+
+**Active Research Areas**:
+
+- STARK-based rollup finality proofs (hash-based, already PQ-secure)
+- Lattice-based signature aggregation for consensus
+- Post-quantum-friendly Verkle tree commitments
+- Hybrid signature schemes for smooth migration
+
+**Alignment Strategy**:
+
+zk-id will track Ethereum's L2 PQ migration timeline closely, as:
+
+- Ethereum L2s provide our primary deployment target
+- Shared tooling (circom, snarkjs) will evolve with Ethereum ecosystem needs
+- Verifier gas costs on PQ-compatible L2s will inform our migration timing
+
+**Resources**:
+
+- [Ethereum Cryptography Research Team Updates](https://blog.ethereum.org/category/research)
+- [EF Research Forum: Post-Quantum Cryptography](https://ethresear.ch/t/post-quantum-cryptography/)
+- [Vitalik's PQ Roadmap Posts](https://vitalik.eth.limo/)
+
 ## Implementation Commitment
 
 **When production-ready tooling exists:**

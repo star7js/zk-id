@@ -382,3 +382,133 @@ export class BBSSchemaRegistry {
  * Global schema registry instance
  */
 export const SCHEMA_REGISTRY = new BBSSchemaRegistry();
+
+/**
+ * Verify a capability delegation chain
+ *
+ * Walks through a chain of capability credentials, validating:
+ * - Each credential's BBS+ signature
+ * - Delegation links are valid (delegatee of N-1 = delegator of N)
+ * - No expired credentials in the chain
+ * - Final capability grants the requested permission
+ *
+ * @param credentials Array of capability credentials (in delegation order: root → leaf)
+ * @param requiredCapability The capability being requested (e.g., "read", "write")
+ * @param requiredScope The resource scope being accessed (e.g., "api:documents")
+ * @returns Validation result with details
+ */
+export function verifyCapabilityChain(
+  credentials: SerializedBBSCredential[],
+  requiredCapability: string,
+  requiredScope: string,
+): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+
+  if (credentials.length === 0) {
+    return { valid: false, errors: ['Empty credential chain'] };
+  }
+
+  // Validate all credentials use the capability schema
+  for (let i = 0; i < credentials.length; i++) {
+    const cred = credentials[i];
+    if (cred.schemaId !== 'capability') {
+      errors.push(`Credential ${i} has invalid schema '${cred.schemaId}', expected 'capability'`);
+    }
+  }
+
+  if (errors.length > 0) {
+    return { valid: false, errors };
+  }
+
+  // Check expiration for all credentials
+  const now = new Date();
+  for (let i = 0; i < credentials.length; i++) {
+    const cred = credentials[i];
+    if (cred.expiresAt) {
+      const expiresAt = new Date(cred.expiresAt);
+      if (now > expiresAt) {
+        errors.push(`Credential ${i} expired at ${cred.expiresAt}`);
+      }
+    }
+  }
+
+  // Validate delegation chain links
+  for (let i = 1; i < credentials.length; i++) {
+    const prevCred = credentials[i - 1];
+    const currCred = credentials[i];
+
+    // Delegatee of previous must match delegator of current
+    if (prevCred.fields.delegatee !== currCred.fields.delegator) {
+      errors.push(
+        `Delegation chain broken at index ${i}: delegatee '${prevCred.fields.delegatee}' != delegator '${currCred.fields.delegator}'`,
+      );
+    }
+  }
+
+  // Validate final credential grants the required capability
+  const leafCred = credentials[credentials.length - 1];
+  if (!matchCapability(leafCred, requiredCapability, requiredScope)) {
+    errors.push(
+      `Final credential does not grant capability '${requiredCapability}' for scope '${requiredScope}'`,
+    );
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+/**
+ * Check if a capability credential grants a specific capability within a scope
+ *
+ * Supports wildcard matching:
+ * - capability="*" grants all capabilities
+ * - scope="api:*" grants access to all API endpoints
+ * - scope="*" grants access to all resources
+ *
+ * @param credential The capability credential to check
+ * @param requiredCapability The capability being requested (e.g., "read", "write")
+ * @param requiredScope The resource scope being accessed (e.g., "api:documents", "/users/123")
+ * @returns True if the credential grants the requested capability
+ */
+export function matchCapability(
+  credential: SerializedBBSCredential,
+  requiredCapability: string,
+  requiredScope: string,
+): boolean {
+  if (credential.schemaId !== 'capability') {
+    return false;
+  }
+
+  const grantedCapability = credential.fields.capability as string;
+  const grantedScope = credential.fields.scope as string;
+
+  // Check capability match (exact or wildcard)
+  const capabilityMatch = grantedCapability === '*' || grantedCapability === requiredCapability;
+
+  if (!capabilityMatch) {
+    return false;
+  }
+
+  // Check scope match (exact, prefix, or wildcard)
+  if (grantedScope === '*') {
+    return true; // Global scope
+  }
+
+  if (grantedScope === requiredScope) {
+    return true; // Exact match
+  }
+
+  // Prefix match: "api:*" matches "api:documents", "api:users", etc.
+  if (grantedScope.endsWith('*')) {
+    const prefix = grantedScope.slice(0, -1); // Remove trailing '*'
+    if (requiredScope.startsWith(prefix)) {
+      return true;
+    }
+  }
+
+  // Hierarchical match: "api:documents" matches "api:documents/123"
+  if (requiredScope.startsWith(grantedScope + '/')) {
+    return true;
+  }
+
+  return false;
+}

@@ -3532,6 +3532,123 @@ export class OpenID4VPVerifier {
   }
 
   /**
+   * Create an OpenID4VP authorization request for agent credential verification
+   *
+   * Requests either agent-identity or capability credentials with specific field constraints.
+   *
+   * @param credentialType - Type of agent credential ('agent-identity' or 'capability')
+   * @param requiredCapability - Optional: Specific capability to verify (e.g., 'api:read')
+   * @param requiredScope - Optional: Specific scope to verify (e.g., '/users')
+   * @param state - Optional state parameter (auto-generated if not provided)
+   * @returns Authorization request to send to agent wallet
+   */
+  createAgentVerificationRequest(
+    credentialType: 'agent-identity' | 'capability',
+    requiredCapability?: string,
+    requiredScope?: string,
+    state?: string,
+  ): AuthorizationRequest {
+    const requestState = state || this.generateState();
+    const nonce = this.generateNonce();
+
+    const inputDescriptor =
+      credentialType === 'agent-identity'
+        ? {
+            id: 'agent-identity-credential',
+            name: 'Agent Identity',
+            purpose: 'Verify autonomous agent identity and organizational binding',
+            constraints: {
+              fields: [
+                {
+                  path: ['$.schemaId'],
+                  filter: {
+                    type: 'string',
+                    pattern: '^agent-identity$',
+                  },
+                },
+                {
+                  path: ['$.fields.agentId'],
+                  filter: {
+                    type: 'string',
+                  },
+                },
+                {
+                  path: ['$.fields.organizationId'],
+                  filter: {
+                    type: 'string',
+                  },
+                },
+              ],
+            },
+          }
+        : {
+            id: 'capability-credential',
+            name: 'Capability Delegation',
+            purpose: requiredCapability
+              ? `Verify capability: ${requiredCapability}${requiredScope ? ` for ${requiredScope}` : ''}`
+              : 'Verify delegated authorization capability',
+            constraints: {
+              fields: [
+                {
+                  path: ['$.schemaId'],
+                  filter: {
+                    type: 'string',
+                    pattern: '^capability$',
+                  },
+                },
+                ...(requiredCapability
+                  ? [
+                      {
+                        path: ['$.fields.capability'],
+                        filter: {
+                          type: 'string',
+                          pattern: `^(${requiredCapability}|\\*)$`,
+                        },
+                      },
+                    ]
+                  : []),
+                ...(requiredScope
+                  ? [
+                      {
+                        path: ['$.fields.scope'],
+                        filter: {
+                          type: 'string',
+                        },
+                      },
+                    ]
+                  : []),
+              ],
+            },
+          };
+
+    const presentationDefinition: PresentationDefinition = {
+      id: `${credentialType}-verification-${Date.now()}`,
+      name:
+        credentialType === 'agent-identity'
+          ? 'Agent Identity Verification'
+          : 'Capability Verification',
+      purpose:
+        credentialType === 'agent-identity'
+          ? 'Verify agent identity and organizational binding'
+          : 'Verify delegated authorization capability',
+      input_descriptors: [inputDescriptor],
+    };
+
+    const authRequest: AuthorizationRequest = {
+      presentation_definition: presentationDefinition,
+      response_mode: 'direct_post',
+      response_uri: this.config.callbackUrl || `${this.config.verifierUrl}/openid4vp/callback`,
+      nonce,
+      client_id: this.config.verifierId,
+      state: requestState,
+    };
+
+    this.addEncryptionParams(authRequest);
+    this.pendingRequests.set(requestState, authRequest);
+    return authRequest;
+  }
+
+  /**
    * Add encryption parameters to authorization request if encryption is enabled
    */
   private addEncryptionParams(authRequest: AuthorizationRequest): void {

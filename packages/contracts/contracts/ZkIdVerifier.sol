@@ -6,6 +6,7 @@ import "./NationalityVerifier.sol";
 import "./AgeVerifierSigned.sol";
 import "./NationalityVerifierSigned.sol";
 import "./AgeVerifierRevocable.sol";
+import "./PredicateVerifier.sol";
 
 /**
  * @title ZkIdVerifier
@@ -26,6 +27,7 @@ contract ZkIdVerifier {
     AgeVerifierSigned private immutable ageVerifierSigned;
     NationalityVerifierSigned private immutable nationalityVerifierSigned;
     AgeVerifierRevocable private immutable ageVerifierRevocable;
+    PredicateVerifier private immutable predicateVerifier;
 
     // Events
     event AgeProofVerified(
@@ -45,6 +47,15 @@ contract ZkIdVerifier {
         uint256 requestTimestamp
     );
 
+    event PredicateProofVerified(
+        address indexed user,
+        bytes32 credentialCommitment,
+        uint256 predicateType,
+        uint256 targetValue,
+        uint256 nonce,
+        uint256 timestamp
+    );
+
     /**
      * @notice Deploy the ZkIdVerifier with verifier contract addresses
      * @param _ageVerifier Address of the deployed AgeVerifier contract
@@ -52,19 +63,22 @@ contract ZkIdVerifier {
      * @param _ageVerifierSigned Address of the deployed AgeVerifierSigned contract
      * @param _nationalityVerifierSigned Address of the deployed NationalityVerifierSigned contract
      * @param _ageVerifierRevocable Address of the deployed AgeVerifierRevocable contract
+     * @param _predicateVerifier Address of the deployed PredicateVerifier contract
      */
     constructor(
         address _ageVerifier,
         address _nationalityVerifier,
         address _ageVerifierSigned,
         address _nationalityVerifierSigned,
-        address _ageVerifierRevocable
+        address _ageVerifierRevocable,
+        address _predicateVerifier
     ) {
         ageVerifier = AgeVerifier(_ageVerifier);
         nationalityVerifier = NationalityVerifier(_nationalityVerifier);
         ageVerifierSigned = AgeVerifierSigned(_ageVerifierSigned);
         nationalityVerifierSigned = NationalityVerifierSigned(_nationalityVerifierSigned);
         ageVerifierRevocable = AgeVerifierRevocable(_ageVerifierRevocable);
+        predicateVerifier = PredicateVerifier(_predicateVerifier);
     }
 
     /**
@@ -276,5 +290,110 @@ contract ZkIdVerifier {
         uint256[6] calldata publicSignals
     ) external view returns (bool) {
         return ageVerifierRevocable.verifyProof(pA, pB, pC, publicSignals);
+    }
+
+    /**
+     * @notice Verify a generic predicate proof on-chain
+     * @dev Public signals order: [credentialCommitment, predicateType, targetValue, rangeMax, fieldSelector, nonce, timestamp, satisfied]
+     * @param pA Proof component A (Groth16)
+     * @param pB Proof component B (Groth16)
+     * @param pC Proof component C (Groth16)
+     * @param credentialCommitment Poseidon hash commitment of the credential
+     * @param predicateType Type of predicate (0=EQ, 1=GT, 2=LT, 3=RANGE)
+     * @param targetValue Target value for comparison
+     * @param rangeMax Maximum value for range proofs
+     * @param fieldSelector Which credential field to evaluate
+     * @param nonce Replay protection nonce
+     * @param timestamp Unix timestamp of the proof request
+     * @param satisfied Result of predicate evaluation (must be 1)
+     * @return bool True if the proof is valid and satisfied == 1
+     */
+    function verifyPredicateProof(
+        uint256[2] calldata pA,
+        uint256[2][2] calldata pB,
+        uint256[2] calldata pC,
+        uint256 credentialCommitment,
+        uint256 predicateType,
+        uint256 targetValue,
+        uint256 rangeMax,
+        uint256 fieldSelector,
+        uint256 nonce,
+        uint256 timestamp,
+        uint256 satisfied
+    ) external view returns (bool) {
+        // Validate satisfied == 1
+        require(satisfied == 1, "Predicate not satisfied");
+
+        uint256[8] memory publicSignals = [
+            credentialCommitment,
+            predicateType,
+            targetValue,
+            rangeMax,
+            fieldSelector,
+            nonce,
+            timestamp,
+            satisfied
+        ];
+
+        return predicateVerifier.verifyProof(pA, pB, pC, publicSignals);
+    }
+
+    /**
+     * @notice Verify a predicate proof and emit an event
+     * @dev Use this when you want the verification event logged on-chain
+     * @param pA Proof component A (Groth16)
+     * @param pB Proof component B (Groth16)
+     * @param pC Proof component C (Groth16)
+     * @param credentialCommitment Poseidon hash commitment of the credential
+     * @param predicateType Type of predicate (0=EQ, 1=GT, 2=LT, 3=RANGE)
+     * @param targetValue Target value for comparison
+     * @param rangeMax Maximum value for range proofs
+     * @param fieldSelector Which credential field to evaluate
+     * @param nonce Replay protection nonce
+     * @param timestamp Unix timestamp of the proof request
+     * @param satisfied Result of predicate evaluation (must be 1)
+     * @return bool True if the proof is valid
+     */
+    function verifyPredicateProofWithEvent(
+        uint256[2] calldata pA,
+        uint256[2][2] calldata pB,
+        uint256[2] calldata pC,
+        uint256 credentialCommitment,
+        uint256 predicateType,
+        uint256 targetValue,
+        uint256 rangeMax,
+        uint256 fieldSelector,
+        uint256 nonce,
+        uint256 timestamp,
+        uint256 satisfied
+    ) external returns (bool) {
+        // Validate satisfied == 1
+        require(satisfied == 1, "Predicate not satisfied");
+
+        uint256[8] memory publicSignals = [
+            credentialCommitment,
+            predicateType,
+            targetValue,
+            rangeMax,
+            fieldSelector,
+            nonce,
+            timestamp,
+            satisfied
+        ];
+
+        bool verified = predicateVerifier.verifyProof(pA, pB, pC, publicSignals);
+
+        if (verified) {
+            emit PredicateProofVerified(
+                msg.sender,
+                bytes32(credentialCommitment),
+                predicateType,
+                targetValue,
+                nonce,
+                timestamp
+            );
+        }
+
+        return verified;
     }
 }
