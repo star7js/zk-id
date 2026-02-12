@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync } from 'fs';
 import { relative, resolve } from 'path';
+import { fileURLToPath } from 'url';
 
 const docs = [
   // Getting Started
@@ -183,7 +184,8 @@ const docs = [
   },
 ];
 
-const basePath = resolve(new URL('.', import.meta.url).pathname);
+const baseDirUrl = new URL('.', import.meta.url);
+const basePath = fileURLToPath(baseDirUrl);
 const contentDir = resolve(basePath, 'src/content/docs');
 const repoRoot = resolve(basePath, '../../');
 
@@ -195,10 +197,8 @@ const isWithinPath = (rootPath, targetPath) => {
 docs.forEach(({ src, dest, title, category, order }) => {
   try {
     // Resolve and validate paths to prevent traversal
-    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
-    const srcPath = resolve(basePath, src);
-    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
-    const destPath = resolve(contentDir, dest);
+    const srcPath = fileURLToPath(new URL(src, baseDirUrl));
+    const destPath = fileURLToPath(new URL(`src/content/docs/${dest}`, baseDirUrl));
 
     // Ensure paths stay within expected directories
     if (!isWithinPath(repoRoot, srcPath)) {
