@@ -120,7 +120,12 @@ export class MobileBBSCredentialStore {
   async put(credential: SerializedBBSCredential): Promise<void> {
     const id = String(credential.fields.id || `bbs-${Date.now()}`);
     const key = this.keyPrefix + id;
-    await this.storage.setItem(key, JSON.stringify(credential));
+    // Ensure the ID is set in the credential
+    const credentialWithId = {
+      ...credential,
+      fields: { ...credential.fields, id },
+    };
+    await this.storage.setItem(key, JSON.stringify(credentialWithId));
   }
 
   async delete(id: string): Promise<void> {
@@ -180,7 +185,12 @@ export class InMemoryBBSCredentialStore {
 
   async put(credential: SerializedBBSCredential): Promise<void> {
     const id = String(credential.fields.id || `bbs-${Date.now()}`);
-    this.store.set(id, credential);
+    // Ensure the ID is set in the credential
+    const credentialWithId = {
+      ...credential,
+      fields: { ...credential.fields, id },
+    };
+    this.store.set(id, credentialWithId);
   }
 
   async delete(id: string): Promise<void> {

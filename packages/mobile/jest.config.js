@@ -1,5 +1,4 @@
 export default {
-  preset: '../../jest.preset.js',
   testEnvironment: 'node',
   extensionsToTreatAsEsm: ['.ts'],
   moduleNameMapper: {
@@ -10,7 +9,13 @@ export default {
       'ts-jest',
       {
         useESM: true,
+        tsconfig: {
+          module: 'ESNext',
+          moduleResolution: 'node',
+        },
       },
     ],
   },
+  testMatch: ['<rootDir>/test/**/*.test.ts'],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
 };
