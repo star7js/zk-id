@@ -11,13 +11,17 @@ import QRCode from 'qrcode';
 import { ZkIdServer, OpenID4VPVerifier, InMemoryIssuerRegistry } from '@zk-id/sdk';
 import { createPublicKey } from 'crypto';
 
-const PORT = process.env.PORT || 3002;
+const PORT = parseInt(process.env.VITE_VERIFIER_PORT || process.env.PORT || '3002');
+const VITE_PORT = process.env.VITE_PORT || '3000';
+const ISSUER_PORT = process.env.VITE_ISSUER_PORT || '3001';
 
 const app = express();
-app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001'],
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: [`http://localhost:${VITE_PORT}`, `http://localhost:${ISSUER_PORT}`],
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 // Initialize ZkIdServer (standard verification)
@@ -97,7 +101,7 @@ app.post('/openid4vp/callback', async (req, res) => {
 
 // Root endpoint - redirect to UI
 app.get('/', (req, res) => {
-  res.redirect('http://localhost:3000');
+  res.redirect(`http://localhost:${VITE_PORT}`);
 });
 
 // Health check

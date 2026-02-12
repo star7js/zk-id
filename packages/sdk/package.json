@@ -25,7 +25,8 @@
     "test": "mocha -r ts-node/register test/**/*.test.ts --timeout 10000 --exit"
   },
   "dependencies": {
-    "@zk-id/core": "*"
+    "@zk-id/core": "*",
+    "jose": "^5.2.0"
   },
   "devDependencies": {
     "@types/chai": "^5.2.3",

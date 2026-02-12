@@ -2886,6 +2886,44 @@ export interface OpenID4VPConfig {
   callbackUrl?: string;
 }
 
+/**
+ * Digital Credentials Query Language (DCQL) query
+ * Alternative to Presentation Definition for credential queries
+ * @see https://identity.foundation/credential-query-language/
+ */
+export interface DCQLQuery {
+  /** Unique identifier for this query */
+  id: string;
+  /** List of credential queries */
+  credentials: DCQLCredentialQuery[];
+  /** Optional name for the query */
+  name?: string;
+  /** Optional purpose/reason for requesting credentials */
+  purpose?: string;
+}
+
+export interface DCQLCredentialQuery {
+  /** Unique identifier for this credential query */
+  id: string;
+  /** Credential type (e.g., "VerifiableCredential") */
+  type: string[];
+  /** Optional claims constraints */
+  claims?: DCQLClaimsConstraint[];
+  /** Optional issuer constraints */
+  issuer?: string | string[];
+  /** Optional format (e.g., "jwt_vc", "ldp_vc") */
+  format?: string;
+}
+
+export interface DCQLClaimsConstraint {
+  /** JSONPath to the claim */
+  path: string;
+  /** Optional filter on the claim value */
+  filter?: Filter;
+  /** Whether selective disclosure is allowed */
+  sd?: boolean;
+}
+
 export interface PresentationDefinition {
   /** Unique identifier for this presentation definition */
   id: string;
@@ -2938,8 +2976,10 @@ export interface Filter {
 }
 
 export interface AuthorizationRequest {
-  /** Presentation definition describing what's requested */
-  presentation_definition: PresentationDefinition;
+  /** Presentation definition describing what's requested (exclusive with dcql_query) */
+  presentation_definition?: PresentationDefinition;
+  /** DCQL query describing what's requested (exclusive with presentation_definition) */
+  dcql_query?: DCQLQuery;
   /** Response mode (e.g., "direct_post") */
   response_mode: string;
   /** Response URI for submitting the presentation */
@@ -2950,6 +2990,12 @@ export interface AuthorizationRequest {
   client_id: string;
   /** State parameter */
   state: string;
+  /** JWE encryption algorithm (e.g., "ECDH-ES", "RSA-OAEP-256") */
+  response_encryption_alg?: string;
+  /** JWE content encryption algorithm (e.g., "A256GCM") */
+  response_encryption_enc?: string;
+  /** JWK public key for encrypting the VP token response */
+  response_encryption_jwk?: JsonWebKey;
 }
 
 export interface PresentationSubmission {
@@ -2995,9 +3041,44 @@ export interface PresentationResponse {
 export class OpenID4VPVerifier {
   private config: OpenID4VPConfig;
   private pendingRequests: Map<string, AuthorizationRequest> = new Map();
+  private encryptionKeyPair?: CryptoKeyPair;
+  private encryptionJwk?: JsonWebKey;
 
   constructor(config: OpenID4VPConfig) {
     this.config = config;
+  }
+
+  /**
+   * Enable JWE encryption for VP token responses
+   * Generates an ephemeral encryption key pair
+   *
+   * @param algorithm - JWE algorithm (default: "ECDH-ES")
+   * @param encryptionAlg - Content encryption algorithm (default: "A256GCM")
+   */
+  async enableEncryption(
+    algorithm: 'ECDH-ES' | 'RSA-OAEP-256' = 'ECDH-ES',
+    encryptionAlg: string = 'A256GCM',
+  ): Promise<void> {
+    const { generateKeyPair, exportJWK } = await import('jose');
+
+    if (algorithm === 'ECDH-ES') {
+      this.encryptionKeyPair = await generateKeyPair('ECDH-ES', { extractable: true });
+    } else if (algorithm === 'RSA-OAEP-256') {
+      this.encryptionKeyPair = await generateKeyPair('RSA-OAEP-256', {
+        extractable: true,
+        modulusLength: 2048,
+      });
+    }
+
+    this.encryptionJwk = await exportJWK(this.encryptionKeyPair.publicKey);
+  }
+
+  /**
+   * Disable JWE encryption
+   */
+  disableEncryption(): void {
+    this.encryptionKeyPair = undefined;
+    this.encryptionJwk = undefined;
   }
 
   /**
@@ -3051,6 +3132,7 @@ export class OpenID4VPVerifier {
       state: requestState,
     };
 
+    this.addEncryptionParams(authRequest);
     this.pendingRequests.set(requestState, authRequest);
     return authRequest;
   }
@@ -3109,7 +3191,189 @@ export class OpenID4VPVerifier {
       state: requestState,
     };
 
+    this.addEncryptionParams(authRequest);
     this.pendingRequests.set(requestState, authRequest);
+    return authRequest;
+  }
+
+  /**
+   * Create an OpenID4VP authorization request using DCQL query
+   *
+   * @param dcqlQuery - DCQL query describing the requested credentials
+   * @param state - Optional state parameter (auto-generated if not provided)
+   * @returns Authorization request with DCQL query
+   */
+  createDCQLRequest(dcqlQuery: DCQLQuery, state?: string): AuthorizationRequest {
+    const requestState = state || this.generateState();
+    const nonce = this.generateNonce();
+
+    const authRequest: AuthorizationRequest = {
+      dcql_query: dcqlQuery,
+      response_mode: 'direct_post',
+      response_uri: this.config.callbackUrl || `${this.config.verifierUrl}/openid4vp/callback`,
+      nonce,
+      client_id: this.config.verifierId,
+      state: requestState,
+    };
+
+    this.pendingRequests.set(requestState, authRequest);
+    return authRequest;
+  }
+
+  /**
+   * Create a DCQL query for age verification
+   *
+   * @param minAge - Minimum age requirement
+   * @returns DCQL query object
+   */
+  createDCQLAgeQuery(minAge: number): DCQLQuery {
+    return {
+      id: `age-verification-dcql-${Date.now()}`,
+      name: 'Age Verification',
+      purpose: `Prove you are at least ${minAge} years old`,
+      credentials: [
+        {
+          id: 'age-credential',
+          type: ['VerifiableCredential', 'AgeCredential'],
+          format: 'jwt_vc',
+          claims: [
+            {
+              path: '$.credentialSubject.birthYear',
+              filter: {
+                type: 'number',
+                maximum: new Date().getFullYear() - minAge,
+              },
+            },
+          ],
+        },
+      ],
+    };
+  }
+
+  /**
+   * Generate an openid4vp:// deep link URI from an authorization request
+   *
+   * @param authRequest - Authorization request
+   * @returns Deep link URI for same-device or cross-device flows
+   */
+  generateDeepLinkUri(authRequest: AuthorizationRequest): string {
+    const params = new URLSearchParams();
+
+    // Add presentation definition or DCQL query
+    if (authRequest.presentation_definition) {
+      params.set('presentation_definition', JSON.stringify(authRequest.presentation_definition));
+    } else if (authRequest.dcql_query) {
+      params.set('dcql_query', JSON.stringify(authRequest.dcql_query));
+    }
+
+    // Add standard parameters
+    params.set('response_mode', authRequest.response_mode);
+    params.set('response_uri', authRequest.response_uri);
+    params.set('nonce', authRequest.nonce);
+    params.set('client_id', authRequest.client_id);
+    params.set('state', authRequest.state);
+
+    return `openid4vp://?${params.toString()}`;
+  }
+
+  /**
+   * Create authorization request with deep link for same-device flow
+   *
+   * @param minAge - Minimum age requirement
+   * @param state - Optional state parameter
+   * @returns Authorization request and deep link URI
+   */
+  createAgeVerificationWithDeepLink(
+    minAge: number,
+    state?: string,
+  ): { authRequest: AuthorizationRequest; deepLink: string } {
+    const authRequest = this.createAgeVerificationRequest(minAge, state);
+    const deepLink = this.generateDeepLinkUri(authRequest);
+
+    return {
+      authRequest,
+      deepLink,
+    };
+  }
+
+  /**
+   * Create authorization request with deep link using DCQL
+   *
+   * @param dcqlQuery - DCQL query
+   * @param state - Optional state parameter
+   * @returns Authorization request and deep link URI
+   */
+  createDCQLWithDeepLink(
+    dcqlQuery: DCQLQuery,
+    state?: string,
+  ): { authRequest: AuthorizationRequest; deepLink: string } {
+    const authRequest = this.createDCQLRequest(dcqlQuery, state);
+    const deepLink = this.generateDeepLinkUri(authRequest);
+
+    return {
+      authRequest,
+      deepLink,
+    };
+  }
+
+  /**
+   * Create cross-device flow authorization request with callback URL
+   * For use with QR code scanning
+   *
+   * @param minAge - Minimum age requirement
+   * @param callbackPath - Optional callback path (defaults to /openid4vp/callback)
+   * @returns Authorization request suitable for QR encoding
+   */
+  createCrossDeviceRequest(minAge: number, callbackPath?: string): AuthorizationRequest {
+    const callbackUrl =
+      callbackPath || this.config.callbackUrl || `${this.config.verifierUrl}/openid4vp/callback`;
+
+    // Create request with explicit callback
+    const state = this.generateState();
+    const nonce = this.generateNonce();
+
+    const presentationDefinition: PresentationDefinition = {
+      id: `age-verification-${Date.now()}`,
+      name: 'Age Verification',
+      purpose: `Prove you are at least ${minAge} years old without revealing your birth year`,
+      input_descriptors: [
+        {
+          id: 'age-proof',
+          name: 'Age Proof',
+          purpose: `Minimum age: ${minAge}`,
+          constraints: {
+            fields: [
+              {
+                path: ['$.type'],
+                filter: {
+                  type: 'string',
+                  pattern: '^AgeProof$',
+                },
+              },
+              {
+                path: ['$.publicSignals.minAge'],
+                filter: {
+                  type: 'number',
+                  minimum: minAge,
+                },
+              },
+            ],
+          },
+        },
+      ],
+    };
+
+    const authRequest: AuthorizationRequest = {
+      presentation_definition: presentationDefinition,
+      response_mode: 'direct_post',
+      response_uri: callbackUrl,
+      nonce,
+      client_id: this.config.verifierId,
+      state,
+    };
+
+    this.addEncryptionParams(authRequest);
+    this.pendingRequests.set(state, authRequest);
     return authRequest;
   }
 
@@ -3133,15 +3397,30 @@ export class OpenID4VPVerifier {
       };
     }
 
-    // Decode VP token
+    // Decode VP token (decrypt if encrypted)
     let vp: VerifiablePresentation;
     try {
-      const vpJson = Buffer.from(response.vp_token, 'base64').toString('utf-8');
+      let vpJson: string;
+
+      // Check if VP token is JWE-encrypted
+      if (response.vp_token.includes('.') && this.encryptionKeyPair) {
+        // Encrypted JWE format
+        const { compactDecrypt } = await import('jose');
+        const { plaintext } = await compactDecrypt(
+          response.vp_token,
+          this.encryptionKeyPair.privateKey,
+        );
+        vpJson = new TextDecoder().decode(plaintext);
+      } else {
+        // Standard base64 encoding
+        vpJson = Buffer.from(response.vp_token, 'base64').toString('utf-8');
+      }
+
       vp = JSON.parse(vpJson);
     } catch (error) {
       return {
         verified: false,
-        error: 'Invalid VP token encoding',
+        error: 'Invalid VP token encoding or decryption failed',
       };
     }
 
@@ -3246,6 +3525,17 @@ export class OpenID4VPVerifier {
 
     this.pendingRequests.set(requestState, authRequest);
     return authRequest;
+  }
+
+  /**
+   * Add encryption parameters to authorization request if encryption is enabled
+   */
+  private addEncryptionParams(authRequest: AuthorizationRequest): void {
+    if (this.encryptionJwk) {
+      authRequest.response_encryption_alg = 'ECDH-ES';
+      authRequest.response_encryption_enc = 'A256GCM';
+      authRequest.response_encryption_jwk = this.encryptionJwk;
+    }
   }
 
   private generateNonce(): string {

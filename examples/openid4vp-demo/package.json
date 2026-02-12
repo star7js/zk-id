@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "start": "concurrently \"npm:start:issuer\" \"npm:start:verifier\" \"npm:start:ui\"",
-    "start:issuer": "cd ../../packages/issuer-server && npm run dev",
+    "start:issuer": "cd ../../packages/issuer-server && PORT=${VITE_ISSUER_PORT:-3001} npm run dev",
     "start:verifier": "tsx src/verifier.ts",
     "start:ui": "vite",
     "build": "tsc && vite build"

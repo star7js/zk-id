@@ -8,9 +8,9 @@
 import { OpenID4VPWallet, InMemoryCredentialStore } from '@zk-id/sdk';
 import type { SignedCredential, Credential } from '@zk-id/core';
 
-// Configuration
-const ISSUER_URL = 'http://localhost:3001';
-const VERIFIER_URL = 'http://localhost:3002';
+// Configuration (read from environment variables)
+const ISSUER_URL = import.meta.env.VITE_ISSUER_URL || 'http://localhost:3001';
+const VERIFIER_URL = import.meta.env.VITE_VERIFIER_URL || 'http://localhost:3002';
 
 // Circuit paths (served from the circuits package via issuer server)
 const CIRCUIT_PATHS = {
@@ -145,7 +145,9 @@ document.getElementById('create-request')!.addEventListener('click', async () =>
 document.getElementById('issue-credential')!.addEventListener('click', async () => {
   const name = (document.getElementById('holder-name') as HTMLInputElement).value;
   const dob = (document.getElementById('holder-dob') as HTMLInputElement).value;
-  const nationality = (document.getElementById('holder-nationality') as HTMLInputElement).value.toUpperCase();
+  const nationality = (
+    document.getElementById('holder-nationality') as HTMLInputElement
+  ).value.toUpperCase();
   const button = document.getElementById('issue-credential') as HTMLButtonElement;
 
   if (!name || !dob || !nationality) {
@@ -202,15 +204,17 @@ async function renderCredentials() {
   const credentials = await wallet['config'].credentialStore.getAll();
 
   if (credentials.length === 0) {
-    container.innerHTML = '<p style="color: #8b949e; font-size: 0.875rem;">No credentials yet. Issue one above.</p>';
+    container.innerHTML =
+      '<p style="color: #8b949e; font-size: 0.875rem;">No credentials yet. Issue one above.</p>';
     return;
   }
 
-  container.innerHTML = credentials.map(signedCred => {
-    const cred = signedCred.credential;
-    const age = calculateAge(cred.dateOfBirth);
+  container.innerHTML = credentials
+    .map((signedCred) => {
+      const cred = signedCred.credential;
+      const age = calculateAge(cred.dateOfBirth);
 
-    return `
+      return `
       <div class="credential-card">
         <div class="field">
           <span class="label">ID</span>
@@ -234,7 +238,8 @@ async function renderCredentials() {
         </div>
       </div>
     `;
-  }).join('');
+    })
+    .join('');
 }
 
 function calculateAge(dob: string): number {
@@ -305,18 +310,26 @@ function displayVerificationResult(result: any, type: 'success' | 'error') {
         <span class="label">Status</span>
         <span class="value">${result.verified ? '✅ Verified' : '❌ Failed'}</span>
       </div>
-      ${result.message ? `
+      ${
+        result.message
+          ? `
         <div class="field">
           <span class="label">Message</span>
           <span class="value">${result.message}</span>
         </div>
-      ` : ''}
-      ${result.error ? `
+      `
+          : ''
+      }
+      ${
+        result.error
+          ? `
         <div class="field">
           <span class="label">Error</span>
           <span class="value">${result.error}</span>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
     </div>
   `;
 }

@@ -655,6 +655,7 @@ import type {
   PresentationSubmission,
   PresentationResponse,
   InputDescriptor,
+  DCQLQuery,
 } from './server';
 
 export interface OpenID4VPWalletConfig extends BrowserWalletConfig {
@@ -683,7 +684,12 @@ export class OpenID4VPWallet extends BrowserWallet {
 
     // Parse URL-encoded request
     try {
-      const url = new URL(authRequestUrl);
+      // Handle openid4vp:// deep links by converting to standard URL
+      const urlString = authRequestUrl.startsWith('openid4vp://')
+        ? authRequestUrl.replace('openid4vp://', 'https://example.com/')
+        : authRequestUrl;
+
+      const url = new URL(urlString);
       const params = url.searchParams;
 
       // Check if request is passed by value or by reference
@@ -696,20 +702,33 @@ export class OpenID4VPWallet extends BrowserWallet {
         throw new Error('JWT-encoded requests are not yet supported');
       }
 
-      // Direct parameters
+      // Parse presentation definition or DCQL query
       const presentationDefinitionParam = params.get('presentation_definition');
-      if (!presentationDefinitionParam) {
-        throw new Error('Missing presentation_definition parameter');
+      const dcqlQueryParam = params.get('dcql_query');
+
+      if (!presentationDefinitionParam && !dcqlQueryParam) {
+        throw new Error('Missing presentation_definition or dcql_query parameter');
       }
 
-      return {
-        presentation_definition: JSON.parse(presentationDefinitionParam),
+      const authRequest: AuthorizationRequest = {
         response_mode: params.get('response_mode') || 'direct_post',
         response_uri: params.get('response_uri') || '',
         nonce: params.get('nonce') || '',
         client_id: params.get('client_id') || '',
         state: params.get('state') || '',
       };
+
+      // Add presentation definition if present
+      if (presentationDefinitionParam) {
+        authRequest.presentation_definition = JSON.parse(presentationDefinitionParam);
+      }
+
+      // Add DCQL query if present
+      if (dcqlQueryParam) {
+        authRequest.dcql_query = JSON.parse(dcqlQueryParam);
+      }
+
+      return authRequest;
     } catch (error) {
       throw new Error(`Failed to parse authorization request: ${error}`);
     }
@@ -737,9 +756,26 @@ export class OpenID4VPWallet extends BrowserWallet {
     const signedCredential = credentials[0];
     const credential = signedCredential.credential;
 
-    // Analyze presentation definition to determine what proof to generate
-    const inputDescriptor = request.presentation_definition.input_descriptors[0];
-    const proofRequest = this.inputDescriptorToProofRequest(inputDescriptor, request.nonce);
+    // Determine proof request based on query type
+    let proofRequest;
+    let definitionId;
+    let inputDescriptor;
+
+    if (request.dcql_query) {
+      // Handle DCQL query
+      definitionId = request.dcql_query.id;
+      proofRequest = this.dcqlQueryToProofRequest(request.dcql_query, request.nonce);
+      inputDescriptor = { id: request.dcql_query.credentials[0]?.id || 'dcql-credential' };
+    } else if (request.presentation_definition) {
+      // Handle Presentation Definition
+      definitionId = request.presentation_definition.id;
+      inputDescriptor = request.presentation_definition.input_descriptors[0];
+      proofRequest = this.inputDescriptorToProofRequest(inputDescriptor, request.nonce);
+    } else {
+      throw new Error(
+        'Authorization request must contain either presentation_definition or dcql_query',
+      );
+    }
 
     // Generate the appropriate proof
     let zkProof;
@@ -770,7 +806,7 @@ export class OpenID4VPWallet extends BrowserWallet {
     // Build presentation submission
     const presentationSubmission = {
       id: uuidv4(),
-      definition_id: request.presentation_definition.id,
+      definition_id: definitionId,
       descriptor_map: [
         {
           id: inputDescriptor.id,
@@ -792,8 +828,8 @@ export class OpenID4VPWallet extends BrowserWallet {
       holder: this.walletId,
     };
 
-    // Encode VP token
-    const vpToken = Buffer.from(JSON.stringify(vp)).toString('base64');
+    // Encode VP token (with encryption if requested)
+    const vpToken = await this.encodeVpToken(vp, request);
 
     return {
       vp_token: vpToken,
@@ -884,8 +920,8 @@ export class OpenID4VPWallet extends BrowserWallet {
       holder: this.walletId,
     };
 
-    // Encode VP token
-    const vpToken = Buffer.from(JSON.stringify(vp)).toString('base64');
+    // Encode VP token (with encryption if requested)
+    const vpToken = await this.encodeVpToken(vp, request);
 
     return {
       vp_token: vpToken,
@@ -968,6 +1004,94 @@ export class OpenID4VPWallet extends BrowserWallet {
       timestamp: new Date().toISOString(),
     };
   }
+
+  /**
+   * Encode VP token with optional JWE encryption
+   *
+   * @param vp - Verifiable Presentation to encode
+   * @param request - Authorization request (contains encryption params)
+   * @returns Base64-encoded VP token (encrypted if requested)
+   */
+  private async encodeVpToken(vp: any, request: AuthorizationRequest): Promise<string> {
+    const vpJson = JSON.stringify(vp);
+
+    // Check if encryption is requested
+    if (request.response_encryption_jwk && request.response_encryption_alg) {
+      try {
+        const { importJWK, CompactEncrypt } = await import('jose');
+
+        // Import the verifier's public key
+        const publicKey = await importJWK(
+          request.response_encryption_jwk,
+          request.response_encryption_alg,
+        );
+
+        // Encrypt the VP token
+        const jwe = await new CompactEncrypt(new TextEncoder().encode(vpJson))
+          .setProtectedHeader({
+            alg: request.response_encryption_alg,
+            enc: request.response_encryption_enc || 'A256GCM',
+          })
+          .encrypt(publicKey);
+
+        return jwe;
+      } catch (error) {
+        console.error('Failed to encrypt VP token:', error);
+        // Fall back to unencrypted if encryption fails
+      }
+    }
+
+    // Default: base64 encoding without encryption
+    return Buffer.from(vpJson).toString('base64');
+  }
+
+  /**
+   * Convert a DCQL query to a ProofRequest
+   *
+   * @param dcqlQuery - DCQL query from authorization request
+   * @param nonce - Nonce for proof
+   * @returns ProofRequest for proof generation
+   */
+  private dcqlQueryToProofRequest(dcqlQuery: DCQLQuery, nonce: string): ProofRequest {
+    // Analyze DCQL query to determine claim type and parameters
+    let claimType: 'age' | 'nationality' | 'age-revocable' = 'age';
+    let minAge: number | undefined;
+    let targetNationality: number | undefined;
+
+    // Check credential type and claims
+    for (const credQuery of dcqlQuery.credentials) {
+      // Check credential type
+      if (credQuery.type.includes('AgeCredential')) {
+        claimType = 'age';
+      } else if (credQuery.type.includes('NationalityCredential')) {
+        claimType = 'nationality';
+      }
+
+      // Extract constraints from claims
+      if (credQuery.claims) {
+        for (const claim of credQuery.claims) {
+          // Age constraints
+          if (claim.path.includes('birthYear') && claim.filter?.maximum) {
+            // Convert maximum birth year to minimum age
+            minAge = new Date().getFullYear() - claim.filter.maximum;
+          }
+
+          // Nationality constraints
+          if (claim.path.includes('nationality') && claim.filter?.enum) {
+            targetNationality = claim.filter.enum[0] as number;
+          }
+        }
+      }
+    }
+
+    return {
+      claimType,
+      minAge,
+      targetNationality,
+      nonce,
+      timestamp: new Date().toISOString(),
+    };
+  }
 }
 
 // Re-export OpenID4VP types from server.ts for convenience
@@ -978,6 +1102,9 @@ export type {
   Constraints,
   Field,
   Filter,
+  DCQLQuery,
+  DCQLCredentialQuery,
+  DCQLClaimsConstraint,
   PresentationSubmission,
   DescriptorMapEntry,
   VerifiablePresentation,

@@ -29,3 +29,4 @@ export * from './unified-revocation';
 export * from './sparse-merkle-tree';
 export * from './timing-safe';
 export * from './w3c-vc';
+export * from './predicate-proof';

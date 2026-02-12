@@ -33,12 +33,37 @@ export interface HttpResponse {
  * OpenID4VP Authorization Request
  */
 export interface AuthorizationRequest {
-  presentation_definition: PresentationDefinition;
+  presentation_definition?: PresentationDefinition;
+  dcql_query?: DCQLQuery;
   response_mode?: string;
   response_uri: string;
   nonce: string;
   client_id: string;
   state?: string;
+}
+
+/**
+ * Digital Credentials Query Language (DCQL) query
+ */
+export interface DCQLQuery {
+  id: string;
+  credentials: DCQLCredentialQuery[];
+  name?: string;
+  purpose?: string;
+}
+
+export interface DCQLCredentialQuery {
+  id: string;
+  type: string[];
+  claims?: DCQLClaimsConstraint[];
+  issuer?: string | string[];
+  format?: string;
+}
+
+export interface DCQLClaimsConstraint {
+  path: string;
+  filter?: any;
+  sd?: boolean;
 }
 
 export interface PresentationDefinition {
@@ -103,20 +128,33 @@ export function parseAuthorizationRequest(url: string): AuthorizationRequest {
       throw new Error('JWT-encoded requests are not yet supported');
     }
 
-    // Direct parameters
+    // Parse presentation definition or DCQL query
     const presentationDefinitionParam = params.get('presentation_definition');
-    if (!presentationDefinitionParam) {
-      throw new Error('Missing presentation_definition parameter');
+    const dcqlQueryParam = params.get('dcql_query');
+
+    if (!presentationDefinitionParam && !dcqlQueryParam) {
+      throw new Error('Missing presentation_definition or dcql_query parameter');
     }
 
-    return {
-      presentation_definition: JSON.parse(presentationDefinitionParam),
+    const authRequest: AuthorizationRequest = {
       response_mode: params.get('response_mode') || 'direct_post',
       response_uri: params.get('response_uri') || '',
       nonce: params.get('nonce') || '',
       client_id: params.get('client_id') || '',
       state: params.get('state') || undefined,
     };
+
+    // Add presentation definition if present
+    if (presentationDefinitionParam) {
+      authRequest.presentation_definition = JSON.parse(presentationDefinitionParam);
+    }
+
+    // Add DCQL query if present
+    if (dcqlQueryParam) {
+      authRequest.dcql_query = JSON.parse(dcqlQueryParam);
+    }
+
+    return authRequest;
   } catch (error) {
     throw new Error(`Failed to parse authorization request: ${error}`);
   }
@@ -133,9 +171,22 @@ export async function generatePresentation(
   authRequest: AuthorizationRequest,
   wallet: MobileWallet,
 ): Promise<PresentationResponse> {
-  // Analyze presentation definition to determine proof type
-  const inputDescriptor = authRequest.presentation_definition.input_descriptors[0];
-  const proofRequest = inputDescriptorToProofRequest(inputDescriptor, authRequest.nonce);
+  // Analyze presentation definition or DCQL query to determine proof type
+  let proofRequest: ProofRequest;
+  let definitionId: string;
+
+  if (authRequest.presentation_definition) {
+    const inputDescriptor = authRequest.presentation_definition.input_descriptors[0];
+    proofRequest = inputDescriptorToProofRequest(inputDescriptor, authRequest.nonce);
+    definitionId = authRequest.presentation_definition.id;
+  } else if (authRequest.dcql_query) {
+    proofRequest = dcqlQueryToProofRequest(authRequest.dcql_query, authRequest.nonce);
+    definitionId = authRequest.dcql_query.id;
+  } else {
+    throw new Error(
+      'Authorization request must contain either presentation_definition or dcql_query',
+    );
+  }
 
   // Generate proof using wallet
   let proofResponse: ProofResponse;
@@ -168,10 +219,10 @@ export async function generatePresentation(
   // Build presentation submission metadata
   const presentationSubmission: PresentationSubmission = {
     id: `submission-${Date.now()}`,
-    definition_id: authRequest.presentation_definition.id,
+    definition_id: definitionId,
     descriptor_map: [
       {
-        id: inputDescriptor.id,
+        id: authRequest.presentation_definition?.input_descriptors[0]?.id || 'credential-0',
         format: 'ldp_vp',
         path: '$.verifiableCredential[0]',
       },
@@ -216,15 +267,26 @@ export async function submitPresentation(
  * @returns openid4vp:// deep link URL
  */
 export function buildDeepLink(authRequest: AuthorizationRequest): string {
-  const params = new URLSearchParams({
-    presentation_definition: JSON.stringify(authRequest.presentation_definition),
-    response_uri: authRequest.response_uri,
-    nonce: authRequest.nonce,
-    client_id: authRequest.client_id,
-  });
+  const params = new URLSearchParams();
+
+  // Add presentation definition or DCQL query
+  if (authRequest.presentation_definition) {
+    params.set('presentation_definition', JSON.stringify(authRequest.presentation_definition));
+  } else if (authRequest.dcql_query) {
+    params.set('dcql_query', JSON.stringify(authRequest.dcql_query));
+  }
+
+  // Add standard parameters
+  params.set('response_uri', authRequest.response_uri);
+  params.set('nonce', authRequest.nonce);
+  params.set('client_id', authRequest.client_id);
 
   if (authRequest.state) {
     params.set('state', authRequest.state);
+  }
+
+  if (authRequest.response_mode) {
+    params.set('response_mode', authRequest.response_mode);
   }
 
   return `openid4vp://?${params.toString()}`;
@@ -242,10 +304,7 @@ interface ProofRequest {
   timestamp: string;
 }
 
-function inputDescriptorToProofRequest(
-  descriptor: InputDescriptor,
-  nonce: string,
-): ProofRequest {
+function inputDescriptorToProofRequest(descriptor: InputDescriptor, nonce: string): ProofRequest {
   const constraints = descriptor.constraints?.fields || [];
 
   // Detect age verification
@@ -267,9 +326,7 @@ function inputDescriptorToProofRequest(
   }
 
   // Detect nationality verification
-  const nationalityField = constraints.find((f) =>
-    f.path.some((p) => p.includes('nationality')),
-  );
+  const nationalityField = constraints.find((f) => f.path.some((p) => p.includes('nationality')));
 
   if (nationalityField && nationalityField.filter?.const) {
     return {
@@ -281,4 +338,52 @@ function inputDescriptorToProofRequest(
   }
 
   throw new Error('Unsupported presentation definition - cannot determine claim type');
+}
+
+/**
+ * Convert a DCQL query to a ProofRequest
+ *
+ * @param dcqlQuery - DCQL query from authorization request
+ * @param nonce - Nonce for proof
+ * @returns ProofRequest for proof generation
+ */
+function dcqlQueryToProofRequest(dcqlQuery: DCQLQuery, nonce: string): ProofRequest {
+  // Analyze DCQL query to determine claim type and parameters
+  let claimType: 'age' | 'nationality' = 'age';
+  let minAge: number | undefined;
+  let targetNationality: string | undefined;
+
+  // Check credential type and claims
+  for (const credQuery of dcqlQuery.credentials) {
+    // Check credential type
+    if (credQuery.type.includes('AgeCredential')) {
+      claimType = 'age';
+    } else if (credQuery.type.includes('NationalityCredential')) {
+      claimType = 'nationality';
+    }
+
+    // Extract constraints from claims
+    if (credQuery.claims) {
+      for (const claim of credQuery.claims) {
+        // Age constraints
+        if (claim.path.includes('birthYear') && claim.filter?.maximum) {
+          // Convert maximum birth year to minimum age
+          minAge = new Date().getFullYear() - claim.filter.maximum;
+        }
+
+        // Nationality constraints
+        if (claim.path.includes('nationality') && claim.filter?.const) {
+          targetNationality = claim.filter.const;
+        }
+      }
+    }
+  }
+
+  return {
+    claimType,
+    minAge,
+    targetNationality,
+    nonce,
+    timestamp: new Date().toISOString(),
+  };
 }
