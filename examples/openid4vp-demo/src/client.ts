@@ -7,6 +7,7 @@
 
 import { OpenID4VPWallet, InMemoryCredentialStore } from '@zk-id/sdk';
 import type { SignedCredential, Credential } from '@zk-id/core';
+import { ISO_3166_ALPHA2_TO_NUMERIC, ISO_3166_NUMERIC_TO_ALPHA2 } from '@zk-id/issuer';
 
 // Configuration (read from environment variables)
 const ISSUER_URL = import.meta.env.VITE_ISSUER_URL || 'http://localhost:3001';
@@ -160,21 +161,38 @@ document.getElementById('issue-credential')!.addEventListener('click', async () 
   logWallet('Requesting credential from issuer...');
 
   try {
+    // Extract birth year from date of birth
+    const birthYear = new Date(dob).getFullYear();
+
+    // Convert alpha-2 nationality code to ISO 3166-1 numeric
+    const nationalityNumeric = ISO_3166_ALPHA2_TO_NUMERIC[nationality];
+    if (!nationalityNumeric) {
+      throw new Error(`Invalid nationality code: ${nationality}`);
+    }
+
+    // Use holder name as userId (in production, this would be a real user ID)
+    const userId = name || 'anonymous';
+
     const response = await fetch(`${ISSUER_URL}/issue`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Api-Key': 'dev-api-key-change-in-production',
+      },
       body: JSON.stringify({
-        holderName: name,
-        dateOfBirth: dob,
-        nationality,
+        birthYear,
+        nationality: nationalityNumeric,
+        userId,
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      const errorData = await response.json();
+      throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
     }
 
-    const signedCredential: SignedCredential = await response.json();
+    const data = await response.json();
+    const signedCredential: SignedCredential = data.credential;
 
     // Store in wallet
     await wallet['config'].credentialStore.put(signedCredential);
@@ -212,7 +230,10 @@ async function renderCredentials() {
   container.innerHTML = credentials
     .map((signedCred) => {
       const cred = signedCred.credential;
-      const age = calculateAge(cred.dateOfBirth);
+      const currentYear = new Date().getFullYear();
+      const age = currentYear - cred.birthYear;
+      const nationalityAlpha2 =
+        ISO_3166_NUMERIC_TO_ALPHA2[cred.nationality] || cred.nationality.toString();
 
       return `
       <div class="credential-card">
@@ -221,16 +242,16 @@ async function renderCredentials() {
           <span class="value">${cred.id.slice(0, 8)}...</span>
         </div>
         <div class="field">
-          <span class="label">Name</span>
-          <span class="value">${cred.holderName}</span>
-        </div>
-        <div class="field">
-          <span class="label">Date of Birth</span>
-          <span class="value">${cred.dateOfBirth} (age ${age})</span>
+          <span class="label">Birth Year</span>
+          <span class="value">${cred.birthYear} (age ~${age})</span>
         </div>
         <div class="field">
           <span class="label">Nationality</span>
-          <span class="value">${cred.nationality}</span>
+          <span class="value">${nationalityAlpha2} (${cred.nationality})</span>
+        </div>
+        <div class="field">
+          <span class="label">Commitment</span>
+          <span class="value">${cred.commitment.slice(0, 16)}...</span>
         </div>
         <div class="field">
           <span class="label">Issued At</span>
@@ -240,17 +261,6 @@ async function renderCredentials() {
     `;
     })
     .join('');
-}
-
-function calculateAge(dob: string): number {
-  const birthDate = new Date(dob);
-  const today = new Date();
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-    age--;
-  }
-  return age;
 }
 
 // ---------------------------------------------------------------------------

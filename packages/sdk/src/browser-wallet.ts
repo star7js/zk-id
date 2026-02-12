@@ -711,6 +711,7 @@ export class OpenID4VPWallet extends BrowserWallet {
       }
 
       const authRequest: AuthorizationRequest = {
+        response_type: params.get('response_type') || 'vp_token',
         response_mode: params.get('response_mode') || 'direct_post',
         response_uri: params.get('response_uri') || '',
         nonce: params.get('nonce') || '',

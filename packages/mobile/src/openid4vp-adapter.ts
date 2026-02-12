@@ -35,6 +35,7 @@ export interface HttpResponse {
 export interface AuthorizationRequest {
   presentation_definition?: PresentationDefinition;
   dcql_query?: DCQLQuery;
+  response_type?: string;
   response_mode?: string;
   response_uri: string;
   nonce: string;
@@ -137,6 +138,7 @@ export function parseAuthorizationRequest(url: string): AuthorizationRequest {
     }
 
     const authRequest: AuthorizationRequest = {
+      response_type: params.get('response_type') || 'vp_token',
       response_mode: params.get('response_mode') || 'direct_post',
       response_uri: params.get('response_uri') || '',
       nonce: params.get('nonce') || '',

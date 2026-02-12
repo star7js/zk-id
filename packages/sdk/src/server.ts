@@ -2980,6 +2980,8 @@ export interface AuthorizationRequest {
   presentation_definition?: PresentationDefinition;
   /** DCQL query describing what's requested (exclusive with presentation_definition) */
   dcql_query?: DCQLQuery;
+  /** Response type (e.g., "vp_token") */
+  response_type: string;
   /** Response mode (e.g., "direct_post") */
   response_mode: string;
   /** Response URI for submitting the presentation */
@@ -3127,6 +3129,7 @@ export class OpenID4VPVerifier {
 
     const authRequest: AuthorizationRequest = {
       presentation_definition: presentationDefinition,
+      response_type: 'vp_token',
       response_mode: 'direct_post',
       response_uri: this.config.callbackUrl || `${this.config.verifierUrl}/openid4vp/callback`,
       nonce,
@@ -3186,6 +3189,7 @@ export class OpenID4VPVerifier {
 
     const authRequest: AuthorizationRequest = {
       presentation_definition: presentationDefinition,
+      response_type: 'vp_token',
       response_mode: 'direct_post',
       response_uri: this.config.callbackUrl || `${this.config.verifierUrl}/openid4vp/callback`,
       nonce,
@@ -3211,6 +3215,7 @@ export class OpenID4VPVerifier {
 
     const authRequest: AuthorizationRequest = {
       dcql_query: dcqlQuery,
+      response_type: 'vp_token',
       response_mode: 'direct_post',
       response_uri: this.config.callbackUrl || `${this.config.verifierUrl}/openid4vp/callback`,
       nonce,
@@ -3269,6 +3274,7 @@ export class OpenID4VPVerifier {
     }
 
     // Add standard parameters
+    params.set('response_type', authRequest.response_type);
     params.set('response_mode', authRequest.response_mode);
     params.set('response_uri', authRequest.response_uri);
     params.set('nonce', authRequest.nonce);
@@ -3367,6 +3373,7 @@ export class OpenID4VPVerifier {
 
     const authRequest: AuthorizationRequest = {
       presentation_definition: presentationDefinition,
+      response_type: 'vp_token',
       response_mode: 'direct_post',
       response_uri: callbackUrl,
       nonce,
@@ -3520,6 +3527,7 @@ export class OpenID4VPVerifier {
 
     const authRequest: AuthorizationRequest = {
       presentation_definition: presentationDefinition,
+      response_type: 'vp_token',
       response_mode: 'direct_post',
       response_uri: this.config.callbackUrl || `${this.config.verifierUrl}/openid4vp/callback`,
       nonce,
@@ -3636,6 +3644,7 @@ export class OpenID4VPVerifier {
 
     const authRequest: AuthorizationRequest = {
       presentation_definition: presentationDefinition,
+      response_type: 'vp_token',
       response_mode: 'direct_post',
       response_uri: this.config.callbackUrl || `${this.config.verifierUrl}/openid4vp/callback`,
       nonce,

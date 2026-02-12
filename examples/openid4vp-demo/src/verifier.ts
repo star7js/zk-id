@@ -49,6 +49,8 @@ app.get('/auth/request', async (req, res) => {
     // Generate QR code for mobile wallets
     const authUrl = `openid4vp://?${new URLSearchParams({
       presentation_definition: JSON.stringify(authRequest.presentation_definition),
+      response_type: authRequest.response_type,
+      response_mode: authRequest.response_mode,
       response_uri: authRequest.response_uri,
       nonce: authRequest.nonce,
       client_id: authRequest.client_id,

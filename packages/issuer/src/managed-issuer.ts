@@ -144,6 +144,15 @@ export class ManagedCredentialIssuer {
     return this.keyManager.getIssuerName();
   }
 
+  /**
+   * Get the revocation store if configured.
+   *
+   * @returns The revocation store, or undefined if not configured
+   */
+  getRevocationStore(): RevocationStore | undefined {
+    return this.revocationStore;
+  }
+
   private logIssuance(signedCredential: SignedCredential, userId?: string): void {
     this.auditLogger.log({
       timestamp: new Date().toISOString(),
