@@ -18,6 +18,7 @@
  */
 
 import { ZkIdProofError, ZkIdCredentialError } from './errors';
+import type { BBSCredentialSchema, SerializedBBSCredential } from './bbs-schema';
 
 // ---------------------------------------------------------------------------
 // Lazy loader for ESM-only @digitalbazaar/bbs-signatures
@@ -120,6 +121,8 @@ export interface BBSCredential {
   issuerPublicKey: Uint8Array;
   /** Human-readable field values (for holder reference) */
   fieldValues: Record<string, string | number>;
+  /** Optional schema identifier for schema-aware credentials */
+  schemaId?: string;
 }
 
 /**
@@ -154,6 +157,10 @@ export interface BBSDisclosureProof {
   issuerPublicKey: Uint8Array;
   /** Total number of messages in the credential */
   messageCount: number;
+  /** Optional schema identifier for schema-aware proofs */
+  schemaId?: string;
+  /** Field names that were revealed (for schema-aware proofs) */
+  revealedFieldNames?: string[];
 }
 
 /**
@@ -259,9 +266,9 @@ export async function deriveBBSDisclosureProof(
 ): Promise<BBSDisclosureProof> {
   const bbs = await loadBBS();
 
-  // Map field names → indices
+  // Map field names → indices (use credential labels for schema-aware credentials)
   const disclosedIndexes = request.disclose
-    .map((name) => BBS_CREDENTIAL_FIELDS.indexOf(name))
+    .map((name) => credential.labels.indexOf(name))
     .filter((i) => i >= 0)
     .sort((a, b) => a - b);
 
@@ -409,4 +416,226 @@ export function getDisclosedFields(proof: BBSDisclosureProof): Record<string, st
     }
   }
   return result;
+}
+
+// ---------------------------------------------------------------------------
+// Schema-aware BBS+ functions
+// ---------------------------------------------------------------------------
+
+/**
+ * Convert arbitrary schema fields to BBS messages with deterministic ordering.
+ * Fields are sorted alphabetically by name to ensure reproducible proofs.
+ *
+ * @param fields - Field values as key-value pairs
+ * @param schema - Credential schema defining field structure
+ * @returns Ordered array of BBS messages and corresponding labels
+ */
+export function schemaFieldsToBBSMessages(
+  fields: Record<string, unknown>,
+  schema: BBSCredentialSchema,
+): {
+  messages: Uint8Array[];
+  labels: string[];
+} {
+  // Sort field names alphabetically for deterministic ordering
+  const sortedFieldNames = schema.fields.map((f) => f.name).sort();
+
+  const messages: Uint8Array[] = [];
+  const labels: string[] = [];
+
+  for (const fieldName of sortedFieldNames) {
+    const value = fields[fieldName];
+    if (value === undefined) {
+      const fieldDef = schema.fields.find((f) => f.name === fieldName);
+      if (fieldDef?.required) {
+        throw new ZkIdCredentialError(`Missing required field: ${fieldName}`);
+      }
+      // Skip optional missing fields
+      continue;
+    }
+
+    messages.push(encodeBBSMessage(value as string | number));
+    labels.push(fieldName);
+  }
+
+  return { messages, labels };
+}
+
+/**
+ * Sign a schema-aware BBS credential.
+ *
+ * @param fields - Field values matching the schema
+ * @param schema - Credential schema
+ * @param secretKey - Issuer's BBS secret key
+ * @param publicKey - Issuer's BBS public key
+ * @param header - Optional header bytes
+ * @returns Signed BBS credential
+ */
+export async function signBBSSchemaCredential(
+  fields: Record<string, unknown>,
+  schema: BBSCredentialSchema,
+  secretKey: Uint8Array,
+  publicKey: Uint8Array,
+  header: Uint8Array = new Uint8Array(),
+): Promise<BBSCredential> {
+  const { messages, labels } = schemaFieldsToBBSMessages(fields, schema);
+
+  const signature = await signBBSMessages(secretKey, publicKey, messages, header);
+
+  // Extract id field (required in all schemas)
+  const id = String(fields.id || `cred-${Date.now()}`);
+
+  return {
+    id,
+    messages,
+    labels,
+    signature,
+    header,
+    issuerPublicKey: publicKey,
+    fieldValues: fields as Record<string, string | number>,
+    schemaId: schema.id,
+  };
+}
+
+/**
+ * Derive a selective disclosure proof from a schema-aware BBS credential.
+ *
+ * @param credential - Full BBS credential
+ * @param schema - Credential schema
+ * @param revealedFieldNames - Field names to reveal
+ * @param nonce - Optional nonce from verifier
+ * @returns Selective disclosure proof
+ */
+export async function deriveBBSSchemaDisclosureProof(
+  credential: BBSCredential,
+  schema: BBSCredentialSchema,
+  revealedFieldNames: string[],
+  nonce?: string,
+): Promise<BBSDisclosureProof> {
+  const bbs = await loadBBS();
+
+  // Map field names to indices based on credential labels
+  const disclosedIndexes = revealedFieldNames
+    .map((name) => credential.labels.indexOf(name))
+    .filter((i) => i >= 0)
+    .sort((a, b) => a - b);
+
+  if (disclosedIndexes.length === 0) {
+    throw new ZkIdProofError('No valid fields specified for disclosure');
+  }
+
+  const presentationHeader = nonce ? encoder.encode(nonce) : new Uint8Array();
+
+  const proof = await bbs.deriveProof({
+    publicKey: credential.issuerPublicKey,
+    signature: credential.signature,
+    header: credential.header,
+    messages: credential.messages,
+    presentationHeader,
+    disclosedMessageIndexes: disclosedIndexes,
+    ciphersuite: BBS_CIPHERSUITE,
+  });
+
+  const disclosedMessages = new Map<number, Uint8Array>();
+  const disclosedLabels = new Map<number, string>();
+  for (const idx of disclosedIndexes) {
+    disclosedMessages.set(idx, credential.messages[idx]);
+    disclosedLabels.set(idx, credential.labels[idx]);
+  }
+
+  return {
+    proof,
+    disclosedMessages,
+    disclosedLabels,
+    disclosedIndexes,
+    presentationHeader,
+    header: credential.header,
+    issuerPublicKey: credential.issuerPublicKey,
+    messageCount: credential.messages.length,
+    schemaId: schema.id,
+    revealedFieldNames,
+  };
+}
+
+/**
+ * Verify a schema-aware BBS selective disclosure proof.
+ *
+ * @param disclosureProof - Proof to verify
+ * @param schema - Credential schema
+ * @returns true if the proof is valid
+ */
+export async function verifyBBSSchemaDisclosureProof(
+  disclosureProof: BBSDisclosureProof,
+  schema: BBSCredentialSchema,
+): Promise<boolean> {
+  // Verify schema ID matches
+  if (disclosureProof.schemaId && disclosureProof.schemaId !== schema.id) {
+    throw new ZkIdProofError(
+      `Schema mismatch: expected ${schema.id}, got ${disclosureProof.schemaId}`,
+    );
+  }
+
+  // Use the standard BBS verification
+  return verifyBBSDisclosureProof(disclosureProof);
+}
+
+/**
+ * Serialize a BBS credential for storage or transmission.
+ *
+ * @param credential - BBS credential to serialize
+ * @returns JSON-serializable credential
+ */
+export function serializeBBSCredential(credential: BBSCredential): SerializedBBSCredential {
+  const schemaId = credential.schemaId || 'age-verification';
+
+  // Determine issuer from fieldValues if available
+  const issuer = String(credential.fieldValues.issuer || 'unknown');
+  const issuedAt = String(credential.fieldValues.issuedAt || new Date().toISOString());
+  const expiresAt = credential.fieldValues.expiresAt
+    ? String(credential.fieldValues.expiresAt)
+    : undefined;
+
+  return {
+    schemaId,
+    fields: credential.fieldValues,
+    signature: Buffer.from(credential.signature).toString('base64'),
+    publicKey: Buffer.from(credential.issuerPublicKey).toString('base64'),
+    issuer,
+    issuedAt,
+    expiresAt,
+  };
+}
+
+/**
+ * Deserialize a BBS credential from storage or transmission.
+ *
+ * @param serialized - Serialized credential
+ * @param schema - Credential schema
+ * @returns Reconstructed BBS credential
+ */
+export function deserializeBBSCredential(
+  serialized: SerializedBBSCredential,
+  schema: BBSCredentialSchema,
+): BBSCredential {
+  // Verify schema ID matches
+  if (serialized.schemaId !== schema.id) {
+    throw new ZkIdCredentialError(
+      `Schema mismatch: expected ${schema.id}, got ${serialized.schemaId}`,
+    );
+  }
+
+  const { messages, labels } = schemaFieldsToBBSMessages(serialized.fields, schema);
+
+  const id = String(serialized.fields.id || `cred-${Date.now()}`);
+
+  return {
+    id,
+    messages,
+    labels,
+    signature: new Uint8Array(Buffer.from(serialized.signature, 'base64')),
+    header: new Uint8Array(), // Default empty header
+    issuerPublicKey: new Uint8Array(Buffer.from(serialized.publicKey, 'base64')),
+    fieldValues: serialized.fields as Record<string, string | number>,
+    schemaId: serialized.schemaId,
+  };
 }

@@ -610,3 +610,69 @@ export async function generateNullifierProofAuto(
 
   return generateNullifierProof(credential, scopeHash, wasmPath, zkeyPath);
 }
+
+/**
+ * Generates a range proof that a value lies within [minValue, maxValue]
+ * without revealing the actual value.
+ *
+ * @param value - The actual value (private)
+ * @param salt - Random salt for commitment uniqueness (private)
+ * @param minValue - Lower bound of the range (public)
+ * @param maxValue - Upper bound of the range (public)
+ * @param wasmPath - Path to the compiled circuit WASM file
+ * @param zkeyPath - Path to the proving key
+ * @returns A RangeProof that can be verified without revealing the value
+ */
+export async function generateRangeProof(
+  value: number,
+  salt: bigint,
+  minValue: number,
+  maxValue: number,
+  wasmPath: string,
+  zkeyPath: string,
+): Promise<{
+  proofType: 'range';
+  proof: { pi_a: string[]; pi_b: string[][]; pi_c: string[]; protocol: string; curve: string };
+  publicSignals: string[];
+  fieldName: string;
+}> {
+  // Validate inputs
+  if (value < 0) {
+    throw new Error('Value must be non-negative');
+  }
+  if (minValue < 0 || maxValue < 0) {
+    throw new Error('Range bounds must be non-negative');
+  }
+  if (minValue > maxValue) {
+    throw new Error('minValue must be less than or equal to maxValue');
+  }
+
+  // Compute commitment
+  const commitment = await poseidonHash([BigInt(value), salt]);
+
+  // Prepare circuit inputs
+  const input = {
+    value: value,
+    salt: salt.toString(),
+    minValue: minValue,
+    maxValue: maxValue,
+    commitment: commitment.toString(),
+  };
+
+  // Generate the proof using snarkjs
+  const { proof, publicSignals } = await snarkjs.groth16.fullProve(input, wasmPath, zkeyPath);
+
+  // Format the proof
+  return {
+    proofType: 'range',
+    proof: {
+      pi_a: proof.pi_a.slice(0, 2).map((x: unknown) => String(x)),
+      pi_b: proof.pi_b.slice(0, 2).map((arr: unknown[]) => arr.map((x: unknown) => String(x))),
+      pi_c: proof.pi_c.slice(0, 2).map((x: unknown) => String(x)),
+      protocol: proof.protocol,
+      curve: proof.curve,
+    },
+    publicSignals: publicSignals.map((x: unknown) => String(x)),
+    fieldName: 'value', // Default field name
+  };
+}

@@ -45,6 +45,8 @@ import {
   validateNationality,
   validatePositiveInt,
   ZkProof,
+  BBSProofResponse,
+  verifyBBSDisclosureProofFromResponse,
 } from '@zk-id/core';
 import { readFileSync } from 'fs';
 import { EventEmitter } from 'events';
@@ -81,6 +83,8 @@ export interface ZkIdServerConfig {
   issuerPublicKeys?: Record<string, KeyObject>;
   /** Map of trusted issuer names to BabyJub public key bits (for signed circuits) */
   issuerPublicKeyBits?: Record<string, string[]>;
+  /** Map of trusted issuer names to their BBS+ public keys (Uint8Array) */
+  bbsIssuerPublicKeys?: Record<string, Uint8Array>;
   /** Optional issuer registry for key rotation and status checks */
   issuerRegistry?: IssuerRegistry;
   /** Require signed credentials (default: true) */
@@ -1323,6 +1327,156 @@ export class ZkIdServer extends EventEmitter {
   }
 
   /**
+   * Verify a BBS+ selective disclosure proof.
+   *
+   * @param response - The BBS proof response from the client
+   * @param issuerName - Name of the trusted issuer to verify against
+   * @param clientIdentifier - Optional client IP/session for rate limiting
+   * @returns Verification result with details
+   */
+  async verifyBBSProof(
+    response: BBSProofResponse,
+    issuerName: string,
+    clientIdentifier?: string,
+  ): Promise<VerificationResult> {
+    const startTime = Date.now();
+    let internalError = '';
+
+    try {
+      // Rate limiting
+      if (this.config.rateLimiter && clientIdentifier) {
+        const allowed = await this.config.rateLimiter.allowRequest(clientIdentifier);
+        if (!allowed) {
+          internalError = 'Rate limit exceeded';
+          const result = { verified: false, error: this.sanitizeError(internalError) };
+          this.emitVerificationEvent(
+            'bbs-disclosure',
+            result,
+            startTime,
+            clientIdentifier,
+            internalError,
+          );
+          return result;
+        }
+      }
+
+      // Validate issuer exists
+      if (!this.config.bbsIssuerPublicKeys || !this.config.bbsIssuerPublicKeys[issuerName]) {
+        internalError = `Unknown or untrusted issuer: ${issuerName}`;
+        const result = { verified: false, error: this.sanitizeError(internalError) };
+        this.emitVerificationEvent(
+          'bbs-disclosure',
+          result,
+          startTime,
+          clientIdentifier,
+          internalError,
+        );
+        return result;
+      }
+
+      const issuerPublicKey = this.config.bbsIssuerPublicKeys[issuerName];
+
+      // Nonce replay protection
+      if (this.config.nonceStore) {
+        const hasNonce = await this.config.nonceStore.has(response.nonce);
+        if (hasNonce) {
+          internalError = 'Nonce has already been used (replay detected)';
+          const result = { verified: false, error: this.sanitizeError(internalError) };
+          this.emitVerificationEvent(
+            'bbs-disclosure',
+            result,
+            startTime,
+            clientIdentifier,
+            internalError,
+          );
+          return result;
+        }
+      }
+
+      // Request timestamp freshness check
+      const requestMs = Date.parse(response.requestTimestamp);
+      if (Number.isNaN(requestMs)) {
+        internalError = 'Invalid request timestamp';
+        const result = { verified: false, error: this.sanitizeError(internalError) };
+        this.emitVerificationEvent(
+          'bbs-disclosure',
+          result,
+          startTime,
+          clientIdentifier,
+          internalError,
+        );
+        return result;
+      }
+
+      // Check for future timestamps
+      const maxFutureSkew = this.config.maxFutureSkewMs ?? 60000;
+      const timeDiffMs = requestMs - Date.now();
+      if (timeDiffMs > maxFutureSkew) {
+        internalError = 'Request timestamp is too far in the future';
+        const result = { verified: false, error: this.sanitizeError(internalError) };
+        this.emitVerificationEvent(
+          'bbs-disclosure',
+          result,
+          startTime,
+          clientIdentifier,
+          internalError,
+        );
+        return result;
+      }
+
+      // Check for stale timestamps
+      if (this.config.maxRequestAgeMs !== undefined) {
+        const ageMs = Date.now() - requestMs;
+        if (ageMs > this.config.maxRequestAgeMs) {
+          internalError = 'Request timestamp is too old';
+          const result = { verified: false, error: this.sanitizeError(internalError) };
+          this.emitVerificationEvent(
+            'bbs-disclosure',
+            result,
+            startTime,
+            clientIdentifier,
+            internalError,
+          );
+          return result;
+        }
+      }
+
+      // Verify the BBS proof
+      const verified = await verifyBBSDisclosureProofFromResponse(response, issuerPublicKey);
+
+      if (verified && this.config.nonceStore) {
+        await this.config.nonceStore.add(response.nonce);
+      }
+
+      const result: VerificationResult = verified
+        ? { verified: true, revealedFields: response.revealedFields }
+        : ((internalError = 'BBS proof verification failed'),
+          { verified: false, error: this.sanitizeError(internalError) });
+
+      this.emitVerificationEvent(
+        'bbs-disclosure',
+        result,
+        startTime,
+        clientIdentifier,
+        internalError,
+      );
+      return result;
+    } catch (error) {
+      internalError =
+        error instanceof Error ? error.message : 'Unknown error during BBS verification';
+      const result = { verified: false, error: this.sanitizeError(internalError) };
+      this.emitVerificationEvent(
+        'bbs-disclosure',
+        result,
+        startTime,
+        clientIdentifier,
+        internalError,
+      );
+      return result;
+    }
+  }
+
+  /**
    * Verify a multi-claim proof bundle with a shared nonce + timestamp.
    *
    * @param response - Multi-claim proof response
@@ -2185,6 +2339,7 @@ export interface VerificationResult {
   targetNationality?: number;
   error?: string;
   protocolVersion?: string;
+  revealedFields?: Record<string, unknown>;
 }
 
 /**
@@ -3032,6 +3187,65 @@ export class OpenID4VPVerifier {
     this.pendingRequests.delete(response.state);
 
     return result;
+  }
+
+  /**
+   * Create an OpenID4VP authorization request for BBS+ selective disclosure
+   *
+   * @param schemaId - Schema identifier (e.g., 'kyc-basic', 'capability')
+   * @param requiredFields - Array of field names to request
+   * @param state - Optional state parameter (auto-generated if not provided)
+   * @returns Authorization request to send to wallet
+   */
+  createBBSDisclosureRequest(
+    schemaId: string,
+    requiredFields: string[],
+    state?: string,
+  ): AuthorizationRequest {
+    const requestState = state || this.generateState();
+    const nonce = this.generateNonce();
+
+    const presentationDefinition: PresentationDefinition = {
+      id: `bbs-disclosure-${Date.now()}`,
+      name: 'BBS+ Selective Disclosure',
+      purpose: `Reveal specific fields from your ${schemaId} credential`,
+      input_descriptors: [
+        {
+          id: 'bbs-disclosure-proof',
+          name: 'BBS+ Disclosure Proof',
+          purpose: `Required fields: ${requiredFields.join(', ')}`,
+          constraints: {
+            fields: [
+              {
+                path: ['$.schemaId'],
+                filter: {
+                  type: 'string',
+                  enum: [schemaId],
+                },
+              },
+              ...requiredFields.map((field) => ({
+                path: [`$.revealedFields.${field}`],
+                filter: {
+                  type: 'string',
+                },
+              })),
+            ],
+          },
+        },
+      ],
+    };
+
+    const authRequest: AuthorizationRequest = {
+      presentation_definition: presentationDefinition,
+      response_mode: 'direct_post',
+      response_uri: this.config.callbackUrl || `${this.config.verifierUrl}/openid4vp/callback`,
+      nonce,
+      client_id: this.config.verifierId,
+      state: requestState,
+    };
+
+    this.pendingRequests.set(requestState, authRequest);
+    return authRequest;
   }
 
   private generateNonce(): string {

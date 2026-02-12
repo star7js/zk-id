@@ -2,6 +2,8 @@
  * Core type definitions for zk-id
  */
 
+import type { SerializedBBSDisclosureProof } from './bbs';
+
 /**
  * Credential represents a privacy-preserving identity commitment
  *
@@ -165,6 +167,26 @@ export interface NullifierProof {
   };
 }
 
+export interface BBSSelectiveDisclosureProof {
+  proofType: 'bbs-selective-disclosure';
+  proof: SerializedBBSDisclosureProof;
+  schemaId: string;
+  revealedFields: Record<string, unknown>;
+}
+
+export interface RangeProof {
+  proofType: 'range';
+  proof: {
+    pi_a: string[];
+    pi_b: string[][];
+    pi_c: string[];
+    protocol: string;
+    curve: string;
+  };
+  publicSignals: string[];
+  fieldName: string;
+}
+
 /** Discriminated union of all ZK proof types */
 export type ZkProof =
   | AgeProof
@@ -172,7 +194,9 @@ export type ZkProof =
   | AgeProofRevocable
   | AgeProofSigned
   | NationalityProofSigned
-  | NullifierProof;
+  | NullifierProof
+  | BBSSelectiveDisclosureProof
+  | RangeProof;
 
 /** String literal type for all proof type discriminators */
 export type ProofType = ZkProof['proofType'];
@@ -211,6 +235,24 @@ export interface ProofResponse {
   proof: ZkProof;
   /** Signed credential (binds issuer and commitment). Optional when requireSignedCredentials is false. */
   signedCredential?: SignedCredential;
+  /** Nonce from the request (for replay protection) */
+  nonce: string;
+  /** Request timestamp (ISO 8601) */
+  requestTimestamp: string;
+}
+
+/**
+ * Response for BBS+ selective disclosure proofs
+ */
+export interface BBSProofResponse {
+  /** The credential ID being proven */
+  credentialId: string;
+  /** Schema identifier */
+  schemaId: string;
+  /** BBS+ selective disclosure proof (base format from bbs.ts) */
+  proof: SerializedBBSDisclosureProof;
+  /** Revealed field values */
+  revealedFields: Record<string, unknown>;
   /** Nonce from the request (for replay protection) */
   nonce: string;
   /** Request timestamp (ISO 8601) */

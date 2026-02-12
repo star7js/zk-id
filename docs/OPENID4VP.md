@@ -399,14 +399,128 @@ window.addEventListener('message', async (event) => {
 - [OpenID4VP Playground](https://openid4vp.org/playground)
 - [Presentation Exchange Visualizer](https://identity.foundation/presentation-exchange/)
 
+## BBS+ Selective Disclosure via OpenID4VP
+
+zk-id Phase 2 integrates BBS+ signatures for schema-flexible selective disclosure without requiring ZK-SNARK circuits.
+
+### When to Use BBS+ vs. ZK-SNARKs
+
+| Feature                 | BBS+ Selective Disclosure          | ZK-SNARKs (Groth16)           |
+| ----------------------- | ---------------------------------- | ----------------------------- |
+| **Proof Type**          | Reveal specific fields             | Prove predicates (age >= 18)  |
+| **Privacy Level**       | Selective (shows exact values)     | Zero-knowledge (hides values) |
+| **Circuit Requirement** | None                               | Required for each claim type  |
+| **Performance**         | Faster (no circuit proving)        | Slower (~2s proof generation) |
+| **Schema Flexibility**  | High (arbitrary fields)            | Low (hardcoded in circuits)   |
+| **Use Cases**           | KYC disclosure, agent capabilities | Age/nationality verification  |
+
+### BBS+ Request Flow
+
+```typescript
+import { OpenID4VPVerifier } from '@zk-id/sdk';
+
+// Create BBS+ disclosure request for KYC
+const authRequest = verifier.createBBSDisclosureRequest(
+  'kyc-basic',                           // Schema ID
+  ['givenName', 'familyName', 'nationality'],  // Required fields
+  'optional-state-parameter'
+);
+
+// Authorization request includes presentation definition:
+{
+  "id": "bbs-disclosure-1644512345",
+  "name": "BBS+ Selective Disclosure",
+  "purpose": "Reveal specific fields from your kyc-basic credential",
+  "input_descriptors": [{
+    "id": "bbs-disclosure-proof",
+    "constraints": {
+      "fields": [
+        { "path": ["$.schemaId"], "filter": { "const": "kyc-basic" } },
+        { "path": ["$.revealedFields.givenName"], "filter": { "type": "string" } },
+        { "path": ["$.revealedFields.familyName"], "filter": { "type": "string" } },
+        { "path": ["$.revealedFields.nationality"], "filter": { "type": "string" } }
+      ]
+    }
+  }]
+}
+```
+
+### BBS+ Response Flow (Wallet Side)
+
+```typescript
+import { OpenID4VPWallet } from '@zk-id/sdk';
+
+const wallet = new OpenID4VPWallet({
+  credentialStore,
+  bbsCredentialStore,  // Separate store for BBS+ credentials
+  circuitPaths,
+});
+
+// Handle BBS+ disclosure request
+const presentation = await wallet.handleBBSDisclosureRequest(authRequest);
+
+// Presentation includes:
+{
+  "vp_token": "base64-encoded-verifiable-presentation",
+  "state": "...",
+  "presentation_submission": {
+    "descriptor_map": [{
+      "id": "bbs-disclosure-proof",
+      "format": "bbs-disclosure/proof-v1",
+      "path": "$.verifiableCredential[0]"
+    }]
+  }
+}
+```
+
+### BBS+ Verification
+
+```typescript
+// Verifier receives presentation and verifies
+const result = await verifier.verifyPresentation(presentationResponse, clientIp);
+
+if (result.verified) {
+  // result.revealedFields contains only the requested fields:
+  // { givenName: "Alice", familyName: "Smith", nationality: "US" }
+  // Hidden: birthYear, birthMonth, birthDay, countryOfResidence, salt
+}
+```
+
+### Example: Agent Capability Disclosure
+
+```typescript
+// Verifier requests agent identity
+const authRequest = verifier.createBBSDisclosureRequest(
+  'agent-identity',
+  ['organizationId', 'capabilities'], // Don't request agentId or modelVersion
+);
+
+// Agent wallet generates proof revealing only requested fields
+const presentation = await wallet.handleBBSDisclosureRequest(authRequest);
+
+// Verifier learns:
+// - organizationId: "acme-corp"
+// - capabilities: ["read:documents", "write:invoices"]
+//
+// Verifier does NOT learn:
+// - agentId (private agent identifier)
+// - modelVersion (which AI model is running)
+// - salt (uniqueness randomness)
+```
+
+For more details on agent credentials, see [docs/AGENT-CREDENTIALS.md](./AGENT-CREDENTIALS.md).
+
 ## FAQ
 
 ### Why not just use SD-JWT or BBS+?
 
-**SD-JWT** and **BBS+** provide selective disclosure but not true zero-knowledge proofs:
+**Update:** zk-id Phase 2 now supports BBS+ for selective disclosure! The choice between BBS+ and ZK-SNARKs depends on your use case:
 
-- They reveal the exact disclosed attributes (e.g., birthDate: "1990-01-01")
-- zk-id proves predicates without revealing inputs (e.g., "age >= 18" without revealing 1990)
+- **BBS+**: Use for selective field disclosure (e.g., "reveal name and nationality, hide birth date")
+- **ZK-SNARKs**: Use for predicate proofs (e.g., "prove age >= 18 without revealing birth year")
+
+Both are available in zk-id and can be used via OpenID4VP.
+
 - On-chain verification requires ZK-SNARKs (not possible with SD-JWT/BBS+)
 
 ### Can existing OpenID4VP wallets use zk-id?

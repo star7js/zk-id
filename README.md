@@ -50,6 +50,8 @@ Current age verification systems force users to expose sensitive information:
 - ✅ **OpenID4VP Compatible**: First ZK identity project with native OpenID for Verifiable Presentations support
 - ✅ **Standards-Compliant**: Implements DIF Presentation Exchange v2.0.0 and W3C VC format
 - ✅ **Multi-Attribute**: Support for multiple credential attributes with selective disclosure
+- ✅ **BBS+ Credentials**: Schema-flexible BBS+ signatures for selective field disclosure without circuits
+- ✅ **Range Proofs**: Generic range proof circuit for proving values within bounds
 - ✅ **Built-in Scenarios**: 7 predefined verification scenarios (voting, age-gated purchases, senior discount, GDPR consent)
 - ✅ **Revocation**: In-circuit Merkle proofs for credential validity with O(1) reads and O(depth) updates
 - ✅ **Credential Expiration**: Time-limited credentials with automatic expiration validation

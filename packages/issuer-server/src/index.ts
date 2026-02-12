@@ -3,8 +3,12 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
-import { ManagedCredentialIssuer, InMemoryIssuerKeyManager } from '@zk-id/issuer';
-import { InMemoryRevocationStore } from '@zk-id/core';
+import {
+  ManagedCredentialIssuer,
+  InMemoryIssuerKeyManager,
+  BBSCredentialIssuer,
+} from '@zk-id/issuer';
+import { InMemoryRevocationStore, SCHEMA_REGISTRY, serializeBBSCredential } from '@zk-id/core';
 import { createPublicKey, generateKeyPairSync, KeyObject } from 'crypto';
 
 dotenv.config();
@@ -58,11 +62,12 @@ function requestLogger(req: Request, res: Response, next: NextFunction) {
 
 app.use(requestLogger);
 
-// Initialize issuer
+// Initialize issuers
 let issuer: ManagedCredentialIssuer;
 let issuerPublicKey: KeyObject;
+let bbsIssuer: BBSCredentialIssuer;
 
-function initializeIssuer() {
+async function initializeIssuer() {
   try {
     // Check if private key is provided via environment
     const privateKeyPem = process.env.ISSUER_PRIVATE_KEY;
@@ -120,7 +125,14 @@ function initializeIssuer() {
 
     issuerPublicKey = publicKey;
 
-    console.log(`Issuer initialized: ${ISSUER_NAME}`);
+    console.log(`Ed25519 Issuer initialized: ${ISSUER_NAME}`);
+
+    // Initialize BBS issuer
+    bbsIssuer = await BBSCredentialIssuer.create({
+      name: ISSUER_NAME,
+    });
+
+    console.log(`BBS+ Issuer initialized: ${ISSUER_NAME}`);
   } catch (error) {
     console.error('Failed to initialize issuer:', error);
     process.exit(1);
@@ -138,7 +150,7 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
-// Get issuer public key
+// Get issuer public key (Ed25519)
 app.get('/public-key', (req: Request, res: Response) => {
   const publicKeyDer = issuerPublicKey.export({ type: 'spki', format: 'der' });
   const publicKeyBase64 = Buffer.from(publicKeyDer).toString('base64');
@@ -150,7 +162,105 @@ app.get('/public-key', (req: Request, res: Response) => {
   });
 });
 
-// Issue credential
+// Get BBS+ public key
+app.get('/bbs-public-key', (req: Request, res: Response) => {
+  const bbsPublicKey = bbsIssuer.getPublicKey();
+  const publicKeyBase64 = Buffer.from(bbsPublicKey).toString('base64');
+
+  res.json({
+    issuer: ISSUER_NAME,
+    publicKey: publicKeyBase64,
+    format: 'BBS-BLS12-381',
+  });
+});
+
+// Get available credential schemas
+app.get('/schemas', (req: Request, res: Response) => {
+  const schemas = SCHEMA_REGISTRY.list();
+
+  res.json({
+    schemas: schemas.map((schema) => ({
+      id: schema.id,
+      version: schema.version,
+      description: schema.description,
+      fields: schema.fields,
+    })),
+  });
+});
+
+// Issue BBS+ credential
+app.post('/issue/bbs', requireApiKey, async (req: Request, res: Response) => {
+  try {
+    const { schemaId, fields, userId, expiresAt } = req.body;
+
+    // Validate inputs
+    if (!schemaId || typeof schemaId !== 'string') {
+      return res.status(400).json({
+        error: 'Invalid request',
+        message: 'schemaId is required and must be a string',
+      });
+    }
+
+    if (!fields || typeof fields !== 'object') {
+      return res.status(400).json({
+        error: 'Invalid request',
+        message: 'fields is required and must be an object',
+      });
+    }
+
+    if (!userId || typeof userId !== 'string') {
+      return res.status(400).json({
+        error: 'Invalid request',
+        message: 'userId is required and must be a string',
+      });
+    }
+
+    // Validate expiration date if provided
+    if (expiresAt) {
+      const expirationDate = new Date(expiresAt);
+      if (isNaN(expirationDate.getTime())) {
+        return res.status(400).json({
+          error: 'Invalid request',
+          message: 'expiresAt must be a valid ISO 8601 date string',
+        });
+      }
+
+      if (expirationDate <= new Date()) {
+        return res.status(400).json({
+          error: 'Invalid request',
+          message: 'expiresAt must be in the future',
+        });
+      }
+    }
+
+    // Add expiration to fields if provided
+    const enrichedFields = { ...fields };
+    if (expiresAt) {
+      enrichedFields.expiresAt = expiresAt;
+    }
+
+    // Issue BBS credential
+    const bbsCredential = await bbsIssuer.issueSchemaCredential(schemaId, enrichedFields, userId);
+
+    // Serialize for transport
+    const serialized = serializeBBSCredential(bbsCredential);
+
+    console.log(`Issued BBS+ credential (schema: ${schemaId}) for user ${userId}`);
+
+    res.json({
+      success: true,
+      credential: serialized,
+    });
+  } catch (error) {
+    console.error('Error issuing BBS credential:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Failed to issue credential',
+    });
+  }
+});
+
+// Issue credential (Ed25519)
 app.post('/issue', requireApiKey, async (req: Request, res: Response) => {
   try {
     const { birthYear, nationality, userId, expiresAt } = req.body;
@@ -293,8 +403,11 @@ app.listen(PORT, () => {
   console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`\n📍 Endpoints:`);
   console.log(`   GET  /health       - Health check`);
-  console.log(`   GET  /public-key   - Get issuer public key`);
-  console.log(`   POST /issue        - Issue credential (requires API key)`);
+  console.log(`   GET  /public-key   - Get Ed25519 issuer public key`);
+  console.log(`   GET  /bbs-public-key - Get BBS+ issuer public key`);
+  console.log(`   GET  /schemas      - List available credential schemas`);
+  console.log(`   POST /issue        - Issue Ed25519 credential (requires API key)`);
+  console.log(`   POST /issue/bbs    - Issue BBS+ credential (requires API key)`);
   console.log(`   POST /revoke       - Revoke credential (requires API key)`);
   console.log(`   GET  /status/:commitment - Check credential status`);
   console.log(

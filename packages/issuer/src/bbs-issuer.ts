@@ -24,7 +24,9 @@ import {
   BBSKeyPair,
   BBSCredential,
   BBS_CREDENTIAL_FIELDS,
+  signBBSSchemaCredential,
 } from '@zk-id/core';
+import { SCHEMA_REGISTRY, BBSCredentialSchema } from '@zk-id/core';
 
 export interface BBSIssuerConfig {
   /** Issuer name or DID */
@@ -75,6 +77,8 @@ export class BBSCredentialIssuer {
    * Each credential field (id, birthYear, nationality, salt, issuedAt,
    * issuer) is signed as a separate BBS message, enabling selective
    * disclosure of individual fields.
+   *
+   * @deprecated Use issueSchemaCredential instead for schema-aware credentials
    */
   async issueCredential(
     birthYear: number,
@@ -84,7 +88,7 @@ export class BBSCredentialIssuer {
     const credential = await createCredential(birthYear, nationality);
     const issuedAt = new Date().toISOString();
 
-    const fieldValues: Record<string, string | number> = {
+    const fieldValues: Record<string, unknown> = {
       id: credential.id,
       birthYear: credential.birthYear,
       nationality: credential.nationality,
@@ -93,36 +97,67 @@ export class BBSCredentialIssuer {
       issuer: this.issuerName,
     };
 
-    const { messages, labels } = credentialFieldsToBBSMessages(fieldValues);
-    const header = new Uint8Array();
+    // Delegate to schema-aware method
+    return this.issueSchemaCredential('age-verification', fieldValues, userId);
+  }
 
-    const signature = await signBBSMessages(
+  /**
+   * Issue a schema-aware BBS-signed credential.
+   *
+   * Validates fields against the schema, signs with BBS+, and returns
+   * a credential that can be used for selective disclosure.
+   *
+   * @param schemaId - Schema identifier (e.g., 'age-verification', 'kyc-basic')
+   * @param fields - Field values matching the schema
+   * @param userId - Optional user identifier for audit logging
+   * @returns Signed BBS credential
+   */
+  async issueSchemaCredential(
+    schemaId: string,
+    fields: Record<string, unknown>,
+    userId?: string,
+  ): Promise<BBSCredential> {
+    // Lookup schema
+    const schema = SCHEMA_REGISTRY.get(schemaId);
+    if (!schema) {
+      throw new Error(`Unknown schema: ${schemaId}`);
+    }
+
+    // Validate fields
+    const validation = SCHEMA_REGISTRY.validate(schemaId, fields);
+    if (!validation.valid) {
+      throw new Error(`Schema validation failed: ${validation.errors.join(', ')}`);
+    }
+
+    const issuedAt = new Date().toISOString();
+
+    // Ensure required metadata fields
+    const enrichedFields = {
+      ...fields,
+      id: fields.id || `cred-${Date.now()}`,
+      issuedAt: fields.issuedAt || issuedAt,
+      issuer: fields.issuer || this.issuerName,
+    };
+
+    // Sign with BBS
+    const bbsCredential = await signBBSSchemaCredential(
+      enrichedFields,
+      schema,
       this.keyPair.secretKey,
       this.keyPair.publicKey,
-      messages,
-      header,
     );
-
-    const bbsCredential: BBSCredential = {
-      id: credential.id,
-      messages,
-      labels,
-      signature,
-      header,
-      issuerPublicKey: this.keyPair.publicKey,
-      fieldValues,
-    };
 
     this.auditLogger.log({
       timestamp: issuedAt,
       action: 'issue',
       actor: this.issuerName,
-      target: credential.id,
+      target: String(enrichedFields.id),
       success: true,
       metadata: {
         userId: userId || 'anonymous',
         signatureScheme: 'BBS-BLS12-381-SHA-256',
-        fieldCount: BBS_CREDENTIAL_FIELDS.length,
+        schemaId,
+        fieldCount: schema.fields.length,
       },
     });
 

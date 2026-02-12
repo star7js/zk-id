@@ -434,7 +434,7 @@ async function main() {
       claimType?: string;
       proof?: {
         proofType?: string;
-        publicSignals?: Record<string, unknown>;
+        publicSignals?: Record<string, unknown> | string[];
       };
     }>,
     requireLabels: boolean,
@@ -459,6 +459,10 @@ async function main() {
       }
 
       const publicSignals = proof.proof?.publicSignals ?? {};
+      // Skip validation for array-type publicSignals (e.g., range proofs)
+      if (Array.isArray(publicSignals)) {
+        continue;
+      }
       if (expected.claimType === 'age' || expected.claimType === 'age-revocable') {
         const minAge = Number(publicSignals.minAge);
         if (Number.isNaN(minAge) || minAge !== expected.minAge) {

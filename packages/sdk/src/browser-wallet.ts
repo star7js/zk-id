@@ -18,6 +18,12 @@ import {
   ZkIdCredentialError,
   ZkIdConfigError,
   ZkIdProofError,
+  BBSProofResponse,
+  SerializedBBSCredential,
+  deserializeBBSCredential,
+  deriveBBSSchemaDisclosureProof,
+  SCHEMA_REGISTRY,
+  serializeBBSProof,
 } from '@zk-id/core';
 import type { WalletConnector } from './client';
 
@@ -44,6 +50,22 @@ export interface CredentialStore {
   clear(): Promise<void>;
 }
 
+/**
+ * Pluggable persistent storage for BBS+ credentials.
+ */
+export interface BBSCredentialStore {
+  /** Retrieve a BBS credential by ID. */
+  get(id: string): Promise<SerializedBBSCredential | null>;
+  /** Return all stored BBS credentials. */
+  getAll(): Promise<SerializedBBSCredential[]>;
+  /** Store or overwrite a BBS credential. */
+  put(credential: SerializedBBSCredential): Promise<void>;
+  /** Delete a BBS credential by ID. */
+  delete(id: string): Promise<void>;
+  /** Remove all BBS credentials. */
+  clear(): Promise<void>;
+}
+
 // ---------------------------------------------------------------------------
 // InMemoryCredentialStore
 // ---------------------------------------------------------------------------
@@ -64,6 +86,34 @@ export class InMemoryCredentialStore implements CredentialStore {
 
   async put(credential: SignedCredential): Promise<void> {
     this.store.set(credential.credential.id, credential);
+  }
+
+  async delete(id: string): Promise<void> {
+    this.store.delete(id);
+  }
+
+  async clear(): Promise<void> {
+    this.store.clear();
+  }
+}
+
+/**
+ * In-memory BBS+ credential store for testing and Node.js environments.
+ */
+export class InMemoryBBSCredentialStore implements BBSCredentialStore {
+  private store = new Map<string, SerializedBBSCredential>();
+
+  async get(id: string): Promise<SerializedBBSCredential | null> {
+    return this.store.get(id) ?? null;
+  }
+
+  async getAll(): Promise<SerializedBBSCredential[]> {
+    return Array.from(this.store.values());
+  }
+
+  async put(credential: SerializedBBSCredential): Promise<void> {
+    const id = String(credential.fields.id || `cred-${Date.now()}`);
+    this.store.set(id, credential);
   }
 
   async delete(id: string): Promise<void> {
@@ -189,6 +239,8 @@ export class IndexedDBCredentialStore implements CredentialStore {
 export interface BrowserWalletConfig {
   /** Persistent credential storage backend. */
   credentialStore: CredentialStore;
+  /** Optional BBS+ credential storage backend. */
+  bbsCredentialStore?: BBSCredentialStore;
   /** Paths to circuit WASM and zkey artifacts for proof generation. */
   circuitPaths: {
     ageWasm: string;
@@ -466,6 +518,92 @@ export class BrowserWallet implements WalletConnector {
     return parsed.length;
   }
 
+  // -- BBS+ Credential Methods -----------------------------------------------
+
+  /**
+   * Store a BBS+ credential in the wallet.
+   */
+  async storeBBSCredential(credential: SerializedBBSCredential): Promise<void> {
+    if (!this.config.bbsCredentialStore) {
+      throw new ZkIdConfigError('BBS credential store not configured');
+    }
+    await this.config.bbsCredentialStore.put(credential);
+  }
+
+  /**
+   * Get all stored BBS+ credentials.
+   */
+  async getBBSCredentials(): Promise<SerializedBBSCredential[]> {
+    if (!this.config.bbsCredentialStore) {
+      return [];
+    }
+    return this.config.bbsCredentialStore.getAll();
+  }
+
+  /**
+   * Generate a BBS+ selective disclosure proof.
+   *
+   * @param credentialId - ID of the BBS credential to use
+   * @param revealedFields - Array of field names to reveal
+   * @param nonce - Nonce from the verifier
+   * @returns BBS proof response
+   */
+  async generateBBSDisclosureProof(
+    credentialId: string,
+    revealedFields: string[],
+    nonce: string,
+  ): Promise<BBSProofResponse> {
+    if (!this.config.bbsCredentialStore) {
+      throw new ZkIdConfigError('BBS credential store not configured');
+    }
+
+    // Get the credential
+    const serialized = await this.config.bbsCredentialStore.get(credentialId);
+    if (!serialized) {
+      throw new ZkIdCredentialError(
+        `BBS credential ${credentialId} not found`,
+        'CREDENTIAL_NOT_FOUND',
+      );
+    }
+
+    // Get the schema
+    const schema = SCHEMA_REGISTRY.get(serialized.schemaId);
+    if (!schema) {
+      throw new ZkIdConfigError(`Unknown schema: ${serialized.schemaId}`);
+    }
+
+    // Deserialize the credential
+    const credential = deserializeBBSCredential(serialized, schema);
+
+    // Generate the disclosure proof
+    const disclosureProof = await deriveBBSSchemaDisclosureProof(
+      credential,
+      schema,
+      revealedFields,
+      nonce,
+    );
+
+    // Extract revealed field values
+    const revealedFieldValues: Record<string, unknown> = {};
+    for (const fieldName of revealedFields) {
+      if (serialized.fields[fieldName] !== undefined) {
+        revealedFieldValues[fieldName] = serialized.fields[fieldName];
+      }
+    }
+
+    // Serialize the proof using the standard format from bbs.ts
+    const proofSerialized = serializeBBSProof(disclosureProof);
+
+    return {
+      credentialId,
+      schemaId: serialized.schemaId,
+      proof: proofSerialized,
+      revealedFields: revealedFieldValues,
+      nonce,
+      requestTimestamp: new Date().toISOString(),
+    };
+  }
+
   // -- Private helpers -------------------------------------------------------
 
   /**
@@ -651,6 +789,98 @@ export class OpenID4VPWallet extends BrowserWallet {
       type: ['VerifiablePresentation', 'PresentationSubmission'],
       presentation_submission: presentationSubmission,
       verifiableCredential: [zkProof],
+      holder: this.walletId,
+    };
+
+    // Encode VP token
+    const vpToken = Buffer.from(JSON.stringify(vp)).toString('base64');
+
+    return {
+      vp_token: vpToken,
+      state: request.state,
+      presentation_submission: presentationSubmission,
+    };
+  }
+
+  /**
+   * Handle a BBS+ selective disclosure request and generate a presentation
+   *
+   * @param authRequest - Authorization request specifying schema and required fields
+   * @returns Presentation response with BBS+ disclosure proof
+   */
+  async handleBBSDisclosureRequest(
+    authRequest: AuthorizationRequest | string,
+  ): Promise<PresentationResponse> {
+    const request =
+      typeof authRequest === 'string' ? this.parseAuthorizationRequest(authRequest) : authRequest;
+
+    // Get all BBS credentials from wallet
+    const bbsCredentials = await (this as any).getBBSCredentials();
+    if (bbsCredentials.length === 0) {
+      throw new Error('No BBS credentials available in wallet');
+    }
+
+    // Extract schema ID from input descriptor
+    const inputDescriptor = request.presentation_definition.input_descriptors[0];
+    let schemaId: string | undefined;
+    const requiredFields: string[] = [];
+
+    for (const field of inputDescriptor.constraints.fields) {
+      // Extract schema ID
+      if (field.path.some((p) => p.includes('schemaId')) && field.filter?.enum) {
+        schemaId = field.filter.enum[0] as string;
+      }
+
+      // Extract required fields
+      const fieldMatch = field.path[0]?.match(/\$\.revealedFields\.(.+)/);
+      if (fieldMatch) {
+        requiredFields.push(fieldMatch[1]);
+      }
+    }
+
+    if (!schemaId) {
+      throw new Error('Could not determine schema ID from authorization request');
+    }
+
+    // Find matching credential
+    const matchingCredential = bbsCredentials.find(
+      (cred: SerializedBBSCredential) => cred.schemaId === schemaId,
+    );
+    if (!matchingCredential) {
+      throw new Error(`No credential found for schema: ${schemaId}`);
+    }
+
+    const credentialId = String(matchingCredential.fields.id);
+
+    // Generate BBS disclosure proof
+    const bbsProof = await (this as any).generateBBSDisclosureProof(
+      credentialId,
+      requiredFields,
+      request.nonce,
+    );
+
+    // Build presentation submission
+    const presentationSubmission = {
+      id: uuidv4(),
+      definition_id: request.presentation_definition.id,
+      descriptor_map: [
+        {
+          id: inputDescriptor.id,
+          format: 'bbs-disclosure/proof-v1',
+          path: '$.verifiableCredential[0]',
+        },
+      ],
+    };
+
+    // Build verifiable presentation
+    const vp = {
+      '@context': [
+        'https://www.w3.org/2018/credentials/v1',
+        'https://identity.foundation/presentation-exchange/submission/v1',
+      ],
+      type: ['VerifiablePresentation', 'PresentationSubmission'],
+      presentation_submission: presentationSubmission,
+      verifiableCredential: [bbsProof],
       holder: this.walletId,
     };
 

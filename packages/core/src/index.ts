@@ -23,6 +23,7 @@ export * from './proving-system';
 export * from './nullifier';
 export * from './recursive';
 export * from './bbs';
+export * from './bbs-schema';
 export * from './validation';
 export * from './unified-revocation';
 export * from './sparse-merkle-tree';

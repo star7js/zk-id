@@ -9,9 +9,12 @@ import {
   BatchVerificationResult,
   ZkProof,
   NullifierProof,
+  BBSProofResponse,
 } from './types';
 import { constantTimeEqual, constantTimeArrayEqual } from './timing-safe';
 import { ZkIdProofError, ZkIdConfigError } from './errors';
+import { deserializeBBSProof, verifyBBSDisclosureProof } from './bbs';
+import { SCHEMA_REGISTRY } from './bbs-schema';
 
 /** Default staleness window for request timestamps (5 minutes). */
 const STALE_TIMESTAMP_MS = 5 * 60 * 1000;
@@ -445,6 +448,14 @@ export async function verifyBatch(
         case 'nullifier':
           verified = await verifyNullifierProof(proof, verificationKey);
           break;
+        case 'bbs-selective-disclosure': {
+          const disclosureProof = deserializeBBSProof(proof.proof);
+          verified = await verifyBBSDisclosureProof(disclosureProof);
+          break;
+        }
+        case 'range':
+          verified = await verifyRangeProof(proof, verificationKey);
+          break;
         default:
           throw new ZkIdProofError(
             `Unknown proof type: ${(proof as ZkProof).proofType}`,
@@ -504,4 +515,48 @@ export async function verifyNullifierProof(
   const isValid = await snarkjs.groth16.verify(verificationKey, publicSignals, snarkProof);
 
   return isValid;
+}
+
+/**
+ * Verifies a BBS+ selective disclosure proof from a proof response
+ *
+ * @param response - The BBS proof response containing the proof and revealed fields
+ * @param publicKey - The issuer's BBS+ public key (Uint8Array)
+ * @returns true if the proof is valid, false otherwise
+ */
+export async function verifyBBSDisclosureProofFromResponse(
+  response: BBSProofResponse,
+  publicKey: Uint8Array,
+): Promise<boolean> {
+  // Validate schema exists
+  const schema = SCHEMA_REGISTRY.get(response.schemaId);
+  if (!schema) {
+    throw new ZkIdProofError(`Unknown schema: ${response.schemaId}`, 'UNKNOWN_SCHEMA');
+  }
+
+  // Deserialize the proof
+  const disclosureProof = deserializeBBSProof(response.proof);
+
+  // Verify the proof
+  return verifyBBSDisclosureProof(disclosureProof);
+}
+
+/**
+ * Verifies a range proof using the verification key
+ *
+ * @param proof - The range proof to verify
+ * @param verificationKey - The circuit's verification key (public)
+ * @returns true if the proof is valid, false otherwise
+ */
+export async function verifyRangeProof(
+  proof: { proof: { pi_a: string[]; pi_b: string[][]; pi_c: string[] }; publicSignals: string[] },
+  verificationKey: VerificationKey,
+): Promise<boolean> {
+  const snarkProof = {
+    pi_a: proof.proof.pi_a,
+    pi_b: proof.proof.pi_b,
+    pi_c: proof.proof.pi_c,
+  };
+
+  return snarkjs.groth16.verify(verificationKey, proof.publicSignals, snarkProof);
 }
