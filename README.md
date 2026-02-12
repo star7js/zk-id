@@ -47,9 +47,13 @@ Current age verification systems force users to expose sensitive information:
 - ✅ **Fast**: Proof verification in <100ms, optimized revocation checks with incremental Merkle trees
 - ✅ **Small**: Proofs are ~200 bytes
 - ✅ **Secure**: Built on Groth16 ZK-SNARKs with Ed25519 signatures
+- ✅ **OpenID4VP Compatible**: First ZK identity project with native OpenID for Verifiable Presentations support
+- ✅ **Standards-Compliant**: Implements DIF Presentation Exchange v2.0.0 and W3C VC format
 - ✅ **Multi-Attribute**: Support for multiple credential attributes with selective disclosure
 - ✅ **Built-in Scenarios**: 7 predefined verification scenarios (voting, age-gated purchases, senior discount, GDPR consent)
 - ✅ **Revocation**: In-circuit Merkle proofs for credential validity with O(1) reads and O(depth) updates
+- ✅ **Credential Expiration**: Time-limited credentials with automatic expiration validation
+- ✅ **Reference Issuer Server**: Production-ready Express server for credential issuance
 - ✅ **Telemetry**: Built-in verification event monitoring
 - ✅ **Batch Verification**: Efficient verification of multiple proofs
 - ✅ **Production Storage**: Postgres and Redis implementations with layer caching
@@ -262,17 +266,18 @@ zk-id/
 │   ├── circuits/          # Circom ZK circuits (age-verify, nationality-verify, credential-hash)
 │   ├── core/              # Core library (credential, prover, verifier, revocation, batch)
 │   ├── issuer/            # Credential issuance with Ed25519 signatures
-│   ├── sdk/               # Server SDK with telemetry & revocation checking
+│   ├── issuer-server/     # Reference issuer server (Express REST API)
+│   ├── sdk/               # Server SDK with OpenID4VP support, telemetry & revocation checking
 │   ├── redis/             # Redis stores for nonce, revocation, and distributed tree sync
 │   └── contracts/         # Solidity on-chain Groth16 verifier
 ├── examples/
 │   └── web-app/           # Full web integration example with credential issuance and verification
-└── docs/                  # Architecture and protocol documentation
+└── docs/                  # Architecture, protocol, and OpenID4VP documentation
 ```
 
 ## 📦 Packages
 
-zk-id is a monorepo with six packages. Each package has detailed documentation:
+zk-id is a monorepo with seven packages. Each package has detailed documentation:
 
 ### Core Packages
 
@@ -287,12 +292,16 @@ Seven Circom circuits for age/nationality verification, credential hashing, and 
 ### Integration Packages
 
 **[@zk-id/sdk](./packages/sdk/)** — Client and server SDK
-Server-side verification pipeline, client-side proof generation, browser wallet, security components.
+OpenID4VP support, server-side verification pipeline, client-side proof generation, browser wallet, security components.
 [View README →](./packages/sdk/README.md)
 
 **[@zk-id/issuer](./packages/issuer/)** — Credential issuance
 Multiple signature schemes (Ed25519, BabyJub EdDSA, BBS+), key management, policy enforcement.
 [View README →](./packages/issuer/README.md)
+
+**[@zk-id/issuer-server](./packages/issuer-server/)** — Reference issuer server
+Production-ready Express REST API for credential issuance, revocation, and status checking. One-command Docker deployment.
+[View README →](./packages/issuer-server/README.md)
 
 ### Production Infrastructure
 
@@ -306,14 +315,15 @@ On-chain Groth16 proof verification for Ethereum and EVM-compatible chains.
 
 ### Quick Reference
 
-| Package            | Use For                           | npm install                        |
-| ------------------ | --------------------------------- | ---------------------------------- |
-| `@zk-id/core`      | Building custom integrations      | `npm install @zk-id/core`          |
-| `@zk-id/sdk`       | Integrating into web apps         | `npm install @zk-id/sdk`           |
-| `@zk-id/issuer`    | Issuing credentials               | `npm install @zk-id/issuer`        |
-| `@zk-id/circuits`  | Circuit artifacts (auto-included) | `npm install @zk-id/circuits`      |
-| `@zk-id/redis`     | Production storage                | `npm install @zk-id/redis ioredis` |
-| `@zk-id/contracts` | On-chain verification             | `npm install @zk-id/contracts`     |
+| Package                | Use For                               | Installation/Deployment              |
+| ---------------------- | ------------------------------------- | ------------------------------------ |
+| `@zk-id/core`          | Building custom integrations          | `npm install @zk-id/core`            |
+| `@zk-id/sdk`           | Integrating into web apps (OpenID4VP) | `npm install @zk-id/sdk`             |
+| `@zk-id/issuer`        | Issuing credentials programmatically  | `npm install @zk-id/issuer`          |
+| `@zk-id/issuer-server` | Running an issuer REST API            | `docker compose up` or `npm run dev` |
+| `@zk-id/circuits`      | Circuit artifacts (auto-included)     | `npm install @zk-id/circuits`        |
+| `@zk-id/redis`         | Production storage                    | `npm install @zk-id/redis ioredis`   |
+| `@zk-id/contracts`     | On-chain verification                 | `npm install @zk-id/contracts`       |
 
 ## Use Cases
 
@@ -354,6 +364,67 @@ On-chain Groth16 proof verification for Ethereum and EVM-compatible chains.
 - **Vaccination or health status**: Prove immunization compliance without revealing full medical records
 - **Travel authorization**: Prove valid visa or entry status without revealing passport number or travel history
 
+## OpenID4VP Integration
+
+**zk-id is the first zero-knowledge identity project with native OpenID for Verifiable Presentations (OpenID4VP) support.**
+
+### What is OpenID4VP?
+
+OpenID4VP is a standard for presenting verifiable credentials using OpenID Connect. It enables:
+
+- **Wallet interoperability**: Work with any OpenID4VP-compliant wallet
+- **Verifier compatibility**: Integrate with standard identity verification infrastructure
+- **Enterprise adoption**: Aligns with EU Digital Identity Wallet (EUDI) and DC-API standards
+
+### Why This Matters
+
+Traditional ZK identity projects are siloed. zk-id breaks down barriers:
+
+| Capability              | zk-id + OpenID4VP                         | Other ZK Projects              |
+| ----------------------- | ----------------------------------------- | ------------------------------ |
+| Standards compliance    | ✅ OpenID4VP, DIF PE, W3C VC              | ❌ Custom protocols            |
+| Wallet interoperability | ✅ Any OpenID4VP wallet                   | ❌ Project-specific wallets    |
+| Enterprise integration  | ✅ Works with existing SSI infrastructure | ⚠️ Requires custom integration |
+| True zero-knowledge     | ✅ Predicate proofs (age >= X)            | ✅ Yes                         |
+| Small proofs            | ✅ ~200 bytes                             | ✅ Varies                      |
+
+### Quick Example
+
+**Verifier (OpenID4VP):**
+
+```typescript
+import { ZkIdServer, OpenID4VPVerifier } from '@zk-id/sdk';
+
+const verifier = new OpenID4VPVerifier({
+  zkIdServer: new ZkIdServer({ verificationKeyPath: './vk.json', issuerRegistry }),
+  verifierUrl: 'https://your-site.com',
+  verifierId: 'your-verifier',
+});
+
+// Create standard OpenID4VP authorization request
+const authRequest = verifier.createAgeVerificationRequest(18);
+
+// Handle presentation submission
+const result = await verifier.verifyPresentation(presentationResponse);
+```
+
+**Wallet (OpenID4VP):**
+
+```typescript
+import { OpenID4VPWallet } from '@zk-id/sdk';
+
+const wallet = new OpenID4VPWallet({
+  store: new IndexedDBCredentialStore(),
+  walletId: 'did:example:123',
+});
+
+// Parse authorization request and generate presentation
+const presentation = await wallet.generatePresentation(authRequest);
+await wallet.submitPresentation(authRequest, presentation);
+```
+
+**Learn More**: See [docs/OPENID4VP.md](./docs/OPENID4VP.md) for complete integration guide, API reference, and comparison to other standards (SD-JWT, BBS+).
+
 ## Technology
 
 - **Proof System**: Groth16 (efficient ZK-SNARKs)
@@ -363,11 +434,13 @@ On-chain Groth16 proof verification for Ethereum and EVM-compatible chains.
 - **Proof Size**: ~200 bytes (Groth16, typical encoding)
 - **Verification Time**: typically <100ms in demos; depends on hardware and load
 
-## Specs & Roadmap
+## Specs & Documentation
 
-- OpenAPI schema: `docs/openapi.yaml`
-- Protocol details: `docs/PROTOCOL.md`
-- Project roadmap: `docs/ROADMAP.md`
+- **OpenID4VP Integration**: `docs/OPENID4VP.md` - Complete guide to standards-compliant presentation exchange
+- **Post-Quantum Roadmap**: `docs/POST-QUANTUM.md` - Cryptographic agility and future-proofing strategy
+- **OpenAPI Schema**: `docs/openapi.yaml` - REST API specification
+- **Protocol Details**: `docs/PROTOCOL.md` - Wire format and cryptographic protocol
+- **Project Roadmap**: `docs/ROADMAP.md` - Development priorities and milestones
 
 ## Security Notes
 

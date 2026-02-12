@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  issuer:
+    build: .
+    ports:
+      - '3001:3001'
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - API_KEY=${API_KEY:-change-me-in-production}
+      - ISSUER_NAME=${ISSUER_NAME:-zk-id Reference Issuer}
+      - ISSUER_PRIVATE_KEY=${ISSUER_PRIVATE_KEY}
+      - ISSUER_PUBLIC_KEY=${ISSUER_PUBLIC_KEY}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:3001/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Optional: PostgreSQL for persistent revocation storage
+  # postgres:
+  #   image: postgres:16-alpine
+  #   environment:
+  #     - POSTGRES_DB=zkid
+  #     - POSTGRES_USER=zkid
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-me}
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+  #   restart: unless-stopped
+
+  # Optional: Redis for distributed caching
+  # redis:
+  #   image: redis:7-alpine
+  #   ports:
+  #     - "6379:6379"
+  #   restart: unless-stopped
+  #   command: redis-server --appendonly yes
+  #   volumes:
+  #     - redis_data:/data
+
+# volumes:
+#   postgres_data:
+#   redis_data:

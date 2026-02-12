@@ -501,3 +501,255 @@ export class BrowserWallet implements WalletConnector {
     return (await response.json()) as RevocationWitness;
   }
 }
+
+/**
+ * OpenID4VP Wallet Adapter
+ *
+ * Extends BrowserWallet to support OpenID4VP (OpenID for Verifiable Presentations)
+ * authorization requests and presentation generation.
+ *
+ * This enables zk-id wallets to interoperate with standard OpenID4VP verifiers.
+ */
+
+import { v4 as uuidv4 } from 'uuid';
+import type {
+  AuthorizationRequest,
+  PresentationSubmission,
+  PresentationResponse,
+  InputDescriptor,
+} from './server';
+
+export interface OpenID4VPWalletConfig extends BrowserWalletConfig {
+  /** Wallet identifier (DID or URL) */
+  walletId?: string;
+}
+
+export class OpenID4VPWallet extends BrowserWallet {
+  private walletId: string;
+
+  constructor(config: OpenID4VPWalletConfig) {
+    super(config);
+    this.walletId = config.walletId || 'zk-id-wallet';
+  }
+
+  /**
+   * Parse an OpenID4VP authorization request URL
+   *
+   * @param authRequestUrl - Authorization request URL or object
+   * @returns Parsed authorization request
+   */
+  parseAuthorizationRequest(authRequestUrl: string | AuthorizationRequest): AuthorizationRequest {
+    if (typeof authRequestUrl === 'object') {
+      return authRequestUrl;
+    }
+
+    // Parse URL-encoded request
+    try {
+      const url = new URL(authRequestUrl);
+      const params = url.searchParams;
+
+      // Check if request is passed by value or by reference
+      if (params.has('request_uri')) {
+        throw new Error('request_uri (request by reference) is not yet supported');
+      }
+
+      if (params.has('request')) {
+        // JWT-encoded request (not yet supported)
+        throw new Error('JWT-encoded requests are not yet supported');
+      }
+
+      // Direct parameters
+      const presentationDefinitionParam = params.get('presentation_definition');
+      if (!presentationDefinitionParam) {
+        throw new Error('Missing presentation_definition parameter');
+      }
+
+      return {
+        presentation_definition: JSON.parse(presentationDefinitionParam),
+        response_mode: params.get('response_mode') || 'direct_post',
+        response_uri: params.get('response_uri') || '',
+        nonce: params.get('nonce') || '',
+        client_id: params.get('client_id') || '',
+        state: params.get('state') || '',
+      };
+    } catch (error) {
+      throw new Error(`Failed to parse authorization request: ${error}`);
+    }
+  }
+
+  /**
+   * Generate a verifiable presentation for an OpenID4VP authorization request
+   *
+   * @param authRequest - Authorization request from verifier
+   * @returns Presentation response ready to submit
+   */
+  async generatePresentation(
+    authRequest: AuthorizationRequest | string,
+  ): Promise<PresentationResponse> {
+    const request =
+      typeof authRequest === 'string' ? this.parseAuthorizationRequest(authRequest) : authRequest;
+
+    // Get all credentials from wallet
+    const credentials = await (this as any).config.credentialStore.getAll();
+    if (credentials.length === 0) {
+      throw new Error('No credentials available in wallet');
+    }
+
+    // Use the first credential (in production, user would select)
+    const signedCredential = credentials[0];
+    const credential = signedCredential.credential;
+
+    // Analyze presentation definition to determine what proof to generate
+    const inputDescriptor = request.presentation_definition.input_descriptors[0];
+    const proofRequest = this.inputDescriptorToProofRequest(inputDescriptor, request.nonce);
+
+    // Generate the appropriate proof
+    let zkProof;
+    const timestampMs = new Date(proofRequest.timestamp).getTime();
+
+    if (proofRequest.claimType === 'age' && proofRequest.minAge) {
+      zkProof = await generateAgeProof(
+        credential,
+        proofRequest.minAge,
+        proofRequest.nonce,
+        timestampMs,
+        (this as any).config.circuitPaths.ageWasm,
+        (this as any).config.circuitPaths.ageZkey,
+      );
+    } else if (proofRequest.claimType === 'nationality' && proofRequest.targetNationality) {
+      zkProof = await generateNationalityProof(
+        credential,
+        proofRequest.targetNationality,
+        proofRequest.nonce,
+        timestampMs,
+        (this as any).config.circuitPaths.nationalityWasm,
+        (this as any).config.circuitPaths.nationalityZkey,
+      );
+    } else {
+      throw new Error(`Unsupported claim type: ${proofRequest.claimType}`);
+    }
+
+    // Build presentation submission
+    const presentationSubmission = {
+      id: uuidv4(),
+      definition_id: request.presentation_definition.id,
+      descriptor_map: [
+        {
+          id: inputDescriptor.id,
+          format: 'zk-id/proof-v1',
+          path: '$.verifiableCredential[0]',
+        },
+      ],
+    };
+
+    // Build verifiable presentation
+    const vp = {
+      '@context': [
+        'https://www.w3.org/2018/credentials/v1',
+        'https://identity.foundation/presentation-exchange/submission/v1',
+      ],
+      type: ['VerifiablePresentation', 'PresentationSubmission'],
+      presentation_submission: presentationSubmission,
+      verifiableCredential: [zkProof],
+      holder: this.walletId,
+    };
+
+    // Encode VP token
+    const vpToken = Buffer.from(JSON.stringify(vp)).toString('base64');
+
+    return {
+      vp_token: vpToken,
+      state: request.state,
+      presentation_submission: presentationSubmission,
+    };
+  }
+
+  /**
+   * Submit a presentation to the verifier's response URI
+   *
+   * @param authRequest - Authorization request
+   * @param presentation - Generated presentation
+   * @returns true if submission succeeded
+   */
+  async submitPresentation(
+    authRequest: AuthorizationRequest | string,
+    presentation: PresentationResponse,
+  ): Promise<boolean> {
+    const request =
+      typeof authRequest === 'string' ? this.parseAuthorizationRequest(authRequest) : authRequest;
+
+    try {
+      const response = await fetch(request.response_uri, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(presentation),
+      });
+
+      return response.ok;
+    } catch (error) {
+      console.error('Failed to submit presentation:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Convert a DIF Presentation Exchange input descriptor to a zk-id ProofRequest
+   *
+   * @param descriptor - Input descriptor from presentation definition
+   * @param nonce - Nonce from authorization request
+   * @returns ProofRequest for zk-id proof generation
+   */
+  private inputDescriptorToProofRequest(descriptor: InputDescriptor, nonce: string): ProofRequest {
+    // Analyze constraints to determine claim type and parameters
+    let claimType: 'age' | 'nationality' | 'age-revocable' = 'age';
+    let minAge: number | undefined;
+    let targetNationality: number | undefined;
+
+    for (const field of descriptor.constraints.fields) {
+      // Check for type field to determine proof type
+      if (field.path.some((p) => p.includes('type')) && field.filter?.pattern) {
+        if (field.filter.pattern.includes('AgeProof')) {
+          claimType = 'age';
+        } else if (field.filter.pattern.includes('NationalityProof')) {
+          claimType = 'nationality';
+        }
+      }
+
+      // Extract minimum age
+      if (field.path.some((p) => p.includes('minAge')) && field.filter?.minimum) {
+        minAge = field.filter.minimum;
+      }
+
+      // Extract target nationality
+      if (field.path.some((p) => p.includes('targetNationality'))) {
+        if (field.filter?.enum && field.filter.enum.length > 0) {
+          targetNationality = field.filter.enum[0] as number;
+        }
+      }
+    }
+
+    return {
+      claimType,
+      minAge,
+      targetNationality,
+      nonce,
+      timestamp: new Date().toISOString(),
+    };
+  }
+}
+
+// Re-export OpenID4VP types from server.ts for convenience
+export type {
+  AuthorizationRequest,
+  PresentationDefinition,
+  InputDescriptor,
+  Constraints,
+  Field,
+  Filter,
+  PresentationSubmission,
+  DescriptorMapEntry,
+  VerifiablePresentation,
+  PresentationResponse,
+} from './server';

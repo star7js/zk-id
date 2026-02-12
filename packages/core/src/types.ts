@@ -36,6 +36,8 @@ export interface SignedCredential {
   signature: string;
   /** ISO 8601 timestamp of issuance */
   issuedAt: string;
+  /** Optional ISO 8601 timestamp when credential expires */
+  expiresAt?: string;
 }
 
 export interface AgeProof {

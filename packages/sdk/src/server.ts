@@ -44,6 +44,7 @@ import {
   validateMinAge,
   validateNationality,
   validatePositiveInt,
+  ZkProof,
 } from '@zk-id/core';
 import { readFileSync } from 'fs';
 import { EventEmitter } from 'events';
@@ -683,6 +684,30 @@ export class ZkIdServer extends EventEmitter {
       if (!bindingCheck.valid) {
         const internalError = bindingCheck.error!;
         const result = { verified: false, error: this.sanitizeError(internalError) };
+        this.emitVerificationEvent(
+          proofResponse.claimType,
+          result,
+          startTime,
+          clientIdentifier,
+          internalError,
+        );
+        return result;
+      }
+    }
+
+    // Credential expiration validation
+    if (requireSigned && proofResponse.signedCredential?.expiresAt) {
+      const expiresAt = new Date(proofResponse.signedCredential.expiresAt);
+      const now = new Date();
+      const clockSkewMs = this.config.maxFutureSkewMs ?? 60000; // Default 1 minute tolerance
+
+      // Check if credential has expired (with clock skew tolerance)
+      if (now.getTime() > expiresAt.getTime() + clockSkewMs) {
+        const internalError = `Credential expired at ${proofResponse.signedCredential.expiresAt}`;
+        const result = {
+          verified: false,
+          error: this.sanitizeError(internalError),
+        };
         this.emitVerificationEvent(
           proofResponse.claimType,
           result,
@@ -2684,4 +2709,336 @@ export function validateSignedProofRequestPayload(body: unknown): PayloadValidat
     }
   }
   return errors;
+}
+
+/**
+ * OpenID4VP (OpenID for Verifiable Presentations) Verifier
+ *
+ * Wraps ZkIdServer to provide OpenID4VP-compliant presentation exchange.
+ * Implements DIF Presentation Exchange v2.0.0 descriptors for zk-id proofs.
+ *
+ * This enables zk-id to interoperate with standard OpenID4VP wallets and verifiers.
+ */
+
+export interface OpenID4VPConfig {
+  /** Underlying zk-id server for proof verification */
+  zkIdServer: ZkIdServer;
+  /** Base URL of the verifier (used in presentation requests) */
+  verifierUrl: string;
+  /** Verifier name/identifier */
+  verifierId: string;
+  /** Optional callback URL for presentation submission */
+  callbackUrl?: string;
+}
+
+export interface PresentationDefinition {
+  /** Unique identifier for this presentation definition */
+  id: string;
+  /** Input descriptors specifying required credentials */
+  input_descriptors: InputDescriptor[];
+  /** Optional name for the presentation definition */
+  name?: string;
+  /** Optional purpose/reason for requesting the presentation */
+  purpose?: string;
+}
+
+export interface InputDescriptor {
+  /** Unique identifier for this input descriptor */
+  id: string;
+  /** Optional name describing the requested credential */
+  name?: string;
+  /** Optional purpose for requesting this credential */
+  purpose?: string;
+  /** Constraints on the credential */
+  constraints: Constraints;
+}
+
+export interface Constraints {
+  /** Fields that must be present and constraints on their values */
+  fields: Field[];
+}
+
+export interface Field {
+  /** JSONPath to the field */
+  path: string[];
+  /** Optional filter on the field value */
+  filter?: Filter;
+  /** Whether this field is optional */
+  optional?: boolean;
+  /** Optional purpose for requesting this field */
+  purpose?: string;
+}
+
+export interface Filter {
+  /** Type of the field (e.g., "string", "number") */
+  type?: string;
+  /** Pattern the field must match (for strings) */
+  pattern?: string;
+  /** Minimum value (for numbers) */
+  minimum?: number;
+  /** Maximum value (for numbers) */
+  maximum?: number;
+  /** Enum of allowed values */
+  enum?: (string | number)[];
+}
+
+export interface AuthorizationRequest {
+  /** Presentation definition describing what's requested */
+  presentation_definition: PresentationDefinition;
+  /** Response mode (e.g., "direct_post") */
+  response_mode: string;
+  /** Response URI for submitting the presentation */
+  response_uri: string;
+  /** Nonce for replay protection */
+  nonce: string;
+  /** Client ID (verifier identifier) */
+  client_id: string;
+  /** State parameter */
+  state: string;
+}
+
+export interface PresentationSubmission {
+  /** Unique identifier for this submission */
+  id: string;
+  /** Reference to the presentation definition ID */
+  definition_id: string;
+  /** Descriptor map showing how requirements were fulfilled */
+  descriptor_map: DescriptorMapEntry[];
+}
+
+export interface DescriptorMapEntry {
+  /** ID of the input descriptor being fulfilled */
+  id: string;
+  /** Format of the credential (e.g., "zk-id/proof-v1") */
+  format: string;
+  /** Path to the credential in the presentation */
+  path: string;
+}
+
+export interface VerifiablePresentation {
+  /** VP type identifier */
+  '@context': string[];
+  /** Type array (must include "VerifiablePresentation") */
+  type: string[];
+  /** Presentation submission metadata */
+  presentation_submission: PresentationSubmission;
+  /** The actual verifiable credentials/proofs */
+  verifiableCredential: ZkProof[];
+  /** Optional holder identifier */
+  holder?: string;
+}
+
+export interface PresentationResponse {
+  /** The verifiable presentation */
+  vp_token: string; // Base64-encoded JSON of VerifiablePresentation
+  /** State from the authorization request */
+  state: string;
+  /** Presentation submission metadata */
+  presentation_submission: PresentationSubmission;
+}
+
+export class OpenID4VPVerifier {
+  private config: OpenID4VPConfig;
+  private pendingRequests: Map<string, AuthorizationRequest> = new Map();
+
+  constructor(config: OpenID4VPConfig) {
+    this.config = config;
+  }
+
+  /**
+   * Create an OpenID4VP authorization request for age verification
+   *
+   * @param minAge - Minimum age requirement
+   * @param state - Optional state parameter (auto-generated if not provided)
+   * @returns Authorization request to send to wallet
+   */
+  createAgeVerificationRequest(minAge: number, state?: string): AuthorizationRequest {
+    const requestState = state || this.generateState();
+    const nonce = this.generateNonce();
+
+    const presentationDefinition: PresentationDefinition = {
+      id: `age-verification-${Date.now()}`,
+      name: 'Age Verification',
+      purpose: `Prove you are at least ${minAge} years old without revealing your birth year`,
+      input_descriptors: [
+        {
+          id: 'age-proof',
+          name: 'Age Proof',
+          purpose: `Minimum age: ${minAge}`,
+          constraints: {
+            fields: [
+              {
+                path: ['$.type'],
+                filter: {
+                  type: 'string',
+                  pattern: '^AgeProof$',
+                },
+              },
+              {
+                path: ['$.publicSignals.minAge'],
+                filter: {
+                  type: 'number',
+                  minimum: minAge,
+                },
+              },
+            ],
+          },
+        },
+      ],
+    };
+
+    const authRequest: AuthorizationRequest = {
+      presentation_definition: presentationDefinition,
+      response_mode: 'direct_post',
+      response_uri: this.config.callbackUrl || `${this.config.verifierUrl}/openid4vp/callback`,
+      nonce,
+      client_id: this.config.verifierId,
+      state: requestState,
+    };
+
+    this.pendingRequests.set(requestState, authRequest);
+    return authRequest;
+  }
+
+  /**
+   * Create an OpenID4VP authorization request for nationality verification
+   *
+   * @param targetNationality - Target nationality code (ISO 3166-1 numeric)
+   * @param state - Optional state parameter (auto-generated if not provided)
+   * @returns Authorization request to send to wallet
+   */
+  createNationalityVerificationRequest(
+    targetNationality: number,
+    state?: string,
+  ): AuthorizationRequest {
+    const requestState = state || this.generateState();
+    const nonce = this.generateNonce();
+
+    const presentationDefinition: PresentationDefinition = {
+      id: `nationality-verification-${Date.now()}`,
+      name: 'Nationality Verification',
+      purpose: `Prove your nationality is ${targetNationality} without revealing other information`,
+      input_descriptors: [
+        {
+          id: 'nationality-proof',
+          name: 'Nationality Proof',
+          purpose: `Required nationality: ${targetNationality}`,
+          constraints: {
+            fields: [
+              {
+                path: ['$.type'],
+                filter: {
+                  type: 'string',
+                  pattern: '^NationalityProof$',
+                },
+              },
+              {
+                path: ['$.publicSignals.targetNationality'],
+                filter: {
+                  type: 'number',
+                  enum: [targetNationality],
+                },
+              },
+            ],
+          },
+        },
+      ],
+    };
+
+    const authRequest: AuthorizationRequest = {
+      presentation_definition: presentationDefinition,
+      response_mode: 'direct_post',
+      response_uri: this.config.callbackUrl || `${this.config.verifierUrl}/openid4vp/callback`,
+      nonce,
+      client_id: this.config.verifierId,
+      state: requestState,
+    };
+
+    this.pendingRequests.set(requestState, authRequest);
+    return authRequest;
+  }
+
+  /**
+   * Verify a presentation submission from a wallet
+   *
+   * @param response - Presentation response from wallet
+   * @param clientIdentifier - Optional client IP/session for rate limiting
+   * @returns Verification result
+   */
+  async verifyPresentation(
+    response: PresentationResponse,
+    clientIdentifier?: string,
+  ): Promise<VerificationResult> {
+    // Validate state parameter
+    const authRequest = this.pendingRequests.get(response.state);
+    if (!authRequest) {
+      return {
+        verified: false,
+        error: 'Invalid or expired state parameter',
+      };
+    }
+
+    // Decode VP token
+    let vp: VerifiablePresentation;
+    try {
+      const vpJson = Buffer.from(response.vp_token, 'base64').toString('utf-8');
+      vp = JSON.parse(vpJson);
+    } catch (error) {
+      return {
+        verified: false,
+        error: 'Invalid VP token encoding',
+      };
+    }
+
+    // Validate VP structure
+    if (!vp.type.includes('VerifiablePresentation')) {
+      return {
+        verified: false,
+        error: 'Invalid VP type',
+      };
+    }
+
+    // Validate presentation submission
+    if (vp.presentation_submission.definition_id !== authRequest.presentation_definition.id) {
+      return {
+        verified: false,
+        error: 'Presentation definition mismatch',
+      };
+    }
+
+    // Extract zk-id proof from VP
+    if (vp.verifiableCredential.length === 0) {
+      return {
+        verified: false,
+        error: 'No credentials in presentation',
+      };
+    }
+
+    const zkProof = vp.verifiableCredential[0];
+
+    // Convert to zk-id ProofResponse format
+    const proofResponse: ProofResponse = {
+      credentialId: 'openid4vp-credential',
+      claimType: zkProof.proofType === 'age' ? 'age' : 'nationality',
+      proof: zkProof,
+      nonce: authRequest.nonce,
+      requestTimestamp: new Date().toISOString(),
+    };
+
+    // Verify using underlying zk-id server
+    const result = await this.config.zkIdServer.verifyProof(proofResponse, clientIdentifier);
+
+    // Clean up pending request
+    this.pendingRequests.delete(response.state);
+
+    return result;
+  }
+
+  private generateNonce(): string {
+    return randomBytes(16).toString('hex');
+  }
+
+  private generateState(): string {
+    return randomBytes(16).toString('hex');
+  }
 }
