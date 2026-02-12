@@ -30,7 +30,7 @@
     "zk-snark"
   ],
   "dependencies": {
-    "@zk-id/core": "workspace:*"
+    "@zk-id/core": "*"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",

@@ -10,8 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@zk-id/core": "workspace:*",
-    "@zk-id/sdk": "workspace:*"
+    "@zk-id/core": "*",
+    "@zk-id/sdk": "*"
   },
   "devDependencies": {
     "@types/node": "^20.10.6",

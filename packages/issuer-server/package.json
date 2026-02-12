@@ -20,8 +20,8 @@
   "author": "zk-id contributors",
   "license": "Apache-2.0",
   "dependencies": {
-    "@zk-id/core": "workspace:*",
-    "@zk-id/issuer": "workspace:*",
+    "@zk-id/core": "*",
+    "@zk-id/issuer": "*",
     "express": "^4.18.2",
     "dotenv": "^16.3.1",
     "cors": "^2.8.5",
