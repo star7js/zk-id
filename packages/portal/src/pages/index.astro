@@ -69,14 +69,14 @@ const demoVideoUrl = import.meta.env.PUBLIC_DEMO_VIDEO_URL;
         <div class="demo-code">
           <h3>Add Age Verification in 3 Lines</h3>
           <pre><code><span class="comment">// 1. Import the widget</span>
-<span class="keyword">import</span> { ZkIdAgeGateWidget } <span class="keyword">from</span> <span class="string">'@zk-id/age-gate-widget'</span>;
+<span class="keyword">import</span> &#123; ZkIdAgeGateWidget &#125; <span class="keyword">from</span> <span class="string">'@zk-id/age-gate-widget'</span>;
 
 <span class="comment">// 2. Initialize on button click</span>
-ZkIdAgeGateWidget.<span class="function">init</span>({
+ZkIdAgeGateWidget.<span class="function">init</span>(&#123;
   <span class="property">verificationEndpoint</span>: <span class="string">'https://your-verifier.com/auth/request'</span>,
   <span class="property">minAge</span>: <span class="number">18</span>,
   <span class="property">onVerified</span>: <span class="function">() => showRestrictedContent</span>(),
-});
+&#125;);
 
 <span class="comment">// 3. That's it! 🎉</span></code></pre>
           <a href={makeUrl('/docs/integration-guide')} class="btn btn-secondary">View Integration Guide</a>
