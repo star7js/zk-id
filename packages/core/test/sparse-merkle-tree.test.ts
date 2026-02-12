@@ -239,7 +239,7 @@ describe('SparseMerkleTree', () => {
 
   describe('non-membership witness', () => {
     it('generates a non-membership witness for absent credential', async () => {
-      const tree = new SparseMerkleTree(5);
+      const tree = new SparseMerkleTree(20);
       const cred1 = await createCredential(1990, 840);
       const absent = await createCredential(1991, 826);
 
@@ -247,12 +247,12 @@ describe('SparseMerkleTree', () => {
       const witness = await tree.getNonMembershipWitness(absent.commitment);
 
       assert.ok(witness, 'should return a witness');
-      assert.strictEqual(witness!.pathIndices.length, 5);
-      assert.strictEqual(witness!.siblings.length, 5);
+      assert.strictEqual(witness!.pathIndices.length, 20);
+      assert.strictEqual(witness!.siblings.length, 20);
     });
 
     it('non-membership witness root matches tree root', async () => {
-      const tree = new SparseMerkleTree(5);
+      const tree = new SparseMerkleTree(20);
       const cred = await createCredential(1990, 840);
       const absent = await createCredential(1991, 826);
 
@@ -263,7 +263,7 @@ describe('SparseMerkleTree', () => {
     });
 
     it('non-membership witness verifies with zero leaf', async () => {
-      const tree = new SparseMerkleTree(5);
+      const tree = new SparseMerkleTree(20);
       const cred = await createCredential(1990, 840);
       const absent = await createCredential(1991, 826);
 
@@ -287,7 +287,7 @@ describe('SparseMerkleTree', () => {
     });
 
     it('returns null for credential that IS in tree', async () => {
-      const tree = new SparseMerkleTree(5);
+      const tree = new SparseMerkleTree(20);
       const cred = await createCredential(1990, 840);
 
       await tree.add(cred.commitment);
@@ -297,7 +297,7 @@ describe('SparseMerkleTree', () => {
     });
 
     it('works on empty tree', async () => {
-      const tree = new SparseMerkleTree(5);
+      const tree = new SparseMerkleTree(20);
       const cred = await createCredential(1990, 840);
 
       const witness = await tree.getNonMembershipWitness(cred.commitment);

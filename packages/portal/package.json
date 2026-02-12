@@ -9,7 +9,8 @@
     "start": "astro dev",
     "build": "astro check && astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "test": "echo 'No tests for portal'"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",
