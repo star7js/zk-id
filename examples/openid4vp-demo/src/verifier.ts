@@ -14,7 +14,10 @@ import { createPublicKey } from 'crypto';
 const PORT = process.env.PORT || 3002;
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:3001'],
+  credentials: true,
+}));
 app.use(express.json());
 
 // Initialize ZkIdServer (standard verification)
@@ -90,6 +93,11 @@ app.post('/openid4vp/callback', async (req, res) => {
       error: 'Internal server error',
     });
   }
+});
+
+// Root endpoint - redirect to UI
+app.get('/', (req, res) => {
+  res.redirect('http://localhost:3000');
 });
 
 // Health check

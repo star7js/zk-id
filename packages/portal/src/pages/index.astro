@@ -1,4 +1,5 @@
 ---
+import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 
 const base = import.meta.env.BASE_URL;
@@ -8,6 +9,16 @@ const makeUrl = (path: string) => {
   if (base === '/') return path;
   return `${base}${path}`;
 };
+
+// Get recent blog posts
+const allPosts = await getCollection('blog');
+const recentPosts = allPosts
+  .filter((post) => !post.data.draft)
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+  .slice(0, 3);
+
+// Optional demo video URL from environment
+const demoVideoUrl = import.meta.env.PUBLIC_DEMO_VIDEO_URL;
 ---
 
 <BaseLayout>
@@ -35,6 +46,43 @@ const makeUrl = (path: string) => {
         </p>
       </div>
     </div>
+
+    <section class="demo-section">
+      <h2>See It In Action</h2>
+      <div class="demo-container">
+        <div class="demo-video">
+          {demoVideoUrl ? (
+            <iframe
+              src={demoVideoUrl}
+              title="ZK-ID Demo Video"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+            ></iframe>
+          ) : (
+            <div class="video-placeholder">
+              <div class="placeholder-icon">🎥</div>
+              <p>Demo video coming soon</p>
+              <p class="placeholder-hint">Try the <a href={makeUrl('/playground')}>live playground</a> instead</p>
+            </div>
+          )}
+        </div>
+        <div class="demo-code">
+          <h3>Add Age Verification in 3 Lines</h3>
+          <pre><code><span class="comment">// 1. Import the widget</span>
+<span class="keyword">import</span> { ZkIdAgeGateWidget } <span class="keyword">from</span> <span class="string">'@zk-id/age-gate-widget'</span>;
+
+<span class="comment">// 2. Initialize on button click</span>
+ZkIdAgeGateWidget.<span class="function">init</span>({
+  <span class="property">verificationEndpoint</span>: <span class="string">'https://your-verifier.com/auth/request'</span>,
+  <span class="property">minAge</span>: <span class="number">18</span>,
+  <span class="property">onVerified</span>: <span class="function">() => showRestrictedContent</span>(),
+});
+
+<span class="comment">// 3. That's it! 🎉</span></code></pre>
+          <a href={makeUrl('/docs/integration-guide')} class="btn btn-secondary">View Integration Guide</a>
+        </div>
+      </div>
+    </section>
 
     <section class="features">
       <h2>Features</h2>
@@ -81,6 +129,78 @@ const makeUrl = (path: string) => {
           <h3>📚 Documentation</h3>
           <p>Architecture, protocol details, compliance, and deployment guides</p>
         </a>
+      </div>
+    </section>
+
+    {recentPosts.length > 0 && (
+      <section class="blog-section">
+        <div class="section-header">
+          <h2>Latest from the Blog</h2>
+          <a href={makeUrl('/blog')} class="view-all">View all posts →</a>
+        </div>
+        <div class="blog-grid">
+          {recentPosts.map((post) => (
+            <article class="blog-card">
+              <a href={makeUrl(`/blog/${post.slug}`)}>
+                <div class="blog-meta">
+                  <time datetime={post.data.date.toISOString()}>
+                    {post.data.date.toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </time>
+                </div>
+                <h3>{post.data.title}</h3>
+                <p>{post.data.description}</p>
+                <div class="blog-tags">
+                  {post.data.tags.slice(0, 3).map((tag) => (
+                    <span class="tag">{tag}</span>
+                  ))}
+                </div>
+              </a>
+            </article>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <section class="integrations-section">
+      <h2>Integrations</h2>
+      <p class="integrations-subtitle">
+        Zero-knowledge identity verification for your stack
+      </p>
+      <div class="integrations-grid">
+        <div class="integration-card">
+          <div class="integration-icon">🌐</div>
+          <h3>OpenID4VP</h3>
+          <p>Standards-compliant verifiable presentations with W3C and DIF</p>
+        </div>
+        <div class="integration-card">
+          <div class="integration-icon">📱</div>
+          <h3>Mobile SDK</h3>
+          <p>React Native and Flutter support for iOS and Android wallets</p>
+        </div>
+        <div class="integration-card">
+          <div class="integration-icon">🔗</div>
+          <h3>REST API</h3>
+          <p>Language-agnostic HTTP API for verification servers</p>
+        </div>
+        <div class="integration-card coming-soon">
+          <div class="integration-icon">🇪🇺</div>
+          <h3>EUDI Wallet</h3>
+          <p>EU Digital Identity Wallet integration (Coming Q2 2026)</p>
+        </div>
+        <div class="integration-card coming-soon">
+          <div class="integration-icon">🔐</div>
+          <h3>Digital Credentials API</h3>
+          <p>Browser-native credential storage (Coming Q3 2026)</p>
+        </div>
+        <div class="integration-card coming-soon">
+          <div class="integration-icon">⚡</div>
+          <h3>Lightning Network</h3>
+          <p>Zero-knowledge payments and identity (Coming Q4 2026)</p>
+        </div>
       </div>
     </section>
   </div>
@@ -240,6 +360,239 @@ const makeUrl = (path: string) => {
       line-height: 1.6;
     }
 
+    .demo-section {
+      margin-bottom: 80px;
+    }
+
+    .demo-section h2 {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .demo-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      align-items: center;
+    }
+
+    .demo-video {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      overflow: hidden;
+      aspect-ratio: 16 / 9;
+    }
+
+    .demo-video iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    .video-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-secondary);
+    }
+
+    .placeholder-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+
+    .placeholder-hint {
+      font-size: 14px;
+      margin-top: 8px;
+    }
+
+    .placeholder-hint a {
+      color: var(--accent-client);
+      text-decoration: none;
+    }
+
+    .placeholder-hint a:hover {
+      text-decoration: underline;
+    }
+
+    .demo-code {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .demo-code h3 {
+      font-size: 24px;
+      margin-bottom: 4px;
+    }
+
+    .demo-code pre {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 20px;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .demo-code .comment { color: #6a737d; }
+    .demo-code .keyword { color: #d73a49; }
+    .demo-code .string { color: #032f62; }
+    .demo-code .function { color: #6f42c1; }
+    .demo-code .property { color: #005cc5; }
+    .demo-code .number { color: #005cc5; }
+
+    .blog-section {
+      margin-bottom: 80px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 40px;
+    }
+
+    .section-header h2 {
+      margin: 0;
+    }
+
+    .view-all {
+      color: var(--accent-client);
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .view-all:hover {
+      text-decoration: underline;
+    }
+
+    .blog-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+    }
+
+    .blog-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .blog-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-medium);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    .blog-card a {
+      display: block;
+      padding: 24px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .blog-meta {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+
+    .blog-card h3 {
+      font-size: 20px;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+      line-height: 1.3;
+    }
+
+    .blog-card p {
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .blog-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .blog-tags .tag {
+      font-size: 12px;
+      padding: 4px 12px;
+      background: var(--bg-elevated);
+      border-radius: 12px;
+      color: var(--text-secondary);
+    }
+
+    .integrations-section {
+      margin-bottom: 60px;
+    }
+
+    .integrations-section h2 {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .integrations-subtitle {
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 18px;
+      margin-bottom: 40px;
+    }
+
+    .integrations-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    .integration-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 32px;
+      transition: all 0.3s ease;
+    }
+
+    .integration-card:hover {
+      border-color: var(--border-medium);
+      transform: translateY(-4px);
+    }
+
+    .integration-card.coming-soon {
+      opacity: 0.6;
+    }
+
+    .integration-card.coming-soon:hover {
+      opacity: 1;
+    }
+
+    .integration-icon {
+      font-size: 40px;
+      margin-bottom: 16px;
+    }
+
+    .integration-card h3 {
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+
+    .integration-card p {
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
     @media (max-width: 768px) {
       .hero-actions {
         flex-direction: column;
@@ -247,6 +600,15 @@ const makeUrl = (path: string) => {
 
       .feature-grid,
       .link-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .demo-container {
+        grid-template-columns: 1fr;
+      }
+
+      .blog-grid,
+      .integrations-grid {
         grid-template-columns: 1fr;
       }
     }

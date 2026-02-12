@@ -1,0 +1,48 @@
+{
+  "name": "@zk-id/mobile",
+  "version": "0.6.2",
+  "description": "Zero-knowledge identity SDK for React Native and mobile platforms",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "zero-knowledge",
+    "identity",
+    "mobile",
+    "react-native",
+    "privacy",
+    "zk-snark"
+  ],
+  "dependencies": {
+    "@zk-id/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.11",
+    "@types/node": "^20.10.6",
+    "jest": "^29.7.0",
+    "typescript": "^5.3.3"
+  },
+  "peerDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/star7js/zk-id.git",
+    "directory": "packages/mobile"
+  },
+  "license": "Apache-2.0"
+}

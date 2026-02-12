@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Age Gate Widget Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .demo-container {
+      background: white;
+      border-radius: 16px;
+      padding: 3rem;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: #1a1a1a;
+    }
+
+    .subtitle {
+      font-size: 1rem;
+      color: #666;
+      margin-bottom: 2rem;
+      line-height: 1.5;
+    }
+
+    .demo-site {
+      background: #f5f5f5;
+      border-radius: 8px;
+      padding: 2rem;
+      margin: 2rem 0;
+      border: 2px dashed #ddd;
+    }
+
+    .demo-site h2 {
+      font-size: 1.5rem;
+      color: #1a1a1a;
+      margin-bottom: 1rem;
+    }
+
+    .demo-site p {
+      color: #666;
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+
+    .restricted-content {
+      background: #fff;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      padding: 2rem;
+      margin-top: 1rem;
+    }
+
+    .restricted-content.hidden {
+      display: none;
+    }
+
+    .restricted-content h3 {
+      font-size: 1.25rem;
+      color: #238636;
+      margin-bottom: 1rem;
+    }
+
+    .restricted-content p {
+      color: #333;
+    }
+
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 1rem 2rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    button:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .code-block {
+      background: #1a1a1a;
+      color: #f5f5f5;
+      padding: 1.5rem;
+      border-radius: 8px;
+      margin: 2rem 0;
+      text-align: left;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 0.875rem;
+      overflow-x: auto;
+      line-height: 1.6;
+    }
+
+    .code-block .comment {
+      color: #888;
+    }
+
+    .code-block .keyword {
+      color: #c678dd;
+    }
+
+    .code-block .string {
+      color: #98c379;
+    }
+
+    .code-block .function {
+      color: #61afef;
+    }
+
+    .footer {
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid #eee;
+      color: #999;
+      font-size: 0.875rem;
+    }
+
+    .footer a {
+      color: #667eea;
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-container">
+    <h1>🔐 Age Gate Widget Demo</h1>
+    <p class="subtitle">
+      Add zero-knowledge age verification to any website in 3 lines of code.
+      No user data stored, no tracking, complete privacy.
+    </p>
+
+    <div class="demo-site">
+      <h2>🍺 Demo: Age-Restricted Site</h2>
+      <p>
+        This content requires age verification. Click below to prove you're 18+
+        using a zero-knowledge proof. Your birthdate stays private!
+      </p>
+
+      <button id="enter-site">Enter Site (18+ Required)</button>
+
+      <div id="restricted-content" class="restricted-content hidden">
+        <h3>✅ Welcome! You're verified.</h3>
+        <p>
+          You've successfully proven you're 18+ without revealing your actual birthdate.
+          This is the power of zero-knowledge proofs!
+        </p>
+        <p style="margin-top: 1rem; font-size: 0.875rem; color: #666;">
+          💡 What happened: A ZK-SNARK circuit generated a cryptographic proof that your
+          age meets the requirement, without exposing your date of birth to this website or any third party.
+        </p>
+      </div>
+    </div>
+
+    <h3 style="margin-top: 2rem; margin-bottom: 1rem; color: #1a1a1a;">Integration Code</h3>
+    <div class="code-block">
+<span class="comment">// 1. Import the widget</span>
+<span class="keyword">import</span> { <span class="function">ZkIdAgeGateWidget</span> } <span class="keyword">from</span> <span class="string">'@zk-id/age-gate-widget'</span>;
+
+<span class="comment">// 2. Call init with your config</span>
+<span class="function">ZkIdAgeGateWidget</span>.<span class="function">init</span>({
+  verificationEndpoint: <span class="string">'http://localhost:3002/auth/request'</span>,
+  minAge: <span class="string">18</span>,
+  onVerified: () => {
+    <span class="comment">// User verified! Show restricted content</span>
+    showRestrictedContent();
+  },
+  onRejected: (reason) => {
+    <span class="comment">// Verification failed or cancelled</span>
+    console.<span class="function">log</span>(<span class="string">'Rejected:'</span>, reason);
+  }
+});
+
+<span class="comment">// 3. That's it! 🎉</span>
+    </div>
+
+    <div class="footer">
+      <p>
+        <strong>Prerequisites:</strong> Requires a running verifier server.
+        <br>
+        Run the <a href="../openid4vp-demo">OpenID4VP demo</a> to test locally.
+      </p>
+      <p style="margin-top: 1rem;">
+        <a href="https://github.com/star7js/zk-id">GitHub</a> •
+        <a href="https://zk-id.io/docs">Documentation</a> •
+        <a href="https://zk-id.io">Website</a>
+      </p>
+    </div>
+  </div>
+
+  <script type="module">
+    import { ZkIdAgeGateWidget } from './src/age-gate.ts';
+
+    document.getElementById('enter-site').addEventListener('click', () => {
+      ZkIdAgeGateWidget.init({
+        verificationEndpoint: 'http://localhost:3002/auth/request',
+        minAge: 18,
+        issuerEndpoint: 'http://localhost:3001/issue',
+        onVerified: () => {
+          console.log('Age verified!');
+          document.getElementById('restricted-content').classList.remove('hidden');
+          document.getElementById('enter-site').textContent = '✅ Verified';
+          document.getElementById('enter-site').disabled = true;
+          document.getElementById('enter-site').style.opacity = '0.6';
+          document.getElementById('enter-site').style.cursor = 'not-allowed';
+        },
+        onRejected: (reason) => {
+          console.log('Verification rejected:', reason);
+          alert(`Verification failed: ${reason}`);
+        },
+        branding: {
+          title: 'Age Verification Required',
+          primaryColor: '#667eea',
+        },
+      });
+    });
+  </script>
+</body>
+</html>

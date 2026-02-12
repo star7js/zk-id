@@ -1,0 +1,454 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from './BaseLayout.astro';
+
+interface Props {
+  post: any;
+}
+
+const { post } = Astro.props;
+const { title, description, date, author, tags } = post.data;
+
+// Get recent posts for sidebar
+const allPosts = await getCollection('blog');
+const recentPosts = allPosts
+  .filter((p) => !p.data.draft && p.slug !== post.slug)
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+  .slice(0, 5);
+---
+
+<BaseLayout title={`${title} - zk-id Blog`} description={description}>
+  <div class="blog-post-container">
+    <article class="blog-post">
+      <header class="post-header">
+        <div class="breadcrumbs">
+          <a href="/">Home</a>
+          <span class="separator">→</span>
+          <a href="/blog">Blog</a>
+          <span class="separator">→</span>
+          <span>{title}</span>
+        </div>
+
+        <h1 class="post-title">{title}</h1>
+
+        <div class="post-meta">
+          <div class="meta-item">
+            <span class="meta-label">Published</span>
+            <time datetime={date.toISOString()}>
+              {date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })}
+            </time>
+          </div>
+
+          <div class="meta-item">
+            <span class="meta-label">Author</span>
+            <span>{author}</span>
+          </div>
+
+          {tags.length > 0 && (
+            <div class="meta-item tags">
+              <span class="meta-label">Tags</span>
+              <div class="tag-list">
+                {tags.map((tag: string) => (
+                  <span class="tag">{tag}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </header>
+
+      <div class="post-content prose">
+        <slot />
+      </div>
+
+      <footer class="post-footer">
+        <div class="share">
+          <span class="share-label">Share this post:</span>
+          <div class="share-buttons">
+            <a
+              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent('https://zk-id.io/blog/' + post.slug)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="share-button twitter"
+            >
+              Twitter
+            </a>
+            <a
+              href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://zk-id.io/blog/' + post.slug)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="share-button linkedin"
+            >
+              LinkedIn
+            </a>
+          </div>
+        </div>
+
+        <div class="back-link">
+          <a href="/blog">← Back to all posts</a>
+        </div>
+      </footer>
+    </article>
+
+    <aside class="sidebar">
+      {recentPosts.length > 0 && (
+        <div class="sidebar-section">
+          <h3>Recent Posts</h3>
+          <ul class="recent-posts">
+            {recentPosts.map((p) => (
+              <li>
+                <a href={`/blog/${p.slug}`}>
+                  <span class="recent-post-title">{p.data.title}</span>
+                  <time datetime={p.data.date.toISOString()}>
+                    {p.data.date.toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </time>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div class="sidebar-section">
+        <h3>Resources</h3>
+        <ul class="resource-links">
+          <li><a href="/docs/getting-started">Getting Started</a></li>
+          <li><a href="/api">API Reference</a></li>
+          <li><a href="/playground">Try the Playground</a></li>
+          <li><a href="https://github.com/star7js/zk-id">GitHub</a></li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+</BaseLayout>
+
+<style>
+  .blog-post-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 4rem 2rem;
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 4rem;
+  }
+
+  .blog-post {
+    max-width: 800px;
+  }
+
+  .breadcrumbs {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+  }
+
+  .breadcrumbs a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+
+  .breadcrumbs a:hover {
+    text-decoration: underline;
+  }
+
+  .separator {
+    margin: 0 0.5rem;
+  }
+
+  .post-header {
+    margin-bottom: 3rem;
+  }
+
+  .post-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+  }
+
+  .post-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    padding: 1.5rem 0;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .meta-item.tags {
+    flex: 1;
+  }
+
+  .meta-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .tag {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    background: var(--bg-tertiary);
+    border-radius: 12px;
+    color: var(--text-muted);
+  }
+
+  .post-content {
+    font-size: 1.125rem;
+    line-height: 1.8;
+    color: var(--text-primary);
+  }
+
+  .prose {
+    max-width: 100%;
+  }
+
+  .prose :global(h1),
+  .prose :global(h2),
+  .prose :global(h3),
+  .prose :global(h4) {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .prose :global(h1) { font-size: 2rem; }
+  .prose :global(h2) { font-size: 1.75rem; }
+  .prose :global(h3) { font-size: 1.5rem; }
+  .prose :global(h4) { font-size: 1.25rem; }
+
+  .prose :global(p) {
+    margin-bottom: 1.5rem;
+  }
+
+  .prose :global(a) {
+    color: var(--primary);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s;
+  }
+
+  .prose :global(a:hover) {
+    border-bottom-color: var(--primary);
+  }
+
+  .prose :global(code) {
+    background: var(--bg-tertiary);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-family: 'Monaco', 'Menlo', monospace;
+  }
+
+  .prose :global(pre) {
+    background: var(--bg-tertiary);
+    padding: 1.5rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 1.5rem 0;
+  }
+
+  .prose :global(pre code) {
+    background: none;
+    padding: 0;
+  }
+
+  .prose :global(ul),
+  .prose :global(ol) {
+    margin: 1.5rem 0;
+    padding-left: 2rem;
+  }
+
+  .prose :global(li) {
+    margin-bottom: 0.5rem;
+  }
+
+  .prose :global(blockquote) {
+    border-left: 4px solid var(--primary);
+    padding-left: 1.5rem;
+    margin: 1.5rem 0;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .post-footer {
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .share {
+    margin-bottom: 2rem;
+  }
+
+  .share-label {
+    display: block;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+  }
+
+  .share-buttons {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .share-button {
+    padding: 0.5rem 1rem;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    transition: all 0.2s;
+  }
+
+  .share-button:hover {
+    background: var(--primary);
+    color: white;
+  }
+
+  .back-link a {
+    color: var(--primary);
+    text-decoration: none;
+    font-size: 0.875rem;
+  }
+
+  .back-link a:hover {
+    text-decoration: underline;
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 2rem;
+    height: fit-content;
+  }
+
+  .sidebar-section {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .sidebar-section h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+  }
+
+  .recent-posts {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .recent-posts li {
+    margin-bottom: 1rem;
+  }
+
+  .recent-posts li:last-child {
+    margin-bottom: 0;
+  }
+
+  .recent-posts a {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: color 0.2s;
+  }
+
+  .recent-posts a:hover {
+    color: var(--primary);
+  }
+
+  .recent-post-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .recent-posts time {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .resource-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .resource-links li {
+    margin-bottom: 0.75rem;
+  }
+
+  .resource-links a {
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: color 0.2s;
+  }
+
+  .resource-links a:hover {
+    color: var(--primary);
+  }
+
+  @media (max-width: 1024px) {
+    .blog-post-container {
+      grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+      position: static;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .blog-post-container {
+      padding: 2rem 1rem;
+    }
+
+    .post-title {
+      font-size: 2rem;
+    }
+
+    .post-content {
+      font-size: 1rem;
+    }
+
+    .sidebar {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
