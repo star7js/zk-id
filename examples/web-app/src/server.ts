@@ -32,6 +32,8 @@ async function main() {
   const allowedOrigins = [
     'http://localhost:4321',
     'https://star7js.github.io',
+    'https://zk-id.io',
+    'https://www.zk-id.io',
   ];
 
   app.use((req, res, next) => {
