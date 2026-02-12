@@ -15,26 +15,32 @@ import type { SignedCredential, SerializedBBSCredential } from '@zk-id/core';
 const mockCredential: SignedCredential = {
   credential: {
     id: 'cred-123',
-    holderName: 'Alice Smith',
-    dateOfBirth: '1990-06-15',
-    nationality: 'US',
+    birthYear: 1990,
+    nationality: 840, // ISO 3166-1 numeric code for US
+    salt: 'mock-salt-12345',
     commitment: 'mock-commitment',
+    createdAt: new Date().toISOString(),
   },
-  issuerSignature: 'mock-signature',
-  issuerPublicKey: 'mock-public-key',
+  issuer: 'mock-issuer',
+  signature: 'mock-signature',
   issuedAt: new Date().toISOString(),
 };
 
 // Mock BBS+ credential
 const mockBBSCredential: SerializedBBSCredential = {
+  schemaId: 'age-verification',
   fields: {
     id: 'bbs-123',
-    name: 'Alice Smith',
-    age: 33,
-    email: 'alice@example.com',
+    birthYear: 1990,
+    nationality: 840,
+    salt: 'mock-bbs-salt',
+    issuedAt: new Date().toISOString(),
+    issuer: 'mock-bbs-issuer',
   },
   signature: 'mock-bbs-signature',
   publicKey: 'mock-bbs-public-key',
+  issuer: 'mock-bbs-issuer',
+  issuedAt: new Date().toISOString(),
 };
 
 describe('InMemoryCredentialStore', () => {
@@ -57,7 +63,10 @@ describe('InMemoryCredentialStore', () => {
 
   it('should list all credentials', async () => {
     await store.put(mockCredential);
-    await store.put({ ...mockCredential, credential: { ...mockCredential.credential, id: 'cred-456' } });
+    await store.put({
+      ...mockCredential,
+      credential: { ...mockCredential.credential, id: 'cred-456' },
+    });
 
     const all = await store.getAll();
     expect(all).toHaveLength(2);
@@ -73,7 +82,10 @@ describe('InMemoryCredentialStore', () => {
 
   it('should clear all credentials', async () => {
     await store.put(mockCredential);
-    await store.put({ ...mockCredential, credential: { ...mockCredential.credential, id: 'cred-456' } });
+    await store.put({
+      ...mockCredential,
+      credential: { ...mockCredential.credential, id: 'cred-456' },
+    });
 
     await store.clear();
 
@@ -116,8 +128,12 @@ describe('MobileCredentialStore', () => {
     mockStorage = new Map();
     adapter = {
       getItem: async (key) => mockStorage.get(key) ?? null,
-      setItem: async (key, value) => { mockStorage.set(key, value); },
-      removeItem: async (key) => { mockStorage.delete(key); },
+      setItem: async (key, value) => {
+        mockStorage.set(key, value);
+      },
+      removeItem: async (key) => {
+        mockStorage.delete(key);
+      },
       getAllKeys: async () => Array.from(mockStorage.keys()),
     };
     store = new MobileCredentialStore(adapter);

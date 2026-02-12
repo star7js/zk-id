@@ -10,13 +10,14 @@ import type { SignedCredential } from '@zk-id/core';
 const mockCredential: SignedCredential = {
   credential: {
     id: 'cred-123',
-    holderName: 'Alice Smith',
-    dateOfBirth: '1990-06-15',
-    nationality: 'US',
+    birthYear: 1990,
+    nationality: 840, // ISO 3166-1 numeric code for US
+    salt: 'mock-salt-12345',
     commitment: 'mock-commitment',
+    createdAt: new Date().toISOString(),
   },
-  issuerSignature: 'mock-signature',
-  issuerPublicKey: 'mock-public-key',
+  issuer: 'mock-issuer',
+  signature: 'mock-signature',
   issuedAt: new Date().toISOString(),
 };
 
@@ -81,7 +82,10 @@ describe('MobileWallet', () => {
     });
 
     it('should handle multiple credentials in export/import', async () => {
-      const cred2 = { ...mockCredential, credential: { ...mockCredential.credential, id: 'cred-456' } };
+      const cred2 = {
+        ...mockCredential,
+        credential: { ...mockCredential.credential, id: 'cred-456' },
+      };
 
       await wallet.addCredential(mockCredential);
       await wallet.addCredential(cred2);

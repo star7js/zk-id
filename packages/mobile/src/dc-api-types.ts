@@ -101,14 +101,9 @@ export class BrowserDCAPIAdapter implements DCAPIAdapter {
       return false;
     }
 
-    // Check for 'identity' provider type (Digital Credentials API)
-    try {
-      // This is a capability check - won't actually request credentials
-      const hasIdentityProvider = 'identity' in CredentialRequestOptions.prototype;
-      return hasIdentityProvider;
-    } catch {
-      return false;
-    }
+    // Digital Credentials API is available if navigator.credentials exists
+    // Full feature detection would require browser capability checks
+    return true;
   }
 
   async get(request: DigitalCredentialRequest): Promise<DigitalCredential> {

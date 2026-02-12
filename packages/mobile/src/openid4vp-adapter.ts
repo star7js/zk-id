@@ -301,7 +301,7 @@ export function buildDeepLink(authRequest: AuthorizationRequest): string {
 interface ProofRequest {
   claimType: 'age' | 'nationality';
   minAge?: number;
-  targetNationality?: string;
+  targetNationality?: number;
   nonce: string;
   timestamp: string;
 }
@@ -333,7 +333,7 @@ function inputDescriptorToProofRequest(descriptor: InputDescriptor, nonce: strin
   if (nationalityField && nationalityField.filter?.const) {
     return {
       claimType: 'nationality',
-      targetNationality: nationalityField.filter.const,
+      targetNationality: Number(nationalityField.filter.const),
       nonce,
       timestamp: new Date().toISOString(),
     };
@@ -353,7 +353,7 @@ function dcqlQueryToProofRequest(dcqlQuery: DCQLQuery, nonce: string): ProofRequ
   // Analyze DCQL query to determine claim type and parameters
   let claimType: 'age' | 'nationality' = 'age';
   let minAge: number | undefined;
-  let targetNationality: string | undefined;
+  let targetNationality: number | undefined;
 
   // Check credential type and claims
   for (const credQuery of dcqlQuery.credentials) {
@@ -375,7 +375,7 @@ function dcqlQueryToProofRequest(dcqlQuery: DCQLQuery, nonce: string): ProofRequ
 
         // Nationality constraints
         if (claim.path.includes('nationality') && claim.filter?.const) {
-          targetNationality = claim.filter.const;
+          targetNationality = Number(claim.filter.const);
         }
       }
     }

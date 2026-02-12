@@ -17,6 +17,7 @@ import {
   deserializeBBSCredential,
   deriveBBSSchemaDisclosureProof,
   serializeBBSProof,
+  SCHEMA_REGISTRY,
   ZkIdCredentialError,
 } from '@zk-id/core';
 
@@ -161,9 +162,10 @@ export class MobileWallet {
     );
 
     return {
+      credentialId: credential.credential.id,
+      claimType: 'age',
       proof: zkProof,
-      issuerSignature: credential.issuerSignature,
-      issuerPublicKey: credential.issuerPublicKey,
+      signedCredential: credential,
       nonce,
       requestTimestamp: new Date(timestampMs).toISOString(),
     };
@@ -179,7 +181,7 @@ export class MobileWallet {
    */
   async generateNationalityProof(
     credentialId: string | null,
-    targetNationality: string,
+    targetNationality: number,
     nonce: string,
   ): Promise<ProofResponse> {
     if (!this.config.circuitPaths.nationalityWasm || !this.config.circuitPaths.nationalityZkey) {
@@ -199,9 +201,10 @@ export class MobileWallet {
     );
 
     return {
+      credentialId: credential.credential.id,
+      claimType: 'nationality',
       proof: zkProof,
-      issuerSignature: credential.issuerSignature,
-      issuerPublicKey: credential.issuerPublicKey,
+      signedCredential: credential,
       nonce,
       requestTimestamp: new Date(timestampMs).toISOString(),
     };
@@ -256,20 +259,24 @@ export class MobileWallet {
       throw new ZkIdCredentialError(`BBS+ credential not found: ${credentialId}`);
     }
 
-    const credential = deserializeBBSCredential(serialized);
+    // Get schema for deserialization
+    const schema = SCHEMA_REGISTRY.get(serialized.schemaId);
+    if (!schema) {
+      throw new ZkIdCredentialError(`Unknown schema: ${serialized.schemaId}`);
+    }
 
-    const proof = await deriveBBSSchemaDisclosureProof(
-      credential,
-      disclosureFields,
-      new TextEncoder().encode(nonce),
-    );
+    const credential = deserializeBBSCredential(serialized, schema);
+
+    const proof = await deriveBBSSchemaDisclosureProof(credential, schema, disclosureFields, nonce);
 
     const revealedFieldValues: Record<string, any> = {};
     for (const field of disclosureFields) {
-      revealedFieldValues[field] = credential.fields[field];
+      revealedFieldValues[field] = serialized.fields[field];
     }
 
     return {
+      credentialId: String(serialized.fields.id || credential.id),
+      schemaId: serialized.schemaId,
       proof: serializeBBSProof(proof),
       revealedFields: revealedFieldValues,
       nonce,
