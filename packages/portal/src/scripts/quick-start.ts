@@ -201,10 +201,84 @@ async function verifyProof() {
   }
 
   const resultDiv = document.getElementById('verifyResult');
-  if (resultDiv) {
-    resultDiv.className = 'result loading';
-    resultDiv.innerHTML = '<strong>⏳ Verifying proof...</strong>';
-  }
+  const setVerifyStatus = (type: 'loading' | 'error', message: string) => {
+    if (!resultDiv) return;
+    resultDiv.className = `result ${type}`;
+    resultDiv.replaceChildren();
+    const strong = document.createElement('strong');
+    strong.textContent = message;
+    resultDiv.appendChild(strong);
+  };
+
+  const renderVerificationSuccess = (birthYear: number, nationality: number) => {
+    if (!resultDiv) return;
+    resultDiv.className = 'result success';
+    resultDiv.replaceChildren();
+
+    const title = document.createElement('div');
+    title.style.fontSize = '18px';
+    title.style.fontWeight = '600';
+    title.style.marginBottom = '12px';
+    title.textContent = '✓ Verification Successful!';
+
+    const content = document.createElement('div');
+    content.style.fontSize = '14px';
+    content.style.lineHeight = '1.7';
+
+    const summary = document.createElement('p');
+    summary.textContent =
+      'The server confirmed you are 18+ without learning your exact birth year.';
+    content.appendChild(summary);
+
+    const makePanel = (heading: string, rows: Array<{ text: string; color: string }>) => {
+      const panel = document.createElement('div');
+      panel.style.marginTop = '12px';
+      panel.style.padding = '16px';
+      panel.style.background = 'var(--bg-primary)';
+      panel.style.borderRadius = '8px';
+
+      const panelHeading = document.createElement('div');
+      panelHeading.style.color = 'var(--text-muted)';
+      panelHeading.style.fontSize = '12px';
+      panelHeading.style.marginBottom = '8px';
+      panelHeading.style.fontFamily = 'var(--font-mono)';
+      panelHeading.textContent = heading;
+      panel.appendChild(panelHeading);
+
+      rows.forEach(({ text, color }) => {
+        const row = document.createElement('div');
+        row.style.color = color;
+        row.textContent = text;
+        panel.appendChild(row);
+      });
+
+      return panel;
+    };
+
+    content.appendChild(
+      makePanel('WHAT THE SERVER LEARNED', [
+        { text: '✓ Age ≥ 18 (proven)', color: 'var(--accent-server)' },
+        { text: '✓ Credential is valid', color: 'var(--accent-server)' },
+        { text: '✓ Proof matches challenge', color: 'var(--accent-server)' },
+      ]),
+    );
+
+    content.appendChild(
+      makePanel('WHAT STAYED PRIVATE', [
+        { text: `🔒 Exact birth year (${birthYear})`, color: 'var(--accent-client)' },
+        {
+          text: `🔒 Nationality: ${getNationalityName(nationality)} (${nationality})`,
+          color: 'var(--accent-client)',
+        },
+        { text: '🔒 Credential salt', color: 'var(--accent-client)' },
+      ]),
+    );
+
+    resultDiv.appendChild(title);
+    resultDiv.appendChild(content);
+  };
+
+  setVerifyStatus('loading', '⏳ Verifying proof...');
 
   try {
     const verifyResponse = await fetch(`${API_BASE_URL}/api/verify-age`, {
@@ -223,44 +297,15 @@ async function verifyProof() {
     const result = await verifyResponse.json();
 
     if (result.verified) {
-      if (resultDiv) {
-        resultDiv.className = 'result success';
-        resultDiv.innerHTML = `
-          <div style="font-size: 18px; font-weight: 600; margin-bottom: 12px;">
-            ✓ Verification Successful!
-          </div>
-          <div style="font-size: 14px; line-height: 1.7;">
-            <p>The server confirmed you are 18+ without learning your exact birth year.</p>
-            <div style="margin-top: 16px; padding: 16px; background: var(--bg-primary); border-radius: 8px;">
-              <div style="color: var(--text-muted); font-size: 12px; margin-bottom: 8px; font-family: var(--font-mono);">
-                WHAT THE SERVER LEARNED
-              </div>
-              <div style="color: var(--accent-server);">✓ Age ≥ 18 (proven)</div>
-              <div style="color: var(--accent-server);">✓ Credential is valid</div>
-              <div style="color: var(--accent-server);">✓ Proof matches challenge</div>
-            </div>
-            <div style="margin-top: 12px; padding: 16px; background: var(--bg-primary); border-radius: 8px;">
-              <div style="color: var(--text-muted); font-size: 12px; margin-bottom: 8px; font-family: var(--font-mono);">
-                WHAT STAYED PRIVATE
-              </div>
-              <div style="color: var(--accent-client);">🔒 Exact birth year (${state.credential.credential.birthYear})</div>
-              <div style="color: var(--accent-client);">🔒 Nationality: ${getNationalityName(state.credential.credential.nationality)} (${state.credential.credential.nationality})</div>
-              <div style="color: var(--accent-client);">🔒 Credential salt</div>
-            </div>
-          </div>
-        `;
-      }
+      renderVerificationSuccess(
+        state.credential.credential.birthYear,
+        state.credential.credential.nationality,
+      );
     } else {
-      if (resultDiv) {
-        resultDiv.className = 'result error';
-        resultDiv.innerHTML = `<strong>✗ ${result.error || 'Verification failed'}</strong>`;
-      }
+      setVerifyStatus('error', `✗ ${result.error || 'Verification failed'}`);
     }
   } catch (error: any) {
-    if (resultDiv) {
-      resultDiv.className = 'result error';
-      resultDiv.innerHTML = `<strong>✗ ${formatApiError(error)}</strong>`;
-    }
+    setVerifyStatus('error', `✗ ${formatApiError(error)}`);
   }
 }
 

@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync } from 'fs';
-import { join, resolve } from 'path';
+import { relative, resolve } from 'path';
 
 const docs = [
   // Getting Started
@@ -185,15 +185,26 @@ const docs = [
 
 const basePath = resolve(new URL('.', import.meta.url).pathname);
 const contentDir = resolve(basePath, 'src/content/docs');
+const repoRoot = resolve(basePath, '../../');
+
+const isWithinPath = (rootPath, targetPath) => {
+  const rel = relative(rootPath, targetPath);
+  return rel === '' || (!rel.startsWith('..') && !rel.startsWith('/'));
+};
 
 docs.forEach(({ src, dest, title, category, order }) => {
   try {
     // Resolve and validate paths to prevent traversal
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const srcPath = resolve(basePath, src);
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const destPath = resolve(contentDir, dest);
 
     // Ensure paths stay within expected directories
-    if (!destPath.startsWith(contentDir)) {
+    if (!isWithinPath(repoRoot, srcPath)) {
+      throw new Error('Invalid source path');
+    }
+    if (!isWithinPath(contentDir, destPath)) {
       throw new Error('Invalid destination path');
     }
 

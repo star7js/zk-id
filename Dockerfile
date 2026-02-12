@@ -58,7 +58,7 @@ COPY packages/contracts/package.json packages/contracts/
 COPY examples/web-app/package.json examples/web-app/
 
 # Install production dependencies only
-RUN npm ci --omit=dev --ignore-scripts 2>/dev/null || npm install --omit=dev --ignore-scripts
+RUN npm ci --omit=dev --ignore-scripts
 
 # Copy built artifacts from builder
 COPY --from=builder /app/packages/core/dist/ packages/core/dist/

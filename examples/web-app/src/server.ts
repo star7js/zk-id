@@ -29,13 +29,26 @@ async function main() {
   const CIRCUITS_BASE = join(__dirname, '../../../packages/circuits/build');
 
   // CORS configuration for production
-  const allowedOrigins = ['http://localhost:4321', 'https://star7js.github.io', 'https://zk-id.io'];
+  const LOCALHOST_ORIGIN = 'http://localhost:4321';
+  const GITHUB_PAGES_ORIGIN = 'https://star7js.github.io';
+  const CUSTOM_DOMAIN_ORIGIN = 'https://zk-id.io';
 
   app.use((req, res, next) => {
     const origin = req.headers.origin;
-    // Use exact matching to prevent origin reflection vulnerabilities
-    if (origin && allowedOrigins.includes(origin)) {
-      res.header('Access-Control-Allow-Origin', origin);
+    // Explicit origin mapping prevents reflective CORS headers.
+    if (origin === LOCALHOST_ORIGIN) {
+      res.header('Access-Control-Allow-Origin', LOCALHOST_ORIGIN);
+      res.header('Vary', 'Origin');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, X-ZkId-Protocol-Version');
+    } else if (origin === GITHUB_PAGES_ORIGIN) {
+      res.header('Access-Control-Allow-Origin', GITHUB_PAGES_ORIGIN);
+      res.header('Vary', 'Origin');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, X-ZkId-Protocol-Version');
+    } else if (origin === CUSTOM_DOMAIN_ORIGIN) {
+      res.header('Access-Control-Allow-Origin', CUSTOM_DOMAIN_ORIGIN);
+      res.header('Vary', 'Origin');
       res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
       res.header('Access-Control-Allow-Headers', 'Content-Type, X-ZkId-Protocol-Version');
     }
