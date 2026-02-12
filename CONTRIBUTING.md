@@ -2,8 +2,27 @@
 
 Thank you for your interest in contributing to zk-id! This guide will help you understand the project structure, development workflow, and how to make meaningful contributions.
 
+## Good First Issues
+
+New to the project? Start here! We maintain a list of beginner-friendly issues:
+
+🌟 [View Good First Issues](https://github.com/star7js/zk-id/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+
+These issues are:
+- Well-defined with clear acceptance criteria
+- Good learning opportunities
+- Mentorship available from maintainers
+
+## Community
+
+- **GitHub Discussions**: [Ask questions and discuss ideas](https://github.com/star7js/zk-id/discussions)
+- **Issues**: [Report bugs and request features](https://github.com/star7js/zk-id/issues)
+- **Pull Requests**: Contribute code improvements
+
 ## Table of Contents
 
+- [Good First Issues](#good-first-issues)
+- [Community](#community)
 - [Prerequisites](#prerequisites)
 - [Getting Started](#getting-started)
 - [Monorepo Structure](#monorepo-structure)

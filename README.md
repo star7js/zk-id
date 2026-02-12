@@ -1,5 +1,10 @@
 # zk-id
 
+![CI](https://img.shields.io/github/actions/workflow/status/star7js/zk-id/ci.yml?branch=main&label=CI&logo=github)
+![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.6.2-green.svg)
+![Stars](https://img.shields.io/github/stars/star7js/zk-id?style=social)
+
 **Privacy-preserving identity verification using zero-knowledge proofs**
 
 zk-id enables users to prove eligibility (age, attributes) without revealing personal information. Built on modern zero-knowledge proof technology (ZK-SNARKs) for practical, fast verification.
@@ -315,6 +320,10 @@ Production-ready stores for nonces, challenges, revocation, rate limiting, issue
 On-chain Groth16 proof verification for Ethereum and EVM-compatible chains.
 [View README →](./packages/contracts/README.md)
 
+**[@zk-id/mobile](./packages/mobile/)** — Mobile SDK
+React Native and Expo SDK for mobile wallets with OpenID4VP deep link support, no DOM dependencies.
+[View README →](./packages/mobile/README.md)
+
 ### Quick Reference
 
 | Package                | Use For                               | Installation/Deployment              |
@@ -326,6 +335,7 @@ On-chain Groth16 proof verification for Ethereum and EVM-compatible chains.
 | `@zk-id/circuits`      | Circuit artifacts (auto-included)     | `npm install @zk-id/circuits`        |
 | `@zk-id/redis`         | Production storage                    | `npm install @zk-id/redis ioredis`   |
 | `@zk-id/contracts`     | On-chain verification                 | `npm install @zk-id/contracts`       |
+| `@zk-id/mobile`        | Mobile wallets (React Native/Expo)   | `npm install @zk-id/mobile`          |
 
 ## Use Cases
 
@@ -525,7 +535,11 @@ Note: These circuits use BabyJub EdDSA signatures (circomlib), not Ed25519.
 
 Contributions welcome! This is an open-source project aimed at bringing practical, privacy-preserving identity to the web.
 
-See `CONTRIBUTING.md` for development setup and guidelines.
+**New contributors:**
+- 🌟 [Good First Issues](https://github.com/star7js/zk-id/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) - Start here!
+- 💬 [GitHub Discussions](https://github.com/star7js/zk-id/discussions) - Ask questions, share ideas
+- 📖 [Contributing Guide](./CONTRIBUTING.md) - Development setup and guidelines
+- 📝 [Code of Conduct](./CODE_OF_CONDUCT.md) - Community standards
 
 ## License
 
