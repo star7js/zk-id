@@ -1,6 +1,6 @@
 {
   "name": "@zk-id/sdk",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "SDK for integrating zk-id into websites",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
