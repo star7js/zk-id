@@ -4,9 +4,9 @@
  * Supports arbitrary field comparisons: ==, !=, >, <, >=, <=, and range checks
  */
 
-import { poseidon } from 'circomlibjs';
+import { poseidonHash } from './poseidon';
 import { groth16 } from 'snarkjs';
-import type { Credential } from './credential';
+import type { Credential } from './types';
 
 /**
  * Predicate type enumeration
@@ -105,10 +105,10 @@ export async function generatePredicateProof(
   }
 
   // Compute credential commitment
-  const commitment = poseidon([
+  const commitment = await poseidonHash([
     BigInt(credential.birthYear),
     BigInt(credential.nationality),
-    BigInt(credential.nonce),
+    BigInt('0x' + credential.salt),
   ]);
 
   // Prepare circuit inputs
@@ -125,7 +125,7 @@ export async function generatePredicateProof(
     // Private inputs
     birthYear: credential.birthYear,
     nationality: credential.nationality,
-    credentialNonce: BigInt(credential.nonce).toString(),
+    credentialNonce: BigInt('0x' + credential.salt).toString(),
   };
 
   // Generate proof

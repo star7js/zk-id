@@ -857,6 +857,10 @@ export class OpenID4VPWallet extends BrowserWallet {
     }
 
     // Extract schema ID from input descriptor
+    if (!request.presentation_definition) {
+      throw new Error('BBS presentation requires presentation_definition (DCQL not yet supported)');
+    }
+
     const inputDescriptor = request.presentation_definition.input_descriptors[0];
     let schemaId: string | undefined;
     const requiredFields: string[] = [];
@@ -898,7 +902,7 @@ export class OpenID4VPWallet extends BrowserWallet {
     // Build presentation submission
     const presentationSubmission = {
       id: uuidv4(),
-      definition_id: request.presentation_definition.id,
+      definition_id: request.presentation_definition!.id,
       descriptor_map: [
         {
           id: inputDescriptor.id,
@@ -1022,7 +1026,7 @@ export class OpenID4VPWallet extends BrowserWallet {
 
         // Import the verifier's public key
         const publicKey = await importJWK(
-          request.response_encryption_jwk,
+          request.response_encryption_jwk as any,
           request.response_encryption_alg,
         );
 

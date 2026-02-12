@@ -3068,6 +3068,8 @@ export class OpenID4VPVerifier {
         extractable: true,
         modulusLength: 2048,
       });
+    } else {
+      throw new Error(`Unsupported encryption algorithm: ${algorithm}`);
     }
 
     this.encryptionJwk = await exportJWK(this.encryptionKeyPair.publicKey);
@@ -3433,7 +3435,9 @@ export class OpenID4VPVerifier {
     }
 
     // Validate presentation submission
-    if (vp.presentation_submission.definition_id !== authRequest.presentation_definition.id) {
+    const expectedDefinitionId =
+      authRequest.presentation_definition?.id || authRequest.dcql_query?.id;
+    if (vp.presentation_submission.definition_id !== expectedDefinitionId) {
       return {
         verified: false,
         error: 'Presentation definition mismatch',
