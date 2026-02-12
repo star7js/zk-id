@@ -32,6 +32,7 @@ async function main() {
   const LOCALHOST_ORIGIN = 'http://localhost:4321';
   const GITHUB_PAGES_ORIGIN = 'https://star7js.github.io';
   const CUSTOM_DOMAIN_ORIGIN = 'https://zk-id.io';
+  const CUSTOM_DOMAIN_HTTP_ORIGIN = 'http://zk-id.io';
 
   app.use((req, res, next) => {
     const origin = req.headers.origin;
@@ -48,6 +49,11 @@ async function main() {
       res.header('Access-Control-Allow-Headers', 'Content-Type, X-ZkId-Protocol-Version');
     } else if (origin === CUSTOM_DOMAIN_ORIGIN) {
       res.header('Access-Control-Allow-Origin', CUSTOM_DOMAIN_ORIGIN);
+      res.header('Vary', 'Origin');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, X-ZkId-Protocol-Version');
+    } else if (origin === CUSTOM_DOMAIN_HTTP_ORIGIN) {
+      res.header('Access-Control-Allow-Origin', CUSTOM_DOMAIN_HTTP_ORIGIN);
       res.header('Vary', 'Origin');
       res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
       res.header('Access-Control-Allow-Headers', 'Content-Type, X-ZkId-Protocol-Version');
