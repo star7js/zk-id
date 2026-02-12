@@ -291,6 +291,10 @@ export function buildDeepLink(authRequest: AuthorizationRequest): string {
     params.set('response_mode', authRequest.response_mode);
   }
 
+  if (authRequest.response_type) {
+    params.set('response_type', authRequest.response_type);
+  }
+
   return `openid4vp://?${params.toString()}`;
 }
 
@@ -306,34 +310,77 @@ interface ProofRequest {
   timestamp: string;
 }
 
+function toFiniteNumber(value: unknown): number | undefined {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+function getFirstEnumNumber(filter: any): number | undefined {
+  if (!filter || !Array.isArray(filter.enum) || filter.enum.length === 0) {
+    return undefined;
+  }
+  return toFiniteNumber(filter.enum[0]);
+}
+
 function inputDescriptorToProofRequest(descriptor: InputDescriptor, nonce: string): ProofRequest {
   const constraints = descriptor.constraints?.fields || [];
 
   // Detect age verification
-  const ageField = constraints.find((f) =>
-    f.path.some((p) => p.includes('birthYear') || p.includes('age')),
-  );
+  const ageField = constraints.find((f) => {
+    const path = f.path.join('.');
+    return path.includes('minAge') || path.includes('birthYear') || path.includes('age');
+  });
 
-  if (ageField && ageField.filter?.minimum !== undefined) {
+  if (ageField) {
+    const path = ageField.path.join('.');
+    const filter = ageField.filter ?? {};
     const currentYear = new Date().getFullYear();
-    const minBirthYear = ageField.filter.minimum;
-    const minAge = currentYear - minBirthYear;
 
-    return {
-      claimType: 'age',
-      minAge,
-      nonce,
-      timestamp: new Date().toISOString(),
-    };
+    const minAgeFromDirectConstraint =
+      toFiniteNumber(filter.const) ??
+      getFirstEnumNumber(filter) ??
+      (path.includes('minAge') || (path.includes('age') && !path.includes('birthYear'))
+        ? toFiniteNumber(filter.minimum)
+        : undefined);
+
+    if (minAgeFromDirectConstraint !== undefined) {
+      return {
+        claimType: 'age',
+        minAge: minAgeFromDirectConstraint,
+        nonce,
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    if (path.includes('birthYear')) {
+      const maxBirthYear = toFiniteNumber(filter.maximum);
+      if (maxBirthYear !== undefined) {
+        return {
+          claimType: 'age',
+          minAge: currentYear - maxBirthYear,
+          nonce,
+          timestamp: new Date().toISOString(),
+        };
+      }
+    }
   }
 
   // Detect nationality verification
-  const nationalityField = constraints.find((f) => f.path.some((p) => p.includes('nationality')));
+  const nationalityField = constraints.find((f) =>
+    f.path.some((p) => p.includes('nationality') || p.includes('targetNationality')),
+  );
 
-  if (nationalityField && nationalityField.filter?.const) {
+  if (nationalityField) {
+    const filter = nationalityField.filter ?? {};
+    const targetNationality = toFiniteNumber(filter.const) ?? getFirstEnumNumber(filter);
+
+    if (targetNationality === undefined) {
+      throw new Error('Unsupported nationality constraint in presentation definition');
+    }
+
     return {
       claimType: 'nationality',
-      targetNationality: Number(nationalityField.filter.const),
+      targetNationality,
       nonce,
       timestamp: new Date().toISOString(),
     };

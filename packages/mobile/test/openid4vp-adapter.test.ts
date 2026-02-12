@@ -6,6 +6,7 @@ import { describe, it, expect } from '@jest/globals';
 import {
   parseAuthorizationRequest,
   buildDeepLink,
+  generatePresentation,
   type AuthorizationRequest,
 } from '../src/openid4vp-adapter.js';
 
@@ -128,15 +129,143 @@ describe('buildDeepLink', () => {
     const parsed = JSON.parse(presentationDef!);
     expect(parsed).toEqual(mockAuthRequest.presentation_definition);
   });
+
+  it('should include response_type when provided', () => {
+    const deepLink = buildDeepLink({
+      ...mockAuthRequest,
+      response_type: 'vp_token',
+    });
+    expect(deepLink).toContain('response_type=vp_token');
+  });
 });
 
 describe('generatePresentation', () => {
-  // Note: Full presentation generation tests require a real MobileWallet instance
-  // with circuit files. These are integration tests rather than unit tests.
+  it('uses minAge directly from minAge constraints', async () => {
+    let capturedMinAge: number | null = null;
 
-  it('should be tested in integration tests', () => {
-    // Placeholder - actual tests require mock circuits
-    expect(true).toBe(true);
+    const wallet = {
+      generateAgeProof: async (_id: string | null, minAge: number, nonce: string) => {
+        capturedMinAge = minAge;
+        return {
+          credentialId: 'cred-1',
+          claimType: 'age',
+          proof: {
+            proofType: 'age',
+            proof: {
+              pi_a: ['0'],
+              pi_b: [['0'], ['0']],
+              pi_c: ['0'],
+              protocol: 'groth16',
+              curve: 'bn128',
+            },
+            publicSignals: {
+              currentYear: 2026,
+              minAge,
+              credentialHash: '1',
+              nonce,
+              requestTimestamp: Date.now(),
+            },
+          },
+          nonce,
+          requestTimestamp: new Date().toISOString(),
+        };
+      },
+      generateNationalityProof: async () => {
+        throw new Error('unexpected nationality proof');
+      },
+    } as any;
+
+    const presentation = await generatePresentation(
+      {
+        presentation_definition: {
+          id: 'age-minage',
+          input_descriptors: [
+            {
+              id: 'age-proof',
+              constraints: {
+                fields: [
+                  {
+                    path: ['$.publicSignals.minAge'],
+                    filter: { type: 'number', minimum: 18 },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+        response_uri: 'https://verifier.example.com/callback',
+        nonce: 'n-1',
+        client_id: 'demo-verifier',
+        state: 's-1',
+      },
+      wallet,
+    );
+
+    expect(capturedMinAge).toBe(18);
+    expect(presentation.state).toBe('s-1');
+    expect(presentation.vp_token.length).toBeGreaterThan(0);
+  });
+
+  it('supports nationality enum constraints', async () => {
+    let capturedNationality: number | null = null;
+
+    const wallet = {
+      generateAgeProof: async () => {
+        throw new Error('unexpected age proof');
+      },
+      generateNationalityProof: async (_id: string | null, nationality: number, nonce: string) => {
+        capturedNationality = nationality;
+        return {
+          credentialId: 'cred-2',
+          claimType: 'nationality',
+          proof: {
+            proofType: 'nationality',
+            proof: {
+              pi_a: ['0'],
+              pi_b: [['0'], ['0']],
+              pi_c: ['0'],
+              protocol: 'groth16',
+              curve: 'bn128',
+            },
+            publicSignals: {
+              targetNationality: nationality,
+              credentialHash: '2',
+              nonce,
+              requestTimestamp: Date.now(),
+            },
+          },
+          nonce,
+          requestTimestamp: new Date().toISOString(),
+        };
+      },
+    } as any;
+
+    await generatePresentation(
+      {
+        presentation_definition: {
+          id: 'nat-enum',
+          input_descriptors: [
+            {
+              id: 'nat-proof',
+              constraints: {
+                fields: [
+                  {
+                    path: ['$.publicSignals.targetNationality'],
+                    filter: { type: 'number', enum: [840] },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+        response_uri: 'https://verifier.example.com/callback',
+        nonce: 'n-2',
+        client_id: 'demo-verifier',
+      },
+      wallet,
+    );
+
+    expect(capturedNationality).toBe(840);
   });
 });
 

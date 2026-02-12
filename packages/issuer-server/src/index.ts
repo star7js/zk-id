@@ -3,19 +3,33 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import { resolve } from 'path';
 import {
   ManagedCredentialIssuer,
   InMemoryIssuerKeyManager,
   BBSCredentialIssuer,
 } from '@zk-id/issuer';
 import { InMemoryRevocationStore, SCHEMA_REGISTRY, serializeBBSCredential } from '@zk-id/core';
-import { createPublicKey, generateKeyPairSync, KeyObject } from 'crypto';
+import { createPrivateKey, createPublicKey, generateKeyPairSync, KeyObject } from 'crypto';
 
 dotenv.config();
 
 const PORT = process.env.PORT || 3001;
 const API_KEY = process.env.API_KEY || 'dev-api-key-change-in-production';
 const ISSUER_NAME = process.env.ISSUER_NAME || 'zk-id Reference Issuer';
+const CIRCUITS_BUILD_DIR = resolve(__dirname, '../../circuits/build');
+
+const CIRCUIT_ALIASES: Record<string, string> = {
+  'age.wasm': 'age-verify_js/age-verify.wasm',
+  'age.zkey': 'age-verify.zkey',
+  'age-vkey.json': 'age-verify_verification_key.json',
+  'nationality.wasm': 'nationality-verify_js/nationality-verify.wasm',
+  'nationality.zkey': 'nationality-verify.zkey',
+  'nationality-vkey.json': 'nationality-verify_verification_key.json',
+  'age-revocable.wasm': 'age-verify-revocable_js/age-verify-revocable.wasm',
+  'age-revocable.zkey': 'age-verify-revocable.zkey',
+  'age-revocable-vkey.json': 'age-verify-revocable_verification_key.json',
+};
 
 // Rate limiting configuration
 const limiter = rateLimit({
@@ -38,6 +52,18 @@ app.use(
 );
 app.use(express.json());
 app.use(limiter);
+app.use('/circuits', express.static(CIRCUITS_BUILD_DIR));
+app.get('/circuits/:artifact', (req: Request, res: Response, next: NextFunction) => {
+  const artifact = req.params.artifact;
+  const aliasPath = CIRCUIT_ALIASES[artifact];
+  if (!aliasPath) {
+    next();
+    return;
+  }
+  res.sendFile(resolve(CIRCUITS_BUILD_DIR, aliasPath), (err) => {
+    if (err) next(err);
+  });
+});
 
 // API key authentication middleware
 function requireApiKey(req: Request, res: Response, next: NextFunction) {
@@ -78,7 +104,7 @@ async function initializeIssuer() {
 
     if (privateKeyPem && publicKeyPem) {
       // Use provided keys
-      privateKey = createPublicKey({
+      privateKey = createPrivateKey({
         key: Buffer.from(privateKeyPem, 'base64'),
         format: 'der',
         type: 'pkcs8',
@@ -97,7 +123,7 @@ async function initializeIssuer() {
         privateKeyEncoding: { type: 'pkcs8', format: 'der' },
       });
 
-      privateKey = createPublicKey({
+      privateKey = createPrivateKey({
         key: keyPair.privateKey,
         format: 'der',
         type: 'pkcs8',
@@ -138,8 +164,6 @@ async function initializeIssuer() {
     process.exit(1);
   }
 }
-
-initializeIssuer();
 
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
@@ -395,26 +419,31 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`\n🚀 zk-id Issuer Server`);
-  console.log(`   Port: ${PORT}`);
-  console.log(`   Issuer: ${ISSUER_NAME}`);
-  console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`\n📍 Endpoints:`);
-  console.log(`   GET  /health       - Health check`);
-  console.log(`   GET  /public-key   - Get Ed25519 issuer public key`);
-  console.log(`   GET  /bbs-public-key - Get BBS+ issuer public key`);
-  console.log(`   GET  /schemas      - List available credential schemas`);
-  console.log(`   POST /issue        - Issue Ed25519 credential (requires API key)`);
-  console.log(`   POST /issue/bbs    - Issue BBS+ credential (requires API key)`);
-  console.log(`   POST /revoke       - Revoke credential (requires API key)`);
-  console.log(`   GET  /status/:commitment - Check credential status`);
-  console.log(
-    `\n🔑 API Key: Set X-Api-Key header to ${API_KEY === 'dev-api-key-change-in-production' ? 'your API key' : '***'}`,
-  );
-  console.log('');
-});
+async function startServer() {
+  await initializeIssuer();
+  app.listen(PORT, () => {
+    console.log(`\n🚀 zk-id Issuer Server`);
+    console.log(`   Port: ${PORT}`);
+    console.log(`   Issuer: ${ISSUER_NAME}`);
+    console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`\n📍 Endpoints:`);
+    console.log(`   GET  /health       - Health check`);
+    console.log(`   GET  /public-key   - Get Ed25519 issuer public key`);
+    console.log(`   GET  /bbs-public-key - Get BBS+ issuer public key`);
+    console.log(`   GET  /schemas      - List available credential schemas`);
+    console.log(`   GET  /circuits/*   - Circuit artifacts (WASM, zkey, vkey)`);
+    console.log(`   POST /issue        - Issue Ed25519 credential (requires API key)`);
+    console.log(`   POST /issue/bbs    - Issue BBS+ credential (requires API key)`);
+    console.log(`   POST /revoke       - Revoke credential (requires API key)`);
+    console.log(`   GET  /status/:commitment - Check credential status`);
+    console.log(
+      `\n🔑 API Key: Set X-Api-Key header to ${API_KEY === 'dev-api-key-change-in-production' ? 'your API key' : '***'}`,
+    );
+    console.log('');
+  });
+}
+
+void startServer();
 
 // Graceful shutdown
 process.on('SIGTERM', () => {

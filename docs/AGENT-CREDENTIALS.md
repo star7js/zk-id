@@ -359,7 +359,7 @@ zk-id agent credentials are compatible with:
 ### 9.1 Issuance: Organization Issues Agent Credential
 
 ```typescript
-import { BBSCredentialIssuer } from '@zk-id/core';
+import { BBSCredentialIssuer } from '@zk-id/issuer';
 
 // Organization issues agent-identity credential
 const issuer = new BBSCredentialIssuer();
