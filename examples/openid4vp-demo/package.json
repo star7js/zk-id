@@ -8,7 +8,8 @@
     "start:issuer": "cd ../../packages/issuer-server && PORT=${VITE_ISSUER_PORT:-3001} npm run dev",
     "start:verifier": "tsx src/verifier.ts",
     "start:ui": "vite",
-    "build": "tsc && vite build"
+    "build": "tsc && vite build",
+    "test": "echo 'No tests for examples'"
   },
   "dependencies": {
     "@zk-id/core": "*",
