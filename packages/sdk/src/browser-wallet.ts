@@ -748,7 +748,7 @@ export class OpenID4VPWallet extends BrowserWallet {
       typeof authRequest === 'string' ? this.parseAuthorizationRequest(authRequest) : authRequest;
 
     // Get all credentials from wallet
-    const credentials = await (this as BrowserWallet).config.credentialStore.getAll();
+    const credentials = await (this as any).config.credentialStore.getAll();
     if (credentials.length === 0) {
       throw new Error('No credentials available in wallet');
     }
@@ -788,8 +788,8 @@ export class OpenID4VPWallet extends BrowserWallet {
         proofRequest.minAge,
         proofRequest.nonce,
         timestampMs,
-        (this as BrowserWallet).config.circuitPaths.ageWasm,
-        (this as BrowserWallet).config.circuitPaths.ageZkey,
+        (this as any).config.circuitPaths.ageWasm,
+        (this as any).config.circuitPaths.ageZkey,
       );
     } else if (proofRequest.claimType === 'nationality' && proofRequest.targetNationality) {
       zkProof = await generateNationalityProof(
@@ -797,8 +797,8 @@ export class OpenID4VPWallet extends BrowserWallet {
         proofRequest.targetNationality,
         proofRequest.nonce,
         timestampMs,
-        (this as BrowserWallet).config.circuitPaths.nationalityWasm!,
-        (this as BrowserWallet).config.circuitPaths.nationalityZkey!,
+        (this as any).config.circuitPaths.nationalityWasm,
+        (this as any).config.circuitPaths.nationalityZkey,
       );
     } else {
       throw new Error(`Unsupported claim type: ${proofRequest.claimType}`);
@@ -852,7 +852,7 @@ export class OpenID4VPWallet extends BrowserWallet {
       typeof authRequest === 'string' ? this.parseAuthorizationRequest(authRequest) : authRequest;
 
     // Get all BBS credentials from wallet
-    const bbsCredentials = await (this as OpenID4VPWallet).getBBSCredentials();
+    const bbsCredentials = await (this as any).getBBSCredentials();
     if (bbsCredentials.length === 0) {
       throw new Error('No BBS credentials available in wallet');
     }
@@ -894,7 +894,7 @@ export class OpenID4VPWallet extends BrowserWallet {
     const credentialId = String(matchingCredential.fields.id);
 
     // Generate BBS disclosure proof
-    const bbsProof = await (this as OpenID4VPWallet).generateBBSDisclosureProof(
+    const bbsProof = await (this as any).generateBBSDisclosureProof(
       credentialId,
       requiredFields,
       request.nonce,
@@ -1017,10 +1017,7 @@ export class OpenID4VPWallet extends BrowserWallet {
    * @param request - Authorization request (contains encryption params)
    * @returns Base64-encoded VP token (encrypted if requested)
    */
-  private async encodeVpToken(
-    vp: ProofResponse | BBSProofResponse,
-    request: AuthorizationRequest,
-  ): Promise<string> {
+  private async encodeVpToken(vp: unknown, request: AuthorizationRequest): Promise<string> {
     const vpJson = JSON.stringify(vp);
 
     // Check if encryption is requested
@@ -1030,7 +1027,7 @@ export class OpenID4VPWallet extends BrowserWallet {
 
         // Import the verifier's public key
         const publicKey = await importJWK(
-          request.response_encryption_jwk,
+          request.response_encryption_jwk as any,
           request.response_encryption_alg,
         );
 
