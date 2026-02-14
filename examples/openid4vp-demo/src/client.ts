@@ -12,6 +12,7 @@ import { ISO_3166_ALPHA2_TO_NUMERIC, ISO_3166_NUMERIC_TO_ALPHA2 } from '@zk-id/i
 // Configuration (read from environment variables)
 const ISSUER_URL = import.meta.env.VITE_ISSUER_URL || 'http://localhost:3001';
 const VERIFIER_URL = import.meta.env.VITE_VERIFIER_URL || 'http://localhost:3002';
+const ISSUER_API_KEY = import.meta.env.VITE_ISSUER_API_KEY || '';
 
 // Circuit paths (served from the circuits package via issuer server)
 const CIRCUIT_PATHS = {
@@ -173,11 +174,17 @@ document.getElementById('issue-credential')!.addEventListener('click', async () 
     // Use holder name as userId (in production, this would be a real user ID)
     const userId = name || 'anonymous';
 
+    if (!ISSUER_API_KEY) {
+      throw new Error(
+        'VITE_ISSUER_API_KEY is not configured. Set it in your .env file.',
+      );
+    }
+
     const response = await fetch(`${ISSUER_URL}/issue`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Api-Key': 'dev-api-key-change-in-production',
+        'X-Api-Key': ISSUER_API_KEY,
       },
       body: JSON.stringify({
         birthYear,

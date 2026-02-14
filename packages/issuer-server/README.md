@@ -200,11 +200,11 @@ GET /status/:commitment
 | -------------------- | -------- | -------------------------------- | ----------------------------------------------- |
 | `PORT`               | No       | 3001                             | Server port                                     |
 | `NODE_ENV`           | No       | development                      | Environment (development/production)            |
-| `API_KEY`            | Yes      | dev-api-key-change-in-production | API key for authentication                      |
+| `API_KEY`            | Yes (prod) | (random per run in dev)       | API key for authentication                      |
 | `ISSUER_NAME`        | Yes      | zk-id Reference Issuer           | Issuer identifier                               |
 | `ISSUER_PRIVATE_KEY` | No\*     | (generated)                      | Base64-encoded Ed25519 private key (DER format) |
 | `ISSUER_PUBLIC_KEY`  | No\*     | (generated)                      | Base64-encoded Ed25519 public key (DER format)  |
-| `CORS_ORIGIN`        | No       | \*                               | Allowed CORS origins                            |
+| `CORS_ORIGIN`        | No       | false (disabled)                 | Allowed CORS origins                            |
 
 \* Keys will be generated on first run if not provided (not recommended for production)
 
@@ -431,7 +431,7 @@ npm test
 # Test issuance
 curl -X POST http://localhost:3001/issue \
   -H "Content-Type: application/json" \
-  -H "X-Api-Key: dev-api-key-change-in-production" \
+  -H "X-Api-Key: <your-api-key>" \
   -d '{
     "birthYear": 1990,
     "nationality": 840,
