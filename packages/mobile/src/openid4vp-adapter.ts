@@ -250,7 +250,7 @@ export async function submitPresentation(
   responseUri: string,
   presentation: PresentationResponse,
   httpAdapter: HttpAdapter,
-): Promise<{ verified: boolean; message?: string }> {
+): Promise<unknown> {
   const response = await httpAdapter.post(responseUri, presentation, {
     'Content-Type': 'application/json',
   });
@@ -417,7 +417,7 @@ function dcqlQueryToProofRequest(dcqlQuery: DCQLQuery, nonce: string): ProofRequ
         // Age constraints
         if (claim.path.includes('birthYear') && claim.filter?.maximum) {
           // Convert maximum birth year to minimum age
-          minAge = new Date().getFullYear() - claim.filter.maximum;
+          minAge = new Date().getFullYear() - Number(claim.filter.maximum);
         }
 
         // Nationality constraints

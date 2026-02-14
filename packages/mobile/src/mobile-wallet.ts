@@ -27,9 +27,9 @@ import type { MobileCredentialStore, MobileBBSCredentialStore } from './credenti
  */
 export interface MobileWalletConfig {
   /** Credential storage (EdDSA-signed) */
-  credentialStore: MobileCredentialStore;
+  credentialStore: MobileCredentialStore | any; // eslint-disable-line @typescript-eslint/no-explicit-any
   /** Optional BBS+ credential storage */
-  bbsCredentialStore?: MobileBBSCredentialStore;
+  bbsCredentialStore?: MobileBBSCredentialStore | any; // eslint-disable-line @typescript-eslint/no-explicit-any
   /** Paths to circuit artifacts (WASM + zkey) */
   circuitPaths: {
     ageWasm: string;
