@@ -9,14 +9,36 @@ import {
   InMemoryIssuerKeyManager,
   BBSCredentialIssuer,
 } from '@zk-id/issuer';
-import { InMemoryRevocationStore, SCHEMA_REGISTRY, serializeBBSCredential } from '@zk-id/core';
-import { createPrivateKey, createPublicKey, generateKeyPairSync, KeyObject } from 'crypto';
+import {
+  InMemoryRevocationStore,
+  SCHEMA_REGISTRY,
+  serializeBBSCredential,
+  constantTimeEqual,
+} from '@zk-id/core';
+import {
+  createPrivateKey,
+  createPublicKey,
+  generateKeyPairSync,
+  randomBytes,
+  KeyObject,
+} from 'crypto';
 
 dotenv.config();
 
 const PORT = process.env.PORT || 3001;
-const API_KEY = process.env.API_KEY || 'dev-api-key-change-in-production';
 const ISSUER_NAME = process.env.ISSUER_NAME || 'zk-id Reference Issuer';
+
+// Require explicit API_KEY in production; generate a random one-time key for dev
+let API_KEY: string;
+if (process.env.API_KEY) {
+  API_KEY = process.env.API_KEY;
+} else if (process.env.NODE_ENV === 'production') {
+  console.error('FATAL: API_KEY environment variable is required in production');
+  process.exit(1);
+} else {
+  API_KEY = `dev-${randomBytes(16).toString('hex')}`;
+  console.warn(`WARN: No API_KEY set. Generated ephemeral dev key: ${API_KEY}`);
+}
 const CIRCUITS_BUILD_DIR = resolve(__dirname, '../../circuits/build');
 
 const CIRCUIT_ALIASES: Record<string, string> = {
@@ -46,7 +68,7 @@ const app = express();
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: process.env.CORS_ORIGIN || false, // No cross-origin access by default; set CORS_ORIGIN explicitly
     credentials: true,
   }),
 );
@@ -69,7 +91,7 @@ app.get('/circuits/:artifact', (req: Request, res: Response, next: NextFunction)
 function requireApiKey(req: Request, res: Response, next: NextFunction) {
   const apiKey = req.headers['x-api-key'];
 
-  if (!apiKey || apiKey !== API_KEY) {
+  if (!apiKey || typeof apiKey !== 'string' || !constantTimeEqual(apiKey, API_KEY)) {
     return res.status(401).json({
       error: 'Unauthorized',
       message: 'Valid API key required',
@@ -437,7 +459,7 @@ async function startServer() {
     console.log(`   POST /revoke       - Revoke credential (requires API key)`);
     console.log(`   GET  /status/:commitment - Check credential status`);
     console.log(
-      `\n🔑 API Key: Set X-Api-Key header to ${API_KEY === 'dev-api-key-change-in-production' ? 'your API key' : '***'}`,
+      `\n🔑 API Key: ${process.env.API_KEY ? '***' : API_KEY} (set via X-Api-Key header)`,
     );
     console.log('');
   });

@@ -22,11 +22,13 @@ template CredentialHash() {
     signal input salt;
     signal output out;
 
-    // Use Poseidon hash with 3 inputs
-    component hasher = Poseidon(3);
-    hasher.inputs[0] <== birthYear;
-    hasher.inputs[1] <== nationality;
-    hasher.inputs[2] <== salt;
+    // Use Poseidon hash with domain separation (4 inputs: domain tag + 3 attributes)
+    // Domain separation tag 0 = DOMAIN_CREDENTIAL (must match poseidon.ts constants)
+    component hasher = Poseidon(4);
+    hasher.inputs[0] <== 0; // DOMAIN_CREDENTIAL
+    hasher.inputs[1] <== birthYear;
+    hasher.inputs[2] <== nationality;
+    hasher.inputs[3] <== salt;
 
     out <== hasher.out;
 }

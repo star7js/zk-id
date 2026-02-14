@@ -20,7 +20,7 @@
  * for the dense tree in UnifiedRevocationManager and elsewhere.
  */
 
-import { poseidonHash } from './poseidon';
+import { poseidonHash, poseidonHashDomain, DOMAIN_MERKLE } from './poseidon';
 import { ValidCredentialTree, RevocationWitness, RevocationRootInfo } from './types';
 import { ZkIdConfigError, ZkIdValidationError, ZkIdCryptoError } from './errors';
 
@@ -61,7 +61,7 @@ export class SparseMerkleTree implements ValidCredentialTree {
     this.zeroHashes = [0n];
     for (let i = 0; i < this.depth; i++) {
       const prev = this.zeroHashes[i];
-      this.zeroHashes.push(await poseidonHash([prev, prev]));
+      this.zeroHashes.push(await poseidonHashDomain(DOMAIN_MERKLE, [prev, prev]));
     }
   }
 
@@ -245,7 +245,7 @@ export class SparseMerkleTree implements ValidCredentialTree {
 
       const left = this.getNode(level, leftIndex);
       const right = this.getNode(level, rightIndex);
-      const hash = await poseidonHash([left, right]);
+      const hash = await poseidonHashDomain(DOMAIN_MERKLE, [left, right]);
 
       this.setNode(level + 1, parent, hash);
       cursor = parent;

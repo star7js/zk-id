@@ -55,10 +55,12 @@ template MerkleTreeVerifier(depth) {
         switchers[i].L <== computedHash[i];
         switchers[i].R <== siblings[i];
 
-        // Hash the pair using Poseidon(2)
-        hashers[i] = Poseidon(2);
-        hashers[i].inputs[0] <== switchers[i].outL;
-        hashers[i].inputs[1] <== switchers[i].outR;
+        // Hash the pair using domain-separated Poseidon(3)
+        // Domain tag 2 = DOMAIN_MERKLE (must match poseidon.ts constants)
+        hashers[i] = Poseidon(3);
+        hashers[i].inputs[0] <== 2; // DOMAIN_MERKLE
+        hashers[i].inputs[1] <== switchers[i].outL;
+        hashers[i].inputs[2] <== switchers[i].outR;
 
         computedHash[i + 1] <== hashers[i].out;
     }

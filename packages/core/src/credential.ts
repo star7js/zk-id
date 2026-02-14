@@ -1,5 +1,5 @@
 import { Credential } from './types';
-import { poseidonHash } from './poseidon';
+import { poseidonHashDomain, DOMAIN_CREDENTIAL } from './poseidon';
 import { randomBytes } from 'crypto';
 import {
   validateBirthYear,
@@ -24,17 +24,19 @@ export async function createCredential(
   validateBirthYear(birthYear);
   validateNationality(nationality);
 
-  // Generate random salt (32 bytes = 256 bits of entropy)
-  const salt = randomBytes(32).toString('hex');
+  // Generate random salt (31 bytes = 248 bits of entropy)
+  // 31 bytes ensures the value is always below the BN128 field prime (~2^254),
+  // avoiding modular reduction and the resulting non-uniformity.
+  const salt = randomBytes(31).toString('hex');
 
-  // Compute Poseidon commitment with 3 inputs
-  // NOTE: Field element encoding safety
-  // - Salt is 256 bits, but BN128 scalar field is ~254 bits (p ≈ 2^254)
-  // - BigInt('0x' + salt) may produce values > field prime
-  // - circomlibjs Poseidon automatically performs modular reduction (value mod p)
-  // - No truncation occurs - reduction is cryptographically sound
-  // - Same encoding pattern used consistently in prover.ts
-  const commitment = await poseidonHash([birthYear, nationality, BigInt('0x' + salt)]);
+  // Compute Poseidon commitment with domain separation:
+  // Poseidon(DOMAIN_CREDENTIAL, birthYear, nationality, salt)
+  // The domain tag prevents cross-context hash collisions.
+  const commitment = await poseidonHashDomain(DOMAIN_CREDENTIAL, [
+    birthYear,
+    nationality,
+    BigInt('0x' + salt),
+  ]);
 
   // Generate unique ID
   const id = randomBytes(16).toString('hex');
@@ -107,8 +109,11 @@ export async function deriveCommitment(
   validateNationality(nationality);
   validateHexString(salt, 'salt');
 
-  // NOTE: 256-bit salt → BigInt conversion is safe for BN128 field (~254 bits)
-  // Poseidon hash performs automatic modular reduction if needed
-  const commitment = await poseidonHash([birthYear, nationality, BigInt('0x' + salt)]);
+  // Domain-separated: Poseidon(DOMAIN_CREDENTIAL, birthYear, nationality, salt)
+  const commitment = await poseidonHashDomain(DOMAIN_CREDENTIAL, [
+    birthYear,
+    nationality,
+    BigInt('0x' + salt),
+  ]);
   return commitment.toString();
 }

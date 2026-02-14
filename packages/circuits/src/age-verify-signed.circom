@@ -60,10 +60,12 @@ template AgeVerifySigned() {
     birthYearLowerBound.in[1] <== 1900;
     birthYearLowerBound.out === 1;
 
-    component hasher = Poseidon(3);
-    hasher.inputs[0] <== birthYear;
-    hasher.inputs[1] <== nationality;
-    hasher.inputs[2] <== salt;
+    // Domain separation tag 0 = DOMAIN_CREDENTIAL (must match poseidon.ts constants)
+    component hasher = Poseidon(4);
+    hasher.inputs[0] <== 0; // DOMAIN_CREDENTIAL
+    hasher.inputs[1] <== birthYear;
+    hasher.inputs[2] <== nationality;
+    hasher.inputs[3] <== salt;
     hasher.out === credentialHash;
 
     // Bind nonce and timestamp to the proof
