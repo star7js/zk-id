@@ -14,9 +14,10 @@ describe('AgeVerify Circuit Tests', function () {
     poseidon = await buildPoseidon();
   });
 
-  // Helper function to compute credential hash
+  // Helper function to compute credential hash (with domain separation)
+  // Domain tag 0 = DOMAIN_CREDENTIAL (must match circuit and poseidon.ts)
   function computeHash(birthYear, nationality, salt) {
-    const hash = poseidon([birthYear, nationality, salt]);
+    const hash = poseidon([0, birthYear, nationality, salt]);
     return poseidon.F.toString(hash);
   }
 

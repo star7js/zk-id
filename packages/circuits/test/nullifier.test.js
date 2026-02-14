@@ -14,15 +14,17 @@ describe('Nullifier Circuit Tests', function () {
     poseidon = await buildPoseidon();
   });
 
-  // Helper function to compute credential hash
+  // Helper function to compute credential hash (with domain separation)
+  // Domain tag 0 = DOMAIN_CREDENTIAL (must match circuit and poseidon.ts)
   function computeCredentialHash(birthYear, nationality, salt) {
-    const hash = poseidon([birthYear, nationality, salt]);
+    const hash = poseidon([0, birthYear, nationality, salt]);
     return poseidon.F.toString(hash);
   }
 
-  // Helper function to compute nullifier
+  // Helper function to compute nullifier (with domain separation)
+  // Domain tag 1 = DOMAIN_NULLIFIER (must match circuit and poseidon.ts)
   function computeNullifier(credentialHash, scopeHash) {
-    const hash = poseidon([BigInt(credentialHash), BigInt(scopeHash)]);
+    const hash = poseidon([1, BigInt(credentialHash), BigInt(scopeHash)]);
     return poseidon.F.toString(hash);
   }
 

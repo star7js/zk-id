@@ -86,7 +86,31 @@ jobs:
         run: npm run build
 
       - name: Test
-        run: npm test
+        run: |
+          echo "::group::@zk-id/circuits"
+          npm test --workspace=@zk-id/circuits
+          echo "::endgroup::"
+          echo "::group::@zk-id/core"
+          npm test --workspace=@zk-id/core
+          echo "::endgroup::"
+          echo "::group::@zk-id/sdk"
+          npm test --workspace=@zk-id/sdk
+          echo "::endgroup::"
+          echo "::group::@zk-id/issuer"
+          npm test --workspace=@zk-id/issuer
+          echo "::endgroup::"
+          echo "::group::@zk-id/redis"
+          npm test --workspace=@zk-id/redis
+          echo "::endgroup::"
+          echo "::group::@zk-id/contracts"
+          npm test --workspace=@zk-id/contracts
+          echo "::endgroup::"
+          echo "::group::@zk-id/issuer-server"
+          npm test --workspace=@zk-id/issuer-server
+          echo "::endgroup::"
+          echo "::group::@zk-id/mobile"
+          npm test --workspace=@zk-id/mobile
+          echo "::endgroup::"
 
       - name: Commit updated circuit artifacts
         if: steps.cache-circuits.outputs.cache-hit != 'true' && github.event_name == 'push'
