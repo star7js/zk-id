@@ -77,7 +77,7 @@ jobs:
 
       - name: Regenerate circuit hash manifest
         if: steps.cache-circuits.outputs.cache-hit != 'true'
-        run: npm run --workspace=@zk-id/circuits generate-hashes > docs/circuit-hashes.json
+        run: npm run --silent --workspace=@zk-id/circuits generate-hashes > docs/circuit-hashes.json
 
       - name: Verify circuit artifact hashes
         run: npm run verify:hashes
