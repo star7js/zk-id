@@ -508,10 +508,7 @@ export async function verifyNullifierProof(
   // Convert public signals to array
   // Order: [scopeHash, nullifier]
   // credentialHash is NOT a public signal (privacy: prevents cross-scope linkability)
-  const publicSignals = [
-    proof.publicSignals.scopeHash,
-    proof.publicSignals.nullifier,
-  ];
+  const publicSignals = [proof.publicSignals.scopeHash, proof.publicSignals.nullifier];
 
   // Verify the proof
   const isValid = await snarkjs.groth16.verify(verificationKey, publicSignals, snarkProof);

@@ -25,11 +25,7 @@
  */
 
 import { createHash } from 'crypto';
-import {
-  poseidonHashDomain,
-  DOMAIN_NULLIFIER,
-  DOMAIN_SCOPE,
-} from './poseidon';
+import { poseidonHashDomain, DOMAIN_NULLIFIER, DOMAIN_SCOPE } from './poseidon';
 import { validateScopeId, validateBigIntString, BN128_FIELD_ORDER } from './validation';
 
 // ---------------------------------------------------------------------------
