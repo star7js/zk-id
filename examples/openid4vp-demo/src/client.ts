@@ -175,9 +175,7 @@ document.getElementById('issue-credential')!.addEventListener('click', async () 
     const userId = name || 'anonymous';
 
     if (!ISSUER_API_KEY) {
-      throw new Error(
-        'VITE_ISSUER_API_KEY is not configured. Set it in your .env file.',
-      );
+      throw new Error('VITE_ISSUER_API_KEY is not configured. Set it in your .env file.');
     }
 
     const response = await fetch(`${ISSUER_URL}/issue`, {

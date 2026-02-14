@@ -15,7 +15,13 @@ import {
   serializeBBSCredential,
   constantTimeEqual,
 } from '@zk-id/core';
-import { createPrivateKey, createPublicKey, generateKeyPairSync, randomBytes, KeyObject } from 'crypto';
+import {
+  createPrivateKey,
+  createPublicKey,
+  generateKeyPairSync,
+  randomBytes,
+  KeyObject,
+} from 'crypto';
 
 dotenv.config();
 

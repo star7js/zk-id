@@ -196,15 +196,15 @@ GET /status/:commitment
 
 ### Environment Variables
 
-| Variable             | Required | Default                          | Description                                     |
-| -------------------- | -------- | -------------------------------- | ----------------------------------------------- |
-| `PORT`               | No       | 3001                             | Server port                                     |
-| `NODE_ENV`           | No       | development                      | Environment (development/production)            |
-| `API_KEY`            | Yes (prod) | (random per run in dev)       | API key for authentication                      |
-| `ISSUER_NAME`        | Yes      | zk-id Reference Issuer           | Issuer identifier                               |
-| `ISSUER_PRIVATE_KEY` | No\*     | (generated)                      | Base64-encoded Ed25519 private key (DER format) |
-| `ISSUER_PUBLIC_KEY`  | No\*     | (generated)                      | Base64-encoded Ed25519 public key (DER format)  |
-| `CORS_ORIGIN`        | No       | false (disabled)                 | Allowed CORS origins                            |
+| Variable             | Required   | Default                 | Description                                     |
+| -------------------- | ---------- | ----------------------- | ----------------------------------------------- |
+| `PORT`               | No         | 3001                    | Server port                                     |
+| `NODE_ENV`           | No         | development             | Environment (development/production)            |
+| `API_KEY`            | Yes (prod) | (random per run in dev) | API key for authentication                      |
+| `ISSUER_NAME`        | Yes        | zk-id Reference Issuer  | Issuer identifier                               |
+| `ISSUER_PRIVATE_KEY` | No\*       | (generated)             | Base64-encoded Ed25519 private key (DER format) |
+| `ISSUER_PUBLIC_KEY`  | No\*       | (generated)             | Base64-encoded Ed25519 public key (DER format)  |
+| `CORS_ORIGIN`        | No         | false (disabled)        | Allowed CORS origins                            |
 
 \* Keys will be generated on first run if not provided (not recommended for production)
 
