@@ -501,12 +501,14 @@ export async function verifyNullifierProof(
     pi_a: proof.proof.pi_a,
     pi_b: proof.proof.pi_b,
     pi_c: proof.proof.pi_c,
+    protocol: 'groth16',
+    curve: 'bn128',
   };
 
   // Convert public signals to array
-  // Order: [credentialHash, scopeHash, nullifier]
+  // Order: [scopeHash, nullifier]
+  // credentialHash is NOT a public signal (privacy: prevents cross-scope linkability)
   const publicSignals = [
-    proof.publicSignals.credentialHash,
     proof.publicSignals.scopeHash,
     proof.publicSignals.nullifier,
   ];
@@ -556,6 +558,8 @@ export async function verifyRangeProof(
     pi_a: proof.proof.pi_a,
     pi_b: proof.proof.pi_b,
     pi_c: proof.proof.pi_c,
+    protocol: 'groth16',
+    curve: 'bn128',
   };
 
   return snarkjs.groth16.verify(verificationKey, proof.publicSignals, snarkProof);

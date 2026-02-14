@@ -43,3 +43,40 @@ export async function poseidonHashHex(inputs: (number | bigint)[]): Promise<stri
   const hash = await poseidonHash(inputs);
   return '0x' + hash.toString(16).padStart(64, '0');
 }
+
+// ---------------------------------------------------------------------------
+// Domain separation tags
+// ---------------------------------------------------------------------------
+// Each context that uses Poseidon should prefix a unique numeric tag as the
+// first input. This prevents cross-context collisions by construction.
+// These tags MUST match the constants used in the Circom circuits.
+
+/** Domain tag for credential commitments: Poseidon(0, birthYear, nationality, salt) */
+export const DOMAIN_CREDENTIAL = 0n;
+
+/** Domain tag for nullifiers: Poseidon(1, credentialHash, scopeHash) */
+export const DOMAIN_NULLIFIER = 1n;
+
+/** Domain tag for Merkle tree nodes: Poseidon(2, left, right) */
+export const DOMAIN_MERKLE = 2n;
+
+/** Domain tag for scope hashes: Poseidon(3, scopeNum) */
+export const DOMAIN_SCOPE = 3n;
+
+/**
+ * Compute Poseidon hash with domain separation.
+ *
+ * Prepends the domain tag as the first input to prevent cross-context collisions.
+ * E.g., poseidonHashDomain(DOMAIN_CREDENTIAL, [birthYear, nationality, salt])
+ *       computes Poseidon(0, birthYear, nationality, salt).
+ *
+ * @param domain - Domain separation tag (must match circuit constant)
+ * @param inputs - Array of field elements to hash
+ * @returns The hash as a bigint
+ */
+export async function poseidonHashDomain(
+  domain: bigint,
+  inputs: (number | bigint)[],
+): Promise<bigint> {
+  return poseidonHash([domain, ...inputs]);
+}

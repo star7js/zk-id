@@ -29,7 +29,8 @@ describe('Nullifier Prover Tests', () => {
       expect(proof).to.have.property('proof');
       expect(proof).to.have.property('publicSignals');
       expect(proof.proofType).to.equal('nullifier');
-      expect(proof.publicSignals.credentialHash).to.equal(credential.commitment);
+      // credentialHash is intentionally NOT a public signal (privacy: prevents cross-scope linkability)
+      expect(proof.publicSignals).to.not.have.property('credentialHash');
       expect(proof.publicSignals.scopeHash).to.equal(scope.scopeHash);
       expect(proof.publicSignals.nullifier).to.be.a('string');
 
@@ -49,7 +50,6 @@ describe('Nullifier Prover Tests', () => {
       const proof2 = await generateNullifierProof(credential, scope.scopeHash, wasmPath, zkeyPath);
 
       expect(proof1.publicSignals.nullifier).to.equal(proof2.publicSignals.nullifier);
-      expect(proof1.publicSignals.credentialHash).to.equal(proof2.publicSignals.credentialHash);
       expect(proof1.publicSignals.scopeHash).to.equal(proof2.publicSignals.scopeHash);
     });
 
@@ -66,8 +66,8 @@ describe('Nullifier Prover Tests', () => {
 
       expect(proof1.publicSignals.nullifier).to.not.equal(proof2.publicSignals.nullifier);
       expect(proof1.publicSignals.scopeHash).to.not.equal(proof2.publicSignals.scopeHash);
-      // But credential hash should be the same
-      expect(proof1.publicSignals.credentialHash).to.equal(proof2.publicSignals.credentialHash);
+      // credentialHash is NOT exposed (privacy), so we can't compare it here.
+      // The privacy property is exactly that these two proofs are unlinkable.
     });
 
     it('should produce different nullifiers for different credentials in same scope', async function () {
@@ -81,7 +81,8 @@ describe('Nullifier Prover Tests', () => {
       const proof2 = await generateNullifierProof(cred2, scope.scopeHash, wasmPath, zkeyPath);
 
       expect(proof1.publicSignals.nullifier).to.not.equal(proof2.publicSignals.nullifier);
-      expect(proof1.publicSignals.credentialHash).to.not.equal(proof2.publicSignals.credentialHash);
+      // credentialHash is NOT exposed (privacy), so we verify different credentials
+      // produce different nullifiers by checking the nullifier values differ
       // But scope should be the same
       expect(proof1.publicSignals.scopeHash).to.equal(proof2.publicSignals.scopeHash);
     });

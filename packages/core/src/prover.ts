@@ -10,7 +10,7 @@ import {
   RevocationWitness,
   NullifierProof,
 } from './types';
-import { poseidonHash } from './poseidon';
+import { poseidonHash, poseidonHashDomain, DOMAIN_CREDENTIAL, DOMAIN_NULLIFIER } from './poseidon';
 import {
   validateMinAge,
   validateNonce,
@@ -48,7 +48,7 @@ export async function generateAgeProof(
   const currentYear = new Date().getFullYear();
 
   // Recompute the credential hash to use as a public signal
-  const credentialHash = await poseidonHash([
+  const credentialHash = await poseidonHashDomain(DOMAIN_CREDENTIAL, [
     credential.birthYear,
     credential.nationality,
     BigInt('0x' + credential.salt),
@@ -139,7 +139,7 @@ export async function generateNationalityProof(
   validateHexString(credential.salt, 'credential.salt');
 
   // Recompute the credential hash to use as a public signal
-  const credentialHash = await poseidonHash([
+  const credentialHash = await poseidonHashDomain(DOMAIN_CREDENTIAL, [
     credential.birthYear,
     credential.nationality,
     BigInt('0x' + credential.salt),
@@ -239,7 +239,7 @@ export async function generateAgeProofSigned(
 
   const currentYear = new Date().getFullYear();
 
-  const credentialHash = await poseidonHash([
+  const credentialHash = await poseidonHashDomain(DOMAIN_CREDENTIAL, [
     credential.birthYear,
     credential.nationality,
     BigInt('0x' + credential.salt),
@@ -343,7 +343,7 @@ export async function generateNationalityProofSigned(
   validateRequestTimestamp(requestTimestampMs);
   validateHexString(credential.salt, 'credential.salt');
 
-  const credentialHash = await poseidonHash([
+  const credentialHash = await poseidonHashDomain(DOMAIN_CREDENTIAL, [
     credential.birthYear,
     credential.nationality,
     BigInt('0x' + credential.salt),
@@ -449,7 +449,7 @@ export async function generateAgeProofRevocable(
   const currentYear = new Date().getFullYear();
 
   // Recompute the credential hash to use as a public signal
-  const credentialHash = await poseidonHash([
+  const credentialHash = await poseidonHashDomain(DOMAIN_CREDENTIAL, [
     credential.birthYear,
     credential.nationality,
     BigInt('0x' + credential.salt),
@@ -551,14 +551,14 @@ export async function generateNullifierProof(
   validateFieldElement(scopeHashBigInt, 'scopeHash');
 
   // Compute the credential hash (commitment)
-  const credentialHash = await poseidonHash([
+  const credentialHash = await poseidonHashDomain(DOMAIN_CREDENTIAL, [
     credential.birthYear,
     credential.nationality,
     BigInt('0x' + credential.salt),
   ]);
 
-  // Compute the nullifier = Poseidon(credentialHash, scopeHash)
-  const nullifier = await poseidonHash([credentialHash, scopeHashBigInt]);
+  // Compute the nullifier = Poseidon(DOMAIN_NULLIFIER, credentialHash, scopeHash)
+  const nullifier = await poseidonHashDomain(DOMAIN_NULLIFIER, [credentialHash, scopeHashBigInt]);
 
   // Prepare circuit inputs
   const input = {
@@ -574,6 +574,9 @@ export async function generateNullifierProof(
   const { proof, publicSignals } = await snarkjs.groth16.fullProve(input, wasmPath, zkeyPath);
 
   // Format the proof
+  // Public signal order: [0] = scopeHash, [1] = nullifier
+  // credentialHash is proven internally but NOT exposed as a public signal
+  // to prevent cross-scope linkability.
   const formattedProof: NullifierProof = {
     proofType: 'nullifier',
     proof: {
@@ -582,9 +585,8 @@ export async function generateNullifierProof(
       pi_c: proof.pi_c.slice(0, 2).map((x: unknown) => String(x)),
     },
     publicSignals: {
-      credentialHash: publicSignals[0],
-      scopeHash: publicSignals[1],
-      nullifier: publicSignals[2],
+      scopeHash: publicSignals[0],
+      nullifier: publicSignals[1],
     },
   };
 

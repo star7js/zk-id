@@ -161,7 +161,8 @@ export interface NullifierProof {
     pi_c: string[];
   };
   publicSignals: {
-    credentialHash: string;
+    // NOTE: credentialHash is intentionally absent. Exposing it would allow
+    // cross-scope linkability, defeating the privacy goal of nullifiers.
     scopeHash: string;
     nullifier: string;
   };

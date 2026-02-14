@@ -1,4 +1,4 @@
-import { poseidonHash } from './poseidon';
+import { poseidonHash, poseidonHashDomain, DOMAIN_MERKLE } from './poseidon';
 import { ValidCredentialTree, RevocationWitness, RevocationRootInfo } from './types';
 import { ZkIdConfigError, ZkIdValidationError } from './errors';
 
@@ -44,7 +44,7 @@ export class InMemoryValidCredentialTree implements ValidCredentialTree {
     this.zeroHashes = [0n]; // Level 0: empty leaf
     for (let i = 0; i < this.depth; i++) {
       const prevZero = this.zeroHashes[i];
-      this.zeroHashes.push(await poseidonHash([prevZero, prevZero]));
+      this.zeroHashes.push(await poseidonHashDomain(DOMAIN_MERKLE, [prevZero, prevZero]));
     }
 
     // Initialize layers array filled with zero hashes
@@ -173,7 +173,7 @@ export class InMemoryValidCredentialTree implements ValidCredentialTree {
 
       const left = this.layers[level][leftIndex];
       const right = this.layers[level][rightIndex];
-      const hash = await poseidonHash([left, right]);
+      const hash = await poseidonHashDomain(DOMAIN_MERKLE, [left, right]);
 
       this.layers[level + 1][parent] = hash;
       cursor = parent;

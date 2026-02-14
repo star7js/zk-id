@@ -9,7 +9,12 @@ import {
   InMemoryIssuerKeyManager,
   BBSCredentialIssuer,
 } from '@zk-id/issuer';
-import { InMemoryRevocationStore, SCHEMA_REGISTRY, serializeBBSCredential } from '@zk-id/core';
+import {
+  InMemoryRevocationStore,
+  SCHEMA_REGISTRY,
+  serializeBBSCredential,
+  constantTimeEqual,
+} from '@zk-id/core';
 import { createPrivateKey, createPublicKey, generateKeyPairSync, KeyObject } from 'crypto';
 
 dotenv.config();
@@ -46,7 +51,7 @@ const app = express();
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: process.env.CORS_ORIGIN || false, // No cross-origin access by default; set CORS_ORIGIN explicitly
     credentials: true,
   }),
 );
@@ -69,7 +74,7 @@ app.get('/circuits/:artifact', (req: Request, res: Response, next: NextFunction)
 function requireApiKey(req: Request, res: Response, next: NextFunction) {
   const apiKey = req.headers['x-api-key'];
 
-  if (!apiKey || apiKey !== API_KEY) {
+  if (!apiKey || typeof apiKey !== 'string' || !constantTimeEqual(apiKey, API_KEY)) {
     return res.status(401).json({
       error: 'Unauthorized',
       message: 'Valid API key required',

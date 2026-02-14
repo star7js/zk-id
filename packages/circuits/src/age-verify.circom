@@ -56,11 +56,13 @@ template AgeVerify() {
     birthYearLowerBound.out === 1; // Birth year must be >= 1900
 
     // Verify credential binding: compute hash from private inputs
-    // and verify it matches the public credentialHash
-    component hasher = Poseidon(3);
-    hasher.inputs[0] <== birthYear;
-    hasher.inputs[1] <== nationality;
-    hasher.inputs[2] <== salt;
+    // and verify it matches the public credentialHash.
+    // Domain separation tag 0 = DOMAIN_CREDENTIAL (must match poseidon.ts constants)
+    component hasher = Poseidon(4);
+    hasher.inputs[0] <== 0; // DOMAIN_CREDENTIAL
+    hasher.inputs[1] <== birthYear;
+    hasher.inputs[2] <== nationality;
+    hasher.inputs[3] <== salt;
     hasher.out === credentialHash;
 
     // Bind nonce to the proof

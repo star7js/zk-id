@@ -24,8 +24,13 @@
  * scopes produce different nullifiers, so actions are unlinkable across scopes.
  */
 
-import { poseidonHash } from './poseidon';
-import { validateScopeId, validateBigIntString } from './validation';
+import { createHash } from 'crypto';
+import {
+  poseidonHashDomain,
+  DOMAIN_NULLIFIER,
+  DOMAIN_SCOPE,
+} from './poseidon';
+import { validateScopeId, validateBigIntString, BN128_FIELD_ORDER } from './validation';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -64,6 +69,19 @@ export interface NullifierStore {
   markUsed(nullifier: string, scopeId: string): Promise<void>;
   /** Get the count of used nullifiers in a scope */
   getUsedCount(scopeId: string): Promise<number>;
+  /**
+   * Atomically check if a nullifier has been used and mark it if not.
+   * Returns true if the nullifier was fresh (first use), false if already used.
+   *
+   * This MUST be atomic to prevent TOCTOU races where two concurrent requests
+   * both see the nullifier as unused and both succeed.
+   *
+   * Implementations:
+   *   - Redis: Use SETNX or a Lua script
+   *   - PostgreSQL: Use INSERT ... ON CONFLICT DO NOTHING with RETURNING
+   *   - In-memory: Synchronized check-and-set
+   */
+  checkAndMarkUsed(nullifier: string, scopeId: string): Promise<boolean>;
 }
 
 // ---------------------------------------------------------------------------
@@ -82,17 +100,14 @@ export interface NullifierStore {
 export async function createNullifierScope(scopeId: string): Promise<NullifierScope> {
   validateScopeId(scopeId);
 
-  // Convert scope string to a numeric value by encoding as field element
-  // Use a simple but deterministic encoding: hash the UTF-8 bytes
-  const encoder = new TextEncoder();
-  const bytes = encoder.encode(scopeId);
-  // Convert first 31 bytes to a BigInt (to stay within BN128 field)
-  let scopeNum = 0n;
-  for (let i = 0; i < Math.min(bytes.length, 31); i++) {
-    scopeNum = (scopeNum << 8n) | BigInt(bytes[i]);
-  }
+  // Hash the full scope string with SHA-256 to get a deterministic digest,
+  // then reduce mod BN128 field order to get a valid field element.
+  // This avoids the previous truncation-at-31-bytes approach which caused
+  // collisions for scope IDs that shared the same first 31 UTF-8 bytes.
+  const sha256Digest = createHash('sha256').update(scopeId, 'utf8').digest();
+  const scopeNum = BigInt('0x' + sha256Digest.toString('hex')) % BN128_FIELD_ORDER;
 
-  const scopeHash = await poseidonHash([scopeNum]);
+  const scopeHash = await poseidonHashDomain(DOMAIN_SCOPE, [scopeNum]);
 
   return {
     id: scopeId,
@@ -121,7 +136,7 @@ export async function computeNullifier(
   const commitmentBigInt = BigInt(commitment);
   const scopeHashBigInt = BigInt(scope.scopeHash);
 
-  const nullifier = await poseidonHash([commitmentBigInt, scopeHashBigInt]);
+  const nullifier = await poseidonHashDomain(DOMAIN_NULLIFIER, [commitmentBigInt, scopeHashBigInt]);
 
   return {
     nullifier: nullifier.toString(),
@@ -143,15 +158,16 @@ export async function consumeNullifier(
   scopeId: string,
   store: NullifierStore,
 ): Promise<{ fresh: boolean; error?: string }> {
-  const alreadyUsed = await store.hasBeenUsed(nullifier, scopeId);
-  if (alreadyUsed) {
+  // Use atomic checkAndMarkUsed to prevent TOCTOU race conditions.
+  // Without atomicity, two concurrent requests could both pass the
+  // hasBeenUsed check before either calls markUsed.
+  const wasFresh = await store.checkAndMarkUsed(nullifier, scopeId);
+  if (!wasFresh) {
     return {
       fresh: false,
       error: 'Nullifier already used in this scope (duplicate action detected)',
     };
   }
-
-  await store.markUsed(nullifier, scopeId);
   return { fresh: true };
 }
 
@@ -210,5 +226,27 @@ export class InMemoryNullifierStore implements NullifierStore {
    */
   async getUsedCount(scopeId: string): Promise<number> {
     return this.used.get(scopeId)?.size ?? 0;
+  }
+
+  /**
+   * Atomically check if a nullifier has been used and mark it if not.
+   * In-memory implementation is single-threaded so this is naturally atomic.
+   * Production stores (Redis, Postgres) must implement this with SETNX/INSERT ON CONFLICT.
+   *
+   * @param nullifier - The nullifier to check and mark
+   * @param scopeId - The scope identifier
+   * @returns true if the nullifier was fresh (first use), false if already used
+   */
+  async checkAndMarkUsed(nullifier: string, scopeId: string): Promise<boolean> {
+    let scopeSet = this.used.get(scopeId);
+    if (!scopeSet) {
+      scopeSet = new Set();
+      this.used.set(scopeId, scopeSet);
+    }
+    if (scopeSet.has(nullifier)) {
+      return false;
+    }
+    scopeSet.add(nullifier);
+    return true;
   }
 }
