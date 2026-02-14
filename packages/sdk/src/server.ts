@@ -3059,7 +3059,7 @@ export class OpenID4VPVerifier {
    */
   async enableEncryption(
     algorithm: 'ECDH-ES' | 'RSA-OAEP-256' = 'ECDH-ES',
-    encryptionAlg: string = 'A256GCM',
+    _encryptionAlg: string = 'A256GCM',
   ): Promise<void> {
     const { generateKeyPair, exportJWK } = await import('jose');
 
@@ -3426,7 +3426,7 @@ export class OpenID4VPVerifier {
       }
 
       vp = JSON.parse(vpJson);
-    } catch (error) {
+    } catch {
       return {
         verified: false,
         error: 'Invalid VP token encoding or decryption failed',

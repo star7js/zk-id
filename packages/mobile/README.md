@@ -77,7 +77,7 @@ await wallet.addCredential(credential);
 ```typescript
 const proofResponse = await wallet.generateAgeProof(
   null, // Auto-select most recent credential
-  18,   // Minimum age
+  18, // Minimum age
   'challenge-nonce-from-verifier',
 );
 
@@ -108,7 +108,8 @@ Linking.addEventListener('url', async (event) => {
 
   // Submit to verifier
   const httpAdapter = {
-    post: (url, body, headers) => fetch(url, { method: 'POST', headers, body: JSON.stringify(body) }),
+    post: (url, body, headers) =>
+      fetch(url, { method: 'POST', headers, body: JSON.stringify(body) }),
     get: (url, headers) => fetch(url, { headers }),
   };
 
@@ -165,6 +166,7 @@ const wallet = new MobileWallet({
 #### `MobileWallet`
 
 **Credential Management:**
+
 - `addCredential(credential: SignedCredential): Promise<void>`
 - `removeCredential(id: string): Promise<void>`
 - `listCredentials(): Promise<SignedCredential[]>`
@@ -173,11 +175,13 @@ const wallet = new MobileWallet({
 - `importCredentials(json: string): Promise<void>` - Restore from backup
 
 **Proof Generation:**
+
 - `generateAgeProof(credentialId, minAge, nonce): Promise<ProofResponse>`
 - `generateNationalityProof(credentialId, nationality, nonce): Promise<ProofResponse>`
 - `handleProofRequest(request: ProofRequest): Promise<ProofResponse>` - Auto-detect type
 
 **BBS+ (Selective Disclosure):**
+
 - `addBBSCredential(credential: SerializedBBSCredential): Promise<void>`
 - `removeBBSCredential(id: string): Promise<void>`
 - `listBBSCredentials(): Promise<SerializedBBSCredential[]>`
@@ -262,16 +266,16 @@ const adapter: SecureStorageAdapter = {
 
 ### Comparison with @zk-id/sdk
 
-| Feature | @zk-id/sdk | @zk-id/mobile |
-|---------|------------|---------------|
-| **Platform** | Browser (DOM) | React Native, Expo, Node.js |
-| **Storage** | IndexedDB | Injected (Keychain, SecureStore) |
-| **HTTP** | fetch (built-in) | Injected adapter |
-| **OpenID4VP** | ✅ | ✅ |
-| **BBS+** | ✅ | ✅ |
-| **Deep Links** | ❌ | ✅ |
-| **QR Scanning** | Via library | Via library |
-| **Digital Credentials API** | Future | Future (Q3 2026) |
+| Feature                     | @zk-id/sdk       | @zk-id/mobile                    |
+| --------------------------- | ---------------- | -------------------------------- |
+| **Platform**                | Browser (DOM)    | React Native, Expo, Node.js      |
+| **Storage**                 | IndexedDB        | Injected (Keychain, SecureStore) |
+| **HTTP**                    | fetch (built-in) | Injected adapter                 |
+| **OpenID4VP**               | ✅               | ✅                               |
+| **BBS+**                    | ✅               | ✅                               |
+| **Deep Links**              | ❌               | ✅                               |
+| **QR Scanning**             | Via library      | Via library                      |
+| **Digital Credentials API** | Future           | Future (Q3 2026)                 |
 
 ### Design Principles
 

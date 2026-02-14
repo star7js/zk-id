@@ -9,7 +9,6 @@ import express from 'express';
 import cors from 'cors';
 import QRCode from 'qrcode';
 import { ZkIdServer, OpenID4VPVerifier, InMemoryIssuerRegistry } from '@zk-id/sdk';
-import { createPublicKey } from 'crypto';
 
 const PORT = parseInt(process.env.VITE_VERIFIER_PORT || process.env.PORT || '3002');
 const VITE_PORT = process.env.VITE_PORT || '3000';

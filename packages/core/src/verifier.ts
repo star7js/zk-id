@@ -526,7 +526,7 @@ export async function verifyNullifierProof(
  */
 export async function verifyBBSDisclosureProofFromResponse(
   response: BBSProofResponse,
-  publicKey: Uint8Array,
+  _publicKey: Uint8Array,
 ): Promise<boolean> {
   // Validate schema exists
   const schema = SCHEMA_REGISTRY.get(response.schemaId);

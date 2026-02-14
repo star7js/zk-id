@@ -63,23 +63,23 @@ See [Server-Side Setup](#server-side-setup) below for deploying your verificatio
 ```typescript
 interface ZkIdAgeGateConfig {
   // Required
-  verificationEndpoint: string;  // Your OpenID4VP verifier endpoint
-  minAge: number;                 // Minimum age (e.g., 18, 21)
-  onVerified: () => void;         // Success callback
+  verificationEndpoint: string; // Your OpenID4VP verifier endpoint
+  minAge: number; // Minimum age (e.g., 18, 21)
+  onVerified: () => void; // Success callback
 
   // Optional
-  onRejected?: (reason: string) => void;  // Failure callback
-  issuerEndpoint?: string;                // Custom issuer URL
+  onRejected?: (reason: string) => void; // Failure callback
+  issuerEndpoint?: string; // Custom issuer URL
 
   circuitPaths?: {
-    ageWasm: string;  // Defaults to CDN
+    ageWasm: string; // Defaults to CDN
     ageZkey: string;
   };
 
   branding?: {
-    title?: string;        // Modal title
+    title?: string; // Modal title
     primaryColor?: string; // Hex color (e.g., "#667eea")
-    logo?: string;         // Logo URL
+    logo?: string; // Logo URL
   };
 }
 ```
@@ -267,13 +267,15 @@ app.get('/auth/request', (req, res) => {
   const authRequest = verifier.createAgeVerificationRequest(18);
 
   // For mobile wallets, generate QR code
-  const qrCode = generateQRCode(`openid4vp://?${new URLSearchParams({
-    presentation_definition: JSON.stringify(authRequest.presentation_definition),
-    response_uri: authRequest.response_uri,
-    nonce: authRequest.nonce,
-    client_id: authRequest.client_id,
-    state: authRequest.state,
-  })}`);
+  const qrCode = generateQRCode(
+    `openid4vp://?${new URLSearchParams({
+      presentation_definition: JSON.stringify(authRequest.presentation_definition),
+      response_uri: authRequest.response_uri,
+      nonce: authRequest.nonce,
+      client_id: authRequest.client_id,
+      state: authRequest.state,
+    })}`,
+  );
 
   res.json({ authRequest, qrCode });
 });
@@ -405,8 +407,8 @@ await wallet.importCredentials(restored);
 ```typescript
 // Generate age proof
 const proofResponse = await wallet.generateAgeProof(
-  null,  // Auto-select most recent credential
-  18,    // Minimum age
+  null, // Auto-select most recent credential
+  18, // Minimum age
   'challenge-nonce-from-verifier',
 );
 
@@ -438,15 +440,10 @@ Linking.addEventListener('url', async (event) => {
   const httpAdapter = {
     post: (url, body, headers) =>
       fetch(url, { method: 'POST', headers, body: JSON.stringify(body) }),
-    get: (url, headers) =>
-      fetch(url, { headers }),
+    get: (url, headers) => fetch(url, { headers }),
   };
 
-  const result = await submitPresentation(
-    authRequest.response_uri,
-    presentation,
-    httpAdapter,
-  );
+  const result = await submitPresentation(authRequest.response_uri, presentation, httpAdapter);
 
   console.log('Verification result:', result);
 });
@@ -592,6 +589,7 @@ const store = new InMemoryCredentialStore();
 **Problem:** First proof takes 45-60 seconds.
 
 **Solution:**
+
 - This is expected for the initial circuit load (~5MB WASM + zkey)
 - Subsequent proofs are faster (~10-15 seconds)
 - Consider adding a loading indicator
@@ -616,10 +614,12 @@ setLoading(false);
 ```typescript
 import cors from 'cors';
 
-app.use(cors({
-  origin: ['https://your-frontend.com', 'http://localhost:3000'],
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: ['https://your-frontend.com', 'http://localhost:3000'],
+    credentials: true,
+  }),
+);
 ```
 
 #### Circuit Files Not Loading
@@ -627,19 +627,23 @@ app.use(cors({
 **Problem:** 404 errors for `.wasm` or `.zkey` files.
 
 **Solution:**
+
 1. Verify circuit paths are correct
 2. Check CDN availability
 3. Serve files with correct MIME types:
 
 ```typescript
 // Express
-app.use('/circuits', express.static('circuits', {
-  setHeaders: (res, path) => {
-    if (path.endsWith('.wasm')) {
-      res.setHeader('Content-Type', 'application/wasm');
-    }
-  },
-}));
+app.use(
+  '/circuits',
+  express.static('circuits', {
+    setHeaders: (res, path) => {
+      if (path.endsWith('.wasm')) {
+        res.setHeader('Content-Type', 'application/wasm');
+      }
+    },
+  }),
+);
 ```
 
 #### Verification Fails with "Invalid Signature"
@@ -647,6 +651,7 @@ app.use('/circuits', express.static('circuits', {
 **Problem:** Proof verification returns "Invalid signature" error.
 
 **Solution:**
+
 1. Ensure issuer public key is in the registry
 2. Verify credential hasn't expired
 3. Check that proof timestamp is recent
@@ -694,6 +699,7 @@ console.log('Issuer found:', issuer);
 **Problem:** `SecureStorageAdapter` methods throwing errors.
 
 **Solution:**
+
 - Ensure all 4 methods are implemented: `getItem`, `setItem`, `removeItem`, `getAllKeys`
 - Handle null returns correctly
 - Test with mock adapter first:
@@ -701,8 +707,12 @@ console.log('Issuer found:', issuer);
 ```typescript
 const mockAdapter = {
   getItem: async (key) => mockStorage.get(key) ?? null,
-  setItem: async (key, value) => { mockStorage.set(key, value); },
-  removeItem: async (key) => { mockStorage.delete(key); },
+  setItem: async (key, value) => {
+    mockStorage.set(key, value);
+  },
+  removeItem: async (key) => {
+    mockStorage.delete(key);
+  },
   getAllKeys: async () => Array.from(mockStorage.keys()),
 };
 ```
@@ -716,10 +726,7 @@ const mockAdapter = {
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open('zk-circuits').then((cache) => {
-      return cache.addAll([
-        '/circuits/age.wasm',
-        '/circuits/age.zkey',
-      ]);
+      return cache.addAll(['/circuits/age.wasm', '/circuits/age.zkey']);
     }),
   );
 });
@@ -729,17 +736,15 @@ self.addEventListener('install', (event) => {
 
 ```html
 <!-- HTML head -->
-<link rel="preload" href="/circuits/age.wasm" as="fetch" crossorigin>
-<link rel="preload" href="/circuits/age.zkey" as="fetch" crossorigin>
+<link rel="preload" href="/circuits/age.wasm" as="fetch" crossorigin />
+<link rel="preload" href="/circuits/age.zkey" as="fetch" crossorigin />
 ```
 
 #### Lazy Load Wallet
 
 ```typescript
 // Only load wallet when needed
-const walletPromise = import('@zk-id/sdk').then((module) =>
-  new module.OpenID4VPWallet(config)
-);
+const walletPromise = import('@zk-id/sdk').then((module) => new module.OpenID4VPWallet(config));
 
 button.addEventListener('click', async () => {
   const wallet = await walletPromise;

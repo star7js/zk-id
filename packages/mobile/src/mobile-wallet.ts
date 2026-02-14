@@ -7,7 +7,6 @@
 
 import {
   type SignedCredential,
-  type Credential,
   type ProofRequest,
   type ProofResponse,
   type BBSProofResponse,
@@ -28,9 +27,9 @@ import type { MobileCredentialStore, MobileBBSCredentialStore } from './credenti
  */
 export interface MobileWalletConfig {
   /** Credential storage (EdDSA-signed) */
-  credentialStore: MobileCredentialStore | any; // Allow any for compatibility with InMemoryCredentialStore
+  credentialStore: MobileCredentialStore;
   /** Optional BBS+ credential storage */
-  bbsCredentialStore?: MobileBBSCredentialStore | any;
+  bbsCredentialStore?: MobileBBSCredentialStore;
   /** Paths to circuit artifacts (WASM + zkey) */
   circuitPaths: {
     ageWasm: string;
@@ -269,7 +268,7 @@ export class MobileWallet {
 
     const proof = await deriveBBSSchemaDisclosureProof(credential, schema, disclosureFields, nonce);
 
-    const revealedFieldValues: Record<string, any> = {};
+    const revealedFieldValues: Record<string, unknown> = {};
     for (const field of disclosureFields) {
       revealedFieldValues[field] = serialized.fields[field];
     }

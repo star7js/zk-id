@@ -335,7 +335,7 @@ React Native and Expo SDK for mobile wallets with OpenID4VP deep link support, n
 | `@zk-id/circuits`      | Circuit artifacts (auto-included)     | `npm install @zk-id/circuits`        |
 | `@zk-id/redis`         | Production storage                    | `npm install @zk-id/redis ioredis`   |
 | `@zk-id/contracts`     | On-chain verification                 | `npm install @zk-id/contracts`       |
-| `@zk-id/mobile`        | Mobile wallets (React Native/Expo)   | `npm install @zk-id/mobile`          |
+| `@zk-id/mobile`        | Mobile wallets (React Native/Expo)    | `npm install @zk-id/mobile`          |
 
 ## Use Cases
 
@@ -536,6 +536,7 @@ Note: These circuits use BabyJub EdDSA signatures (circomlib), not Ed25519.
 Contributions welcome! This is an open-source project aimed at bringing practical, privacy-preserving identity to the web.
 
 **New contributors:**
+
 - 🌟 [Good First Issues](https://github.com/star7js/zk-id/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) - Start here!
 - 💬 [GitHub Discussions](https://github.com/star7js/zk-id/discussions) - Ask questions, share ideas
 - 📖 [Contributing Guide](./CONTRIBUTING.md) - Development setup and guidelines

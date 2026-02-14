@@ -18,6 +18,7 @@ Age verification on the internet has always been a privacy nightmare. Current so
 **The fundamental tension**: You need to verify someone is 18+ without actually knowing their birthdate.
 
 This is especially critical in the EU, where:
+
 - **GDPR** requires data minimization and purpose limitation
 - **DSA (Digital Services Act)** mandates age verification for platforms
 - **eIDAS 2.0** is rolling out digital identity wallets across member states
@@ -29,6 +30,7 @@ Traditional age verification solutions violate GDPR's data minimization principl
 Zero-knowledge (ZK) proofs are a cryptographic primitive that lets you prove a statement is true without revealing _why_ it's true.
 
 **Applied to age verification**:
+
 - **Traditional**: "Here's my birthdate: 1990-06-15" → Verifier learns exact age
 - **Zero-knowledge**: "I'm >= 18" → Verifier learns only the binary fact, nothing else
 
@@ -39,6 +41,7 @@ Zero-knowledge (ZK) proofs are a cryptographic primitive that lets you prove a s
 3. **Verification**: The verifier checks the cryptographic proof without learning your birthdate
 
 **Key properties**:
+
 - ✅ **Zero knowledge**: Birth year never leaves your device
 - ✅ **Sound**: Cryptographically impossible to fake (128-bit security)
 - ✅ **Binding**: Proof is tied to a specific credential signed by a trusted issuer
@@ -49,17 +52,20 @@ Zero-knowledge (ZK) proofs are a cryptographic primitive that lets you prove a s
 Zero-knowledge is powerful, but proprietary ZK systems create vendor lock-in. Enter **OpenID4VP** (OpenID for Verifiable Presentations).
 
 OpenID4VP is a W3C/OIDF standard that defines how:
+
 - **Verifiers** request credentials
 - **Wallets** present credentials
 - **Issuers** provide credentials
 
 **Why this matters**:
+
 - Any OpenID4VP-compliant wallet works with any verifier
 - Follows OAuth 2.0 patterns familiar to developers
 - Integrates with existing SSO infrastructure
 - Aligns with EU Digital Identity Wallet (EUDI Wallet) roadmap
 
 **zk-id** is the first OpenID4VP implementation with true zero-knowledge proofs. Other implementations use:
+
 - **Selective Disclosure JWT (SD-JWT)**: Reveals birthdate, not zero-knowledge
 - **Anonymous Credentials**: Complex setup, limited adoption
 
@@ -75,6 +81,7 @@ npm start
 ```
 
 Visit http://localhost:3000. On the right panel (Browser Wallet):
+
 1. Enter a test birthdate
 2. Click "Issue Credential from Issuer"
 3. Credential appears in wallet
@@ -84,6 +91,7 @@ Visit http://localhost:3000. On the right panel (Browser Wallet):
 ### Step 2: Create Verification Request (15 seconds)
 
 On the left panel (Verifier):
+
 1. Set minimum age (default: 18)
 2. Click "Create Authorization Request"
 3. QR code appears
@@ -93,11 +101,13 @@ On the left panel (Verifier):
 ### Step 3: Generate & Verify Proof (60 seconds)
 
 On the right panel:
+
 1. Click "Generate & Submit Proof"
 2. Wait ~45 seconds (first proof loads circuit)
 3. Result appears: ✅ Verified
 
 **What happened**:
+
 1. Your browser loaded a ZK circuit (5MB WASM + zkey)
 2. Generated a ZK-SNARK proving `age >= 18`
 3. Packaged it as a W3C Verifiable Presentation
@@ -113,16 +123,19 @@ On the right panel:
 zk-id satisfies multiple GDPR requirements:
 
 **Article 5(1)(c) - Data Minimization**:
+
 > "Personal data shall be adequate, relevant and limited to what is necessary."
 
 ✅ Only the binary fact (age >= 18) is transmitted. Birthdate never leaves the device.
 
 **Article 25 - Privacy by Design**:
+
 > "The controller shall implement appropriate technical and organisational measures... designed to implement data-protection principles."
 
 ✅ ZK proofs are privacy by design at the cryptographic layer.
 
 **Article 9 - Special Categories**:
+
 > "Processing of personal data revealing... health, sex life or sexual orientation... shall be prohibited."
 
 ✅ Age-gating adult content without collecting "special category" data.
@@ -130,13 +143,16 @@ zk-id satisfies multiple GDPR requirements:
 ### DSA (Digital Services Act)
 
 **Article 28 - Protection of Minors**:
+
 > "Providers of online platforms accessible to minors shall put in place appropriate and proportionate measures to ensure a high level of privacy, safety, and security of minors."
 
 Traditional solutions:
+
 - Upload ID → Creates data breach risk, violates Article 28's "high level of privacy"
 - Manual birthdate entry → Easily bypassed, fails "appropriate measures"
 
 **zk-id**:
+
 - ✅ High privacy (ZK proof)
 - ✅ Strong security (128-bit soundness)
 - ✅ Proportionate (no data collection)
@@ -144,11 +160,13 @@ Traditional solutions:
 ### eIDAS 2.0 & EU Digital Identity Wallet
 
 eIDAS 2.0 (effective 2026) mandates EU member states provide digital identity wallets. These wallets will:
+
 - Store government-issued credentials (passport, driver's license)
 - Support selective disclosure and privacy-preserving proofs
 - Use OpenID4VP and ISO mDOC standards
 
 **zk-id's positioning**:
+
 - ✅ OpenID4VP-compliant (interoperable with EUDI Wallets)
 - ✅ Supports selective disclosure (BBS+ credentials)
 - ✅ Zero-knowledge proofs (next-gen privacy)
@@ -197,7 +215,7 @@ npm install @zk-id/sdk
 
 ## Technical Deep Dive
 
-*To be expanded with human-written content:*
+_To be expanded with human-written content:_
 
 - Circuit architecture (Groth16, Circom)
 - Signature verification (EdDSA in ZK)
@@ -222,4 +240,4 @@ npm install @zk-id/sdk
 
 ---
 
-*Questions? Open an [issue on GitHub](https://github.com/star7js/zk-id/issues) or join the discussion.*
+_Questions? Open an [issue on GitHub](https://github.com/star7js/zk-id/issues) or join the discussion._

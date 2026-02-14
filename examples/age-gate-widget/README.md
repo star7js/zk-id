@@ -5,6 +5,7 @@ Drop-in, self-contained age verification widget powered by zero-knowledge proofs
 ## Why This Matters
 
 Traditional age verification either:
+
 - **Asks for birthdates** (privacy violation, data liability)
 - **Uses third-party services** (tracking, cost, friction)
 
@@ -63,6 +64,7 @@ document.getElementById('enter-button').addEventListener('click', () => {
 ```
 
 **That's it!** The widget handles:
+
 - ✅ Modal UI (self-contained CSS, no external dependencies)
 - ✅ Credential issuance (test mode)
 - ✅ ZK proof generation (client-side, ~45 seconds)
@@ -74,23 +76,23 @@ document.getElementById('enter-button').addEventListener('click', () => {
 ```typescript
 interface ZkIdAgeGateConfig {
   // Required
-  verificationEndpoint: string;  // OpenID4VP verifier endpoint
-  minAge: number;                 // Minimum age (e.g., 18, 21)
-  onVerified: () => void;         // Success callback
+  verificationEndpoint: string; // OpenID4VP verifier endpoint
+  minAge: number; // Minimum age (e.g., 18, 21)
+  onVerified: () => void; // Success callback
 
   // Optional
-  onRejected?: (reason: string) => void;  // Failure/cancel callback
-  issuerEndpoint?: string;                // Custom issuer (defaults to test issuer)
+  onRejected?: (reason: string) => void; // Failure/cancel callback
+  issuerEndpoint?: string; // Custom issuer (defaults to test issuer)
 
   circuitPaths?: {
-    ageWasm: string;  // Defaults to CDN
-    ageZkey: string;  // Defaults to CDN
+    ageWasm: string; // Defaults to CDN
+    ageZkey: string; // Defaults to CDN
   };
 
   branding?: {
-    title?: string;        // Modal title (default: "Age Verification Required")
+    title?: string; // Modal title (default: "Age Verification Required")
     primaryColor?: string; // Accent color (default: "#238636")
-    logo?: string;         // Logo URL
+    logo?: string; // Logo URL
   };
 }
 ```
@@ -143,9 +145,11 @@ See the [OpenID4VP demo](../openid4vp-demo) for a complete example.
 ```typescript
 ZkIdAgeGateWidget.init({
   verificationEndpoint: 'https://your-verifier.com/auth/request',
-  issuerEndpoint: 'https://your-issuer.com/issue',  // Or integrate with a real credential issuer
+  issuerEndpoint: 'https://your-issuer.com/issue', // Or integrate with a real credential issuer
   minAge: 18,
-  onVerified: () => { /* ... */ },
+  onVerified: () => {
+    /* ... */
+  },
 });
 ```
 
@@ -172,11 +176,11 @@ ZkIdAgeGateWidget.init({
 
 ## Comparison
 
-| Solution | Privacy | UX | Cost | Setup |
-|----------|---------|-----|------|-------|
-| **Manual birthdate input** | ❌ None | ✅ Simple | ✅ Free | ✅ Instant |
-| **Third-party ID verification** | ❌ Poor | ❌ Friction | ❌ $0.50-2/verification | ⚠️ Integration |
-| **zk-id Age Gate** | ✅ **Zero-knowledge** | ⚠️ ~45s first time | ✅ Free (self-hosted) | ✅ 3 lines of code |
+| Solution                        | Privacy               | UX                 | Cost                    | Setup              |
+| ------------------------------- | --------------------- | ------------------ | ----------------------- | ------------------ |
+| **Manual birthdate input**      | ❌ None               | ✅ Simple          | ✅ Free                 | ✅ Instant         |
+| **Third-party ID verification** | ❌ Poor               | ❌ Friction        | ❌ $0.50-2/verification | ⚠️ Integration     |
+| **zk-id Age Gate**              | ✅ **Zero-knowledge** | ⚠️ ~45s first time | ✅ Free (self-hosted)   | ✅ 3 lines of code |
 
 ## Roadmap
 
@@ -214,6 +218,7 @@ A: zk-id is privacy-first. Since no birthdate is transmitted or stored, you have
 
 **Q: Can I use this in production?**
 A: Yes, but you'll need to:
+
 1. Deploy a verifier (see [deployment guide](../../docs/DEPLOYMENT.md))
 2. Integrate with a real credential issuer or use the reference issuer
 3. Host circuit files on your CDN (or use the default CDN)

@@ -19,14 +19,14 @@
 import { createCredential, AuditLogger, ConsoleAuditLogger } from '@zk-id/core';
 import {
   generateBBSKeyPair,
-  signBBSMessages,
-  credentialFieldsToBBSMessages,
+  signBBSMessages as _signBBSMessages,
+  credentialFieldsToBBSMessages as _credentialFieldsToBBSMessages,
   BBSKeyPair,
   BBSCredential,
-  BBS_CREDENTIAL_FIELDS,
+  BBS_CREDENTIAL_FIELDS as _BBS_CREDENTIAL_FIELDS,
   signBBSSchemaCredential,
 } from '@zk-id/core';
-import { SCHEMA_REGISTRY, BBSCredentialSchema } from '@zk-id/core';
+import { SCHEMA_REGISTRY, BBSCredentialSchema as _BBSCredentialSchema } from '@zk-id/core';
 
 export interface BBSIssuerConfig {
   /** Issuer name or DID */

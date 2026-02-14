@@ -17,7 +17,7 @@ import type { ProofResponse } from '@zk-id/core';
  * - Expo: fetch (built-in)
  */
 export interface HttpAdapter {
-  post(url: string, body: any, headers?: Record<string, string>): Promise<HttpResponse>;
+  post(url: string, body: unknown, headers?: Record<string, string>): Promise<HttpResponse>;
   get(url: string, headers?: Record<string, string>): Promise<HttpResponse>;
 }
 
@@ -25,7 +25,7 @@ export interface HttpResponse {
   ok: boolean;
   status: number;
   statusText: string;
-  json(): Promise<any>;
+  json(): Promise<unknown>;
   text(): Promise<string>;
 }
 
@@ -63,7 +63,7 @@ export interface DCQLCredentialQuery {
 
 export interface DCQLClaimsConstraint {
   path: string;
-  filter?: any;
+  filter?: Record<string, unknown>;
   sd?: boolean;
 }
 
@@ -81,7 +81,7 @@ export interface InputDescriptor {
   constraints?: {
     fields?: Array<{
       path: string[];
-      filter?: any;
+      filter?: Record<string, unknown>;
     }>;
   };
 }
@@ -250,7 +250,7 @@ export async function submitPresentation(
   responseUri: string,
   presentation: PresentationResponse,
   httpAdapter: HttpAdapter,
-): Promise<any> {
+): Promise<{ verified: boolean; message?: string }> {
   const response = await httpAdapter.post(responseUri, presentation, {
     'Content-Type': 'application/json',
   });
@@ -315,7 +315,7 @@ function toFiniteNumber(value: unknown): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
-function getFirstEnumNumber(filter: any): number | undefined {
+function getFirstEnumNumber(filter: Record<string, unknown> | undefined): number | undefined {
   if (!filter || !Array.isArray(filter.enum) || filter.enum.length === 0) {
     return undefined;
   }

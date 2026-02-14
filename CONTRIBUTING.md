@@ -9,6 +9,7 @@ New to the project? Start here! We maintain a list of beginner-friendly issues:
 🌟 [View Good First Issues](https://github.com/star7js/zk-id/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 
 These issues are:
+
 - Well-defined with clear acceptance criteria
 - Good learning opportunities
 - Mentorship available from maintainers

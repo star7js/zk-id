@@ -6,7 +6,7 @@
  */
 
 import { OpenID4VPWallet, InMemoryCredentialStore } from '@zk-id/sdk';
-import type { SignedCredential, Credential } from '@zk-id/core';
+import type { SignedCredential } from '@zk-id/core';
 import { ISO_3166_ALPHA2_TO_NUMERIC, ISO_3166_NUMERIC_TO_ALPHA2 } from '@zk-id/issuer';
 
 // Configuration (read from environment variables)
@@ -29,7 +29,7 @@ const wallet = new OpenID4VPWallet({
 });
 
 // Current authorization request
-let currentAuthRequest: any = null;
+let currentAuthRequest: unknown = null;
 
 // ---------------------------------------------------------------------------
 // Logging helpers
@@ -85,7 +85,7 @@ async function checkServerHealth() {
     }
 
     return issuerOk && verifierOk;
-  } catch (error) {
+  } catch {
     issuerStatus.className = 'status-dot disconnected';
     verifierStatus.className = 'status-dot disconnected';
     statusText.textContent = 'Servers offline';
@@ -312,7 +312,10 @@ document.getElementById('generate-presentation')!.addEventListener('click', asyn
   }
 });
 
-function displayVerificationResult(result: any, type: 'success' | 'error') {
+function displayVerificationResult(
+  result: { verified: boolean; message?: string },
+  type: 'success' | 'error',
+) {
   const container = document.getElementById('verification-result')!;
   container.innerHTML = `
     <div class="result ${type}">

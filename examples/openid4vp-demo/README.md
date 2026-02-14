@@ -150,14 +150,17 @@ openid4vp-demo/
 ## Troubleshooting
 
 **Servers not starting?**
+
 - Ensure ports 3000, 3001, 3002 are available
 - Check `npm install` completed successfully
 
 **Proof generation taking too long?**
+
 - First proof takes ~45-60 seconds (circuit loading)
 - Subsequent proofs are faster (~10-15 seconds)
 
 **Verification failing?**
+
 - Ensure credential was issued before creating request
 - Check browser console for errors
 - Verify all three servers are running (check status dots)

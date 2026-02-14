@@ -69,7 +69,7 @@ export class NotImplementedDCAPIAdapter implements DCAPIAdapter {
     return false;
   }
 
-  async get(request: DigitalCredentialRequest): Promise<DigitalCredential> {
+  async get(): Promise<DigitalCredential> {
     throw new Error(
       'Digital Credentials API is not yet implemented in @zk-id/mobile. ' +
         'This feature is planned for Q3 2026. ' +
@@ -77,7 +77,7 @@ export class NotImplementedDCAPIAdapter implements DCAPIAdapter {
     );
   }
 
-  async store(credential: DigitalCredential): Promise<void> {
+  async store(): Promise<void> {
     throw new Error(
       'Digital Credentials API is not yet implemented in @zk-id/mobile. ' +
         'Credentials are stored locally via SecureStorageAdapter instead.',
@@ -106,7 +106,7 @@ export class BrowserDCAPIAdapter implements DCAPIAdapter {
     return true;
   }
 
-  async get(request: DigitalCredentialRequest): Promise<DigitalCredential> {
+  async get(): Promise<DigitalCredential> {
     throw new Error('BrowserDCAPIAdapter.get() not yet implemented');
 
     // Future implementation:
@@ -127,7 +127,7 @@ export class BrowserDCAPIAdapter implements DCAPIAdapter {
     */
   }
 
-  async store(credential: DigitalCredential): Promise<void> {
+  async store(): Promise<void> {
     throw new Error('BrowserDCAPIAdapter.store() not yet implemented');
 
     // Future implementation:
