@@ -1,4 +1,4 @@
-import { poseidonHash, poseidonHashDomain, DOMAIN_MERKLE } from './poseidon';
+import { poseidonHashDomain, DOMAIN_MERKLE } from './poseidon';
 import { ValidCredentialTree, RevocationWitness, RevocationRootInfo } from './types';
 import { ZkIdConfigError, ZkIdValidationError } from './errors';
 
